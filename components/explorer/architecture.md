@@ -59,7 +59,7 @@ flowchart TD
 |---|---|---|
 | `src/api.js` | None | Entry point: Express server, SSL, Helmet, CORS, rate limiting, JSON-RPC router |
 | `src/XChainExplorer.js` | `XChainExplorer` | Main orchestrator: URL routing (130+ routes), request processing, response formatting, icon/relay handlers, SPV proof endpoint dispatch |
-| `src/db.js` | `Database` | All SQL queries (~9,400 lines), connection pool management, pagination, caching |
+| `src/db/index.js` | `Database` | All SQL queries (~9,400 lines), connection pool management, pagination, caching |
 | `src/config.js` | None | Configuration loading from hub or local config.json, 60-second auto-sync, coin/network discovery |
 | `src/lib/utility.js` | `Utility` | BigNumber math, timer functions, sanitization (escapeLike, sanitizeInt), type checking |
 | `src/connectors/hub.js` | `XChainHubConnector` | JSON-RPC client for xchain-hub (ping, getAllConfig) |
@@ -75,7 +75,7 @@ flowchart TD
 | `src/coin-config/BTC.js` | None | Bitcoin-specific: chain info, network addresses (burn, gas, protocol, community) |
 | `src/coin-config/LTC.js` | None | Litecoin-specific configuration |
 | `src/coin-config/DOGE.js` | None | Dogecoin-specific configuration |
-| `src/config.json` | None | Local database connection configuration (fallback when hub is unavailable) |
+| `src/config.json.example` | None | Local database connection configuration example (fallback when hub is unavailable) |
 
 ### Static Content (`src/content/`)
 
@@ -101,7 +101,7 @@ flowchart LR
     REQ["Request"] --> RL["Rate Limiter"] --> HELMET["Helmet"] --> CORS["CORS"] --> ROUTER["Express Router"]
 ```
 
-- **Rate limiter**: 1080 requests per 60-second window per IP by default, with tighter per-route limits (configurable; see [Rate Limiting](configuration.md#rate-limiting))
+- **Rate limiter**: 180 requests per 60-second window per IP by default, with tighter per-route limits (configurable; see [Rate Limiting](configuration.md#rate-limiting))
 - **Helmet**: Sets security headers including Content Security Policy
 - **CORS**: Validates origin against configured allowed origins
 
@@ -123,7 +123,7 @@ Special routes handled separately:
 
 1. **Load config**: Fetch current configuration (hub-sourced or local)
 2. **Parse URL**: Extract coin prefix, route type (html/api/explorer), method, query, and type from the path
-3. **Validate coin**: Check coin is in `COIN_SUPPORTED`; if not, return 503. Check coin is in `COIN_AVAILABLE`; if not, redirect to coin-unavailable page. A configured coin whose newest indexed block has aged past `EXPLORER_TIP_MAX_AGE_S` is treated the same way, so a frozen replica refuses the read rather than serving stale data as live; `/{COIN}/api/status` is exempt, since that is the endpoint an operator reads to see the freeze
+3. **Validate coin**: Check coin is in `COIN_SUPPORTED`; if not, return 503. Check coin is in `COIN_AVAILABLE`; if not, redirect to coin-unavailable page. A configured coin whose newest indexed block has aged past `EXPLORER_TIP_MAX_AGE_S` is still served by default, and the response carries the freshness marker (`XChain-Freshness: stale` and a body `freshness` object) so it is never mistaken for live data. Only with `EXPLORER_STALE_FAIL_CLOSED=1` does a frozen replica refuse the read with `503 COIN_DATA_STALE`; `/{COIN}/api/status` is exempt from that refusal, since that is the endpoint an operator reads to see the freeze
 4. **Match route**: Find the matching URL pattern in the route table
 5. **Build config object**: Populate method, search query, type, pagination parameters, and offset data
 6. **Execute query**: Call the corresponding database method (e.g., `db.getSends(config)`)

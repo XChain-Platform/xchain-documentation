@@ -150,7 +150,7 @@ flowchart TD
 | `bcmath.js` | None | Big-number helpers for cross-chain DEX partial-fill matching. A faithful port of the bignumber utilities in `xchain-indexer` (mathjs bignumber, `bcmul` at precision 18, `bcsub` at precision 64) so hub match quantities stay byte-identical to the indexer's local fill math. |
 | `stake_weighted_quorum.js` | None | Consensus-critical stake-weighted quorum predicate (WI-1). The canonical source is `xchain-indexer/src/consensus/stake_weighted_quorum.js`; it is vendored byte-identically into the hub and every other service that tallies PBFT votes or verifies settlement gates (sync, explorer, SDK), and into `xchain-documentation/protocol/reference-impl/consensus/` as the published reference copy. Edit the indexer copy only; every other copy is re-vendored from it. A CI gate (ConsensusPrimitiveConformance) asserts byte-identity across all repos. |
 | `equivocation_header.js` | None | Consensus-critical equivocation header builder (WI-2). Exports the key, prefix, and canonical builders only; consumers match the literal `EQUIV|<key>||` prefix with `startsWith` rather than parsing, because keys may themselves contain `|`. Prefixes every PBFT canonical with `EQUIV|<ENGINE_TAG>|<ROUND_ID>|<VIEW>||<CONTENT>` at and above the activation flag-day, making equivocation provable without false-positiving honest view changes. The canonical source is `xchain-indexer/src/consensus/equivocation_header.js`; it is vendored byte-identically into the hub, sync, explorer and SDK, and into `xchain-documentation/protocol/reference-impl/consensus/` as the published reference copy. Edit the indexer copy only. |
-| `checkpoint_commitment_activation.js` | None | Flag-day gate for the SPV light-client checkpoint-commitment (Phase 2). At and above the activation `snapshot_block`, the checkpoint signing string gains `STATE_ROOT` and `BLOCK_MERKLE_ROOT` fields and every ANCHOR v0 section carries them on DOGE. Gates on the BTC-anchored `snapshot_block` so the hub and all indexers flip the signed shape on the same anchor. |
+| `consensus/gate_registry.js` | `checkpoint_commitment_activation.CHECKPOINT_COMMITMENT_ACTIVATION` | Flag-day gate for the SPV light-client checkpoint-commitment (Phase 2). At and above the activation `snapshot_block`, the checkpoint signing string gains `STATE_ROOT` and `BLOCK_MERKLE_ROOT` fields and every ANCHOR v0 section carries them on DOGE. Gates on the BTC-anchored `snapshot_block` so the hub and all indexers flip the signed shape on the same anchor. |
 | `sql/*.sql` | None | MariaDB table schemas (configs, validators, price_snapshots, oracle_prices, state_checkpoints, capability_snapshots, cross_chain_matches, cross_chain_calls, validator_rewards, governance, telemetry_pings, etc.) |
 
 ## P2P Gossip Layer
@@ -430,9 +430,9 @@ Moving the median outside the range of the honest submissions requires controlli
 ```mermaid
 flowchart TD
     S1["1. REQUEST<br>requestattestation(source_chain, source_action_index, dest_chain)"]
-    S2["2. PROPOSE<br>Leader broadcasts XCHAIN_ATTEST_PROPOSE<br>→ includes attestation_id: '{source_chain}:{action_index}:{dest_chain}'"]
+    S2["2. PROPOSE<br>The hub that received the request broadcasts XCHAIN_ATTEST_PROPOSE<br>→ includes attestation_id: '{source_chain}:{action_index}:{dest_chain}'<br>→ any hub may propose, and a request for an id already in flight joins that round"]
     S3["3. PREPARE<br>Validators send XCHAIN_ATTEST_PREPARE<br>→ only validators supporting BOTH chains participate<br>→ collect the majority-floored quorum from the eligible validator subset"]
-    S4["4. COMMIT<br>Leader broadcasts XCHAIN_ATTEST_COMMIT<br>→ collect the majority-floored quorum of commits"]
+    S4["4. COMMIT<br>Each hub broadcasts XCHAIN_ATTEST_COMMIT once it holds the PREPARE quorum<br>→ collect the majority-floored quorum of commits"]
     S5["5. FINALIZE<br>Store in attestations table (status='attested')<br>→ emit attestation:finalized event<br>→ SwapTracker auto-progresses matching swaps"]
 
     S1 --> S2 --> S3 --> S4 --> S5

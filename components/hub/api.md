@@ -475,7 +475,7 @@ Omitting an optional bound is the open-ended / unfenced behaviour older indexers
 
 ### `GET /api/v1/chain-registry`
 
-Public bootstrap endpoint for wallets and SDK clients: the chain descriptors (display metadata, address types, derivation paths, fee strategy, `supportedActions`, and default explorer/encoder/hub endpoint URLs) for every supported coin and network. `supportedActions` advertises what each chain's protocol accepts, and clients gate features on it: the wallet shows its betting surface only on chains whose descriptor lists `BET`, for example. No authentication; served with `Cache-Control: public, max-age=300`. The payload is a snapshot of the wallet's bundled descriptors, kept in sync by `xchain-wallet/bin/sync-chain-registry.mjs`.
+Public bootstrap endpoint for wallets and SDK clients: the chain descriptors (display metadata, address types, derivation paths, fee strategy, `supportedActions`, and default explorer/encoder/hub endpoint URLs) for every supported coin and network. `supportedActions` advertises what each chain's protocol accepts, and clients gate features on it: the wallet shows its betting surface only on chains whose descriptor lists `BET`, for example. No authentication; served with `Cache-Control: public, max-age=300`. The payload is a snapshot of the wallet's bundled descriptors, kept in sync by `xchain-wallet/tools/sync-chain-registry.mjs`.
 
 **Response:**
 ```json
@@ -818,7 +818,7 @@ Pass any action name from the table as the `action` parameter. Passing an unknow
 
 ### `requestattestation`
 
-Initiates a PBFT attestation consensus round for a cross-chain action.
+Initiates a PBFT attestation consensus round for a cross-chain action. Any hub serves the request, and a request for an attestation already in flight on that hub joins that round and returns its result.
 
 **Request:**
 ```json
@@ -1361,7 +1361,7 @@ Read-only, no-auth counters for the cross-chain call and state-checkpoint subsys
 
 ### `getcrosschaincallstats`
 
-Cross-chain call relay backlog depth and lifetime failure counters. Useful for spotting a stalled XCALL relay (a growing backlog) or repeated result-fetch errors.
+Cross-chain call relay backlog depth and lifetime failure counters. Useful for spotting a stalled XCALL relay (a growing backlog), repeated result-fetch errors, or a source-chain indexer the hub cannot read (a rising `dispatch_poll_failures`, which no backlog shows because unread requests create no dispatch rows).
 
 **Request:**
 ```json
@@ -1373,7 +1373,8 @@ Cross-chain call relay backlog depth and lifetime failure counters. Useful for s
 {
   "pending_relay_count":3,
   "pending_by_chain":{"DOGE":2,"LTC":1},
-  "result_attempt_failures":0
+  "result_attempt_failures":0,
+  "dispatch_poll_failures":0
 }
 ```
 
@@ -1382,6 +1383,7 @@ Cross-chain call relay backlog depth and lifetime failure counters. Useful for s
 | `pending_relay_count` | integer | Finalized dispatches with no non-retracted result row yet, awaiting relay (total across chains) |
 | `pending_by_chain` | object | The same backlog broken down by `target_chain` |
 | `result_attempt_failures` | integer | Process-lifetime count of result-fetch attempts that errored |
+| `dispatch_poll_failures` | integer | Process-lifetime count of failed reads of pending XCALL requests from a source-chain indexer (a thrown call, an error body, or a malformed result); per chain, the hub logs a warning on the first failure after a good read, then at most once every 5 minutes while failures continue |
 
 ### `getcheckpointstats`
 

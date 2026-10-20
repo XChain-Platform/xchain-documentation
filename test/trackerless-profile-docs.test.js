@@ -27,7 +27,7 @@ test('the contract names every tracker and encoder endpoint in the profile path'
 test('the contract defines the freshness payload and decision fields', () => {
   const fields = [
     'committed_height', 'tracker_height', 'node_height', 'lag', 'synced',
-    'mempool_ready', 'halted', 'halt_reason', 'reorg_count',
+    'mempool_ready', 'halted', 'halt_reason', 'reorg_count', 'committed_hash',
   ];
   for (const field of fields) {
     assert.ok(page.includes(`| \`${field}\` |`), `${PAGE_PATH} is missing the ${field} field row`);

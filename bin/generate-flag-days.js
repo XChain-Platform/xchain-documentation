@@ -193,13 +193,15 @@ const SIBLING_MAINNET_SLOT = /(?:^|[{,\s])(mainnet|['"][A-Z]+:mainnet['"])\s*:\s
  * QUIET BY DESIGN, on the registry arm's own rationale: `null` parks an inert
  * placeholder no operator has ratified, and an identifier is a named constant
  * no text scan can resolve, so guessing at it is what turns a build gate into
- * noise. Everything else is a shape that could hide a live threshold.
+ * noise. Everything else is a shape that could hide a live threshold. A number
+ * is a `TIME_LITERAL` (separators allowed only between digits), read the same
+ * way `registryCalls` reads a time slot.
  */
 function readMainnetSlot(raw) {
     const value = raw.trim().replace(/;$/, '');
     if (value === 'null') return { kind: 'quiet' };
-    const digits = value.replace(/_/g, '');
-    if (/^\d+$/.test(digits)) return { kind: 'number', time: Number(digits) };
+    // Test the separator grammar before stripping, so `_1786060800` stays a name.
+    if (TIME_LITERAL.test(value)) return { kind: 'number', time: Number(value.replace(/_/g, '')) };
     if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(value)) return { kind: 'quiet' };
     return { kind: 'unreadable' };
 }

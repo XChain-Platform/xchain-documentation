@@ -459,7 +459,6 @@ const CONSTANTS = require(path.join(ROOT, 'protocol', 'constants.js'));
 // Pair each whitepaper status note, found by its line's anchor, with the gate it describes.
 const WHITEPAPER_GATE_NOTES = [
     { anchor: /^- \*\*ROLLCALL\*\* is a validator-broadcast/, gate: 'ROLLCALL_ACTIVATION' },
-    { anchor: /broadcast fee be reimbursed from the request's escrow/, gate: 'ATTEST_BROADCAST_FEE_ACTIVATION' },
 ];
 const INERT_NOTE = /ships inert|operator-owned|\binert\b/i;
 const GENESIS_NOTE = /armed at genesis on (?:mainnet|every network)/i;

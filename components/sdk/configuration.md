@@ -16,16 +16,16 @@ const sdk = new XChainSDK(options);
 | `network` | string | `NETWORK` env var | Target blockchain and network. See [Network Strings](#network-strings) for valid values. |
 | `explorerUrl` | string | `EXPLORER_URL` env var, then the public XChain host for mainnet/testnet, then `'localhost'` for regtest | Hostname or IP of the xchain-explorer API server. See [Public Endpoint Defaults](#public-endpoint-defaults). |
 | `explorerPort` | number | `EXPLORER_PORT` env var or `8080` | Port of the xchain-explorer API server. Unused when `explorerUrl` resolves to a full `https://` URL (the public default). |
-| `encoderUrl` | string | `ENCODER_URL` env var, then the public XChain host for mainnet/testnet, then `'localhost'` for regtest | Hostname or IP of the xchain-encoder JSON-RPC server. See [Public Endpoint Defaults](#public-endpoint-defaults). |
+| `encoderUrl` | string | `ENCODER_URL` env var, then the public XChain host for mainnet/testnet. Regtest has no default: the encoder client is built only once `encoderUrl`/`encoderPort` (or `ENCODER_URL`/`ENCODER_PORT`) is supplied, and then on `localhost` when only a port is given | Hostname or IP of the xchain-encoder JSON-RPC server. See [Public Endpoint Defaults](#public-endpoint-defaults). |
 | `encoderPort` | number | `ENCODER_PORT` env var or `3003` | Port of the xchain-encoder JSON-RPC server. Unused when `encoderUrl` resolves to a full `https://` URL (the public default). |
-| `hubUrl` | string | `HUB_API_HOST` env var, then the public XChain host for mainnet/testnet, then `'localhost'` for regtest | Hostname or IP of the xchain-hub config oracle. Required for hub discovery. See [Public Endpoint Defaults](#public-endpoint-defaults). |
+| `hubUrl` | string | `HUB_API_HOST` env var, then the public XChain host for mainnet/testnet. Regtest gets no hub unless `hubUrl` (or `HUB_API_HOST`, or `hubValidators`) is supplied | Hostname or IP of the xchain-hub config oracle. Required for hub discovery. See [Public Endpoint Defaults](#public-endpoint-defaults). |
 | `hubPort` | number | `HUB_PORT` env var or `10000` | Port of the xchain-hub config oracle. |
 | `hubPollInterval` | number | `60000` | How often (ms) to re-fetch config from hub after `init()`. |
 | `timeout` | number | `30000` | Request timeout in milliseconds applied to all HTTP requests. |
 | `retry` | RetryConfig or `false` | See [Retry Configuration](#retry-configuration) | Retry policy for transient errors. Pass `false` to disable retries entirely. |
 | `hooks` | SDKHooks object | `{}` | Lifecycle callbacks for requests, responses, errors, and retries. See [Request Hooks](#request-hooks). |
 | `pool` | PoolConfig object | See [Connection Pooling](#connection-pooling) | HTTP keep-alive agent settings for the explorer and encoder clients. |
-| `websocketUrl` | string | `WEBSOCKET_URL` env var, falls back to `explorerUrl` | Hostname of the xchain-explorer WebSocket server. |
+| `websocketUrl` | string | `WEBSOCKET_URL` env var, falls back to a resolved `explorerUrl` (not the regtest `localhost` explorer fallback, so a zero-config regtest SDK has no WebSocket client) | Hostname of the xchain-explorer WebSocket server. |
 | `websocketPort` | number | `WEBSOCKET_PORT` env var, falls back to `explorerPort` | Port of the xchain-explorer WebSocket server. |
 
 ### RetryConfig fields
@@ -66,10 +66,10 @@ When the same setting can be specified in multiple places, the SDK resolves it i
 1. **Constructor options**: values passed directly to `new XChainSDK(options)`.
 2. **Hub-discovered endpoints**: endpoint URLs and ports fetched from xchain-hub during `init()`. Only applies to `explorerUrl`, `explorerPort`, `encoderUrl`, and `encoderPort`, and only overlays a field that was not pinned via constructor options.
 3. **Environment variables**: values read from process environment or a `.env` file.
-4. **Public endpoint defaults**: for mainnet/testnet networks only, the public XChain Platform hosts (`https://hub.xchain.io`, `https://explorer.xchain.io`, `https://encoder.xchain.io`). See [Public Endpoint Defaults](#public-endpoint-defaults).
-5. **Localhost fallback**: the last resort, used by regtest networks (inherently local) and any construction with no network at all.
+4. **Public endpoint defaults**: for mainnet/testnet networks only, the public XChain Platform hosts (`https://hub.xchain.io/{COIN}`, `https://explorer.xchain.io`, `https://encoder.xchain.io/{COIN}`; the explorer client adds the coin path itself). See [Public Endpoint Defaults](#public-endpoint-defaults).
+5. **Localhost fallback**: the last resort host, used when nothing above supplied a URL. On a regtest network (inherently local) with nothing configured, only the explorer client is built from it (`localhost:8080`); the encoder and WebSocket clients are built only once a URL or port for them is supplied.
 
-Constructor options always win. Hub discovery fills gaps that explicit options did not cover. Environment variables fill gaps that hub discovery did not cover. For mainnet/testnet, public endpoint defaults fill gaps environment variables did not cover, so a network-only construction (`new XChainSDK({ network: 'bitcoin-mainnet' })`) already has working explorer, encoder, and hub clients with no other configuration. The localhost fallback only applies to regtest, or when no network is set at all.
+Constructor options always win. Hub discovery fills gaps that explicit options did not cover. Environment variables fill gaps that hub discovery did not cover. For mainnet/testnet, public endpoint defaults fill gaps environment variables did not cover, so a network-only construction (`new XChainSDK({ network: 'bitcoin-mainnet' })`) already has working explorer, encoder, and hub clients with no other configuration. The localhost fallback only applies when no URL was resolved, which on a zero-config construction means the regtest explorer.
 
 ## Environment Variables
 
@@ -81,6 +81,7 @@ The SDK reads these environment variables at construction time. A `.env` file in
 | `SDK_API_PORT` | Port for the JSON-RPC microservice API server. Default: `3005`. | API server (`npm run api`) |
 | `SDK_API_KEY` | Bearer token required for all API server methods except `ping`. No default; the server warns and rejects all non-ping calls when unset. | API server (`npm run api`) |
 | `SDK_API_MAX_BATCH` | Maximum calls accepted in one batch request. A non-numeric or non-positive value falls back to the default rather than disabling the cap. Default: `20`. | API server (`npm run api`) |
+| `XCHAIN_CONTRACTS_DIR` | Path to the xchain-contracts checkout that `bin/sync-templates.js` reads the contract templates from when it regenerates `src/contract/templates.js`. Default: the `xchain-contracts` directory beside the SDK checkout. | Template sync (`bin/sync-templates.js`) |
 | `SDK_API_RATE_LIMIT` | Requests allowed per window, per credential (per source address when unauthenticated). A junk value falls back to the default; an explicit `0` disables the limiter, which is the only way to turn it off. Default: `300`. | API server (`npm run api`) |
 | `SDK_API_RATE_WINDOW_MS` | Length of the rate-limit window. Default: `60000` (1 minute). | API server (`npm run api`) |
 | `EXPLORER_URL` | Hostname or IP of the xchain-explorer server. | Explorer client |
@@ -94,7 +95,8 @@ The SDK reads these environment variables at construction time. A `.env` file in
 | `HUB_API_KEY` | API key sent with hub calls as `x-api-key`. Required whenever the hub runs keyed. Treat as a credential. | Hub connector |
 | `XCHAIN_MCP_WIF` | Agent signing key for the MCP server's write tools. **Never logged or echoed.** Must be set together with `XCHAIN_MCP_POLICY`; with either missing the server starts read-only. Configured by the operator, never by the conversation. See [MCP Quickstart](../../ai-agents/mcp-quickstart.md). Treat as a credential. | MCP server |
 | `XCHAIN_MCP_POLICY` | Path to the `AgentSession` policy JSON that bounds what the agent may spend. Required alongside `XCHAIN_MCP_WIF`; a policy with no spend ceiling is refused, because the MCP rail has no human in the loop. | MCP server |
-| `XCHAIN_INDEXER_PATH` | Path to a sibling `xchain-indexer` checkout, used by `bin/check-preflight-drift.js` to hash the indexer's action handlers. Falls back to `../xchain-indexer`. Development tooling only. | Drift checker |
+| `XCHAIN_INDEXER_PATH` | Path to a sibling `xchain-indexer` checkout, used by `bin/check-preflight-drift.js` to hash the indexer's action handlers. Read first: when set it is authoritative, and the checker never falls back to the sibling. When unset, the checker reads `XCHAIN_INDEXER_DIR`, then falls back to `../xchain-indexer`. Development tooling only. | Drift checker |
+| `XCHAIN_INDEXER_DIR` | Second name for the `xchain-indexer` checkout path, read by `bin/check-preflight-drift.js` and the SDK's indexer parity tests only when `XCHAIN_INDEXER_PATH` is unset. When it is read it is just as authoritative: the checker never falls back to the sibling. Default: `../xchain-indexer`. Development tooling only. | Drift checker |
 | `XCHAIN_REQUIRE_SIBLINGS` | Makes `bin/check-preflight-drift.js` treat an unresolved `xchain-indexer` checkout as a finding instead of a skip, so a CI job whose checkout step was dropped fails loudly rather than reporting success having compared nothing. Only the exact value `1` enables it, and it overrides `XCHAIN_ALLOW_NO_INDEXER`. No default. Development tooling only. | Drift checker |
 | `XCHAIN_ALLOW_NO_INDEXER` | Declares that this run has no `xchain-indexer` checkout on purpose (a standalone SDK clone), so `bin/check-preflight-drift.js` exits 0 and says it compared nothing instead of failing. Only the exact value `1` enables it, and `XCHAIN_REQUIRE_SIBLINGS=1` overrides it. No default: when unset, an unresolved indexer checkout FAILS the gate, because a missing directory is an accident of layout rather than a decision. Development tooling only. | Drift checker |
 | `CORS_ORIGIN` | CORS origin for the JSON-RPC microservice API server. Disabled when unset. | API server (`npm run api`) |
@@ -182,7 +184,7 @@ When only `network` is specified (no explicit service URLs, no environment overr
 
 `{COIN}` is the coin prefix derived from your `network` (e.g. `BTC` for `bitcoin-mainnet`, `TBTC` for `bitcoin-testnet`). These defaults use HTTPS on port 443; no port number is appended.
 
-Regtest networks always fall through to each client's own `localhost` fallback because regtest stacks are inherently local.
+Regtest networks get no public defaults because regtest stacks are inherently local. With nothing else configured, the explorer falls back to `localhost:8080`, but the encoder (needed for any write) and the WebSocket client stay unset. The encoder is built once `encoderUrl` or `encoderPort` (or `ENCODER_URL` / `ENCODER_PORT`) is supplied; the WebSocket client once any of `websocketUrl`, `websocketPort`, `explorerUrl` or `explorerPort` is (or the matching `WEBSOCKET_*` / `EXPLORER_*` variables).
 
 ```javascript
 // Minimal config: hub, explorer, and encoder all resolve to the public platform

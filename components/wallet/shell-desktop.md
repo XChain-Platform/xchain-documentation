@@ -32,7 +32,7 @@ Keys never cross the IPC boundary into the renderer. Even if the renderer is com
 | `main/storage.js` | File-backed Vault adapter; encrypted at rest with the same AES-256-GCM scheme as the extension |
 | `main/keychain.js` | Session-master-key cache: an OS-keychain-encrypted `session.bin` when a keychain backend is available, in memory otherwise |
 | `main/messageHost.js` | `MessageHost` integration: same as the extension's service worker |
-| `main/protocol.js` | URI scheme registration (`bitcoin:` / `dogecoin:` / `litecoin:` / `xchain:`) via `app.setAsDefaultProtocolClient` |
+| `main/protocol.js` | Default-handler claim via `app.setAsDefaultProtocolClient` (`xchain:` always; `bitcoin:` / `dogecoin:` / `litecoin:` only after an opt-in) and deep-link dispatch for all four |
 | `main/permissions.js` | Per-origin permission grants; same `connectedSites` schema as the extension |
 | `main/signerBridgeListener.js` | Receives sign requests from a paired `RemoteSigner` channel |
 | `main/updater.js` | electron-updater wiring; signature-verified auto-updates |
@@ -147,7 +147,7 @@ pnpm --filter @xchain-wallet/desktop reproduce      # rebuild and verify
 
 ## URI registration
 
-On every launch the desktop app claims the `xchain:` scheme via `app.setAsDefaultProtocolClient`. The coin schemes (`bitcoin:`, `dogecoin:`, `litecoin:`) are declared at install time but claimed only after an opt-in, which is off by default and has no settings toggle yet, so the desktop app does not handle them today.
+On every launch the desktop app makes itself the default `xchain:` handler via `app.setAsDefaultProtocolClient`. The coin schemes (`bitcoin:`, `dogecoin:`, `litecoin:`) are declared to the OS at install time, but the app makes itself their default handler only after an opt-in, which is off by default and has no settings toggle yet. The OS may still route a coin URI to the app where no other app is the default handler; the app then parses it as BIP21.
 
 Clicking an `xchain:` URI in the OS launches or focuses the desktop app and, once the wallet is unlocked, opens the matching form prefilled: Send for a payment link, Receive for a receive link, and the contract Execute form for an execute link that names a contract. A link clicked while the app was closed or locked is held until then. A link only ever prefills a form; the user still reviews and confirms it.
 

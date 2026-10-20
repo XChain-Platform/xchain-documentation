@@ -12,27 +12,27 @@
  *
  * Explorer /status response-contract gate.
  *
- * WHY. The explorer's tip-age gate changed what `available` MEANS: it used to
- * be a static echo of the configured coin map and is now recomputed per
- * request, with every coin whose newest indexed block has aged out dropped
- * from it, plus two new fields (`stale`, `tip_age_seconds`). Both published
- * descriptions of the endpoint kept the old contract for the whole life of the
- * gate, and nothing went red: the explorer's OpenAPI asset is served static and
- * this page is prose, so neither had a producer to disagree with.
+ * WHY. `available` is recomputed per request, and whether a stale coin leaves
+ * it depends on EXPLORER_STALE_FAIL_CLOSED: by default a stale coin stays
+ * listed and is served with a freshness marker. The explorer's OpenAPI asset is
+ * served static and this page is prose, so neither has a producer to disagree
+ * with, and a wrong statement of that rule goes red nowhere else.
  *
- * WHAT IT CHECKS, against xchain-explorer's published OpenAPI asset:
+ * WHAT IT CHECKS, against xchain-explorer's published OpenAPI asset and source:
  *
  *   1. The field table in components/explorer/api.md carries a row for every
  *      property the ExplorerStatus schema declares, so a new field cannot ship
  *      documented on one surface only.
- *   2. The page states the semantics a caller gets wrong by default: that
- *      `available` is filtered by staleness rather than fixed, and that a stale
- *      coin leaves `available` while staying in `supported`.
+ *   2. The page states the semantics a caller gets wrong by default: that a
+ *      stale coin stays in `available` unless EXPLORER_STALE_FAIL_CLOSED=1, so
+ *      `stale` rather than `available` is the freshness signal.
  *   3. The response example is a keyed map, not the array the page showed
  *      before, since a client written against the old example would index it
  *      wrongly.
  *   4. The hub consensus-hash comparison fields carry their three-state
  *      verdict and mismatch-detail semantics, including their advisory scope.
+ *   5. The "Freshness marker" section names every XChain-* header and every
+ *      body `freshness` key the explorer's send_response.js emits.
  *
  * xchain-explorer is a sibling repo in the monorepo checkout, not a dependency
  * of xchain-documentation. When it is absent (docs repo cloned on its own) the
@@ -48,10 +48,12 @@ const { sibling } = require('./helpers/sibling_checkout.js');
 
 const API_DOC = path.resolve(__dirname, '../components/explorer/api.md');
 const SCHEMA  = path.resolve(__dirname, '../../xchain-explorer/src/content/json/xchain-platform-api.json');
+const MARKER  = path.resolve(__dirname, '../../xchain-explorer/src/explorer/request/send_response.js');
 
 const doc         = fs.readFileSync(API_DOC, 'utf8');
 // Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1 when the schema is unreadable.
 const noSchema    = sibling('xchain-explorer', [SCHEMA]).skip;
+const noMarker    = sibling('xchain-explorer', [MARKER]).skip;
 
 // The "Get Status" section only: a field name mentioned under some other
 // endpoint must not count as documented here.
@@ -91,9 +93,13 @@ describe('explorer /status contract in components/explorer/api.md', () => {
             'the `available` row no longer says the map is computed per request');
     });
 
-    test('states that a stale coin leaves available and stays supported', () => {
-        assert.match(section, /leave `available` and stay in `supported`|absent from `available`, while still listed in `supported`/,
-            'the page no longer states where a stale coin goes');
+    test('states that a stale coin stays in available unless fail-closed is set', () => {
+        assert.match(section, /stays in `available`/,
+            'the page no longer states that a stale coin stays listed by default');
+        assert.match(section, /EXPLORER_STALE_FAIL_CLOSED=1/,
+            'the page no longer names the opt-in that delists a stale coin');
+        assert.doesNotMatch(section, /drops every coin the freshness gate marks|absent from `available`, while still listed/,
+            'the page says a stale coin always leaves `available`, which is true only under EXPLORER_STALE_FAIL_CLOSED=1');
     });
 
     test('names the threshold that decides staleness', () => {
@@ -122,5 +128,29 @@ describe('explorer /status contract in components/explorer/api.md', () => {
             'the page does not state that hub-served consensus values are never applied');
         assert.match(section, /TICK\/network/,
             'the page does not describe the mismatch detail identifier');
+    });
+});
+
+// The "Freshness marker" subsection only, up to the next heading of any level.
+function markerSection(markdown) {
+    const start = markdown.indexOf('### Freshness marker');
+    assert.notEqual(start, -1, 'components/explorer/api.md no longer has a "Freshness marker" section');
+    const next = markdown.indexOf('\n#', start + 1);
+    return markdown.slice(start, next === -1 ? markdown.length : next);
+}
+
+describe('explorer freshness marker in components/explorer/api.md', () => {
+    test('names every header and body key send_response.js emits', { skip: noMarker }, () => {
+        const src     = fs.readFileSync(MARKER, 'utf8');
+        const headers = [...src.matchAll(/head\['(XChain-(?:Freshness|Tip-[A-Za-z-]+))'\]/g)].map((m) => m[1]);
+        const body    = /json\.freshness\s*=\s*\{([^}]*)\}/.exec(src);
+        assert.ok(body, 'send_response.js no longer builds a body `freshness` object this test can read');
+        const keys    = [...body[1].matchAll(/^\s*([a-z_]+)\s*:/gm)].map((m) => m[1]);
+        // Floors, so a producer rewrite the patterns stop matching fails here instead of passing empty.
+        assert.ok(headers.length >= 3, 'read only ' + headers.length + ' XChain-* marker headers from send_response.js');
+        assert.ok(keys.length >= 4, 'read only ' + keys.length + ' freshness body keys from send_response.js');
+        const section = markerSection(doc);
+        const missing = headers.concat(keys).filter((name) => !section.includes('`' + name + '`'));
+        assert.deepEqual(missing, [], 'the Freshness marker section does not name: ' + missing.join(', '));
     });
 });

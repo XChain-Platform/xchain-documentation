@@ -633,25 +633,34 @@ one addition for the section a v3's `WRAPPER_SECTION_INDEX` names; see
 - `CHUNK_INDEX` must be in `[1, TOTAL_CHUNKS-1]` and not a duplicate.
 - The chunk's source address must equal the head's: "authenticated by its parent v1" is
   enforced, so only the publisher whose batch it is can fill a slot.
-- Carries no signatures; a v2 is meaningful only joined to its authenticated v1; orphan or
-  CRC-failing batches are flagged `invalid_archive` and ignored by recovery.
+- Carries no signatures; a v2 is meaningful only joined to its authenticated v1. A chunk
+  whose publisher has no head for the seq yet is stored `orphan`, and the head-side check
+  picks it up when that head lands.
+- A batch is judged only once every index `1..TOTAL_CHUNKS-1` is present in the head
+  publisher's chunk set. The reassembled bytes are then checked against the head's
+  `BATCH_CRC32` (and, from `ARCHIVE_MATCH_COUNT_ACTIVATION`, its `MATCH_COUNT`); a mismatch
+  flags the batch `invalid_archive`, and recovery ignores a batch flagged that way.
+- A batch that never assembles is never stamped. Its head keeps its `valid` or `unverified`
+  status, its early chunks stay `orphan`, and recovery reports it as an incomplete batch and
+  skips it, so a query for `invalid_archive` does not find it. The `getarchiveanchor` RPC's
+  `chunks_present` and `chunks_complete` fields report which chunk indexes a head has
+  on-chain, for a publisher resuming a partial publish.
 
-#### Archive batch identity (flag-day gated)
+#### Archive batch identity
 
 `MATCH_BATCH_SEQ` is not unique: an equal seq is accepted (re-broadcast, failover
-double-publish), so more than one head can carry it. At/after the per-network
-`ARCHIVE_BATCH_AUTHOR` flag-day an archive batch is identified by
-**(`MATCH_BATCH_SEQ`, head source address)**, not by the seq alone:
+double-publish), so more than one head can carry it. On every network an archive batch is
+identified by **(`MATCH_BATCH_SEQ`, head source address)**, not by the seq alone:
 
 - a chunk's parent is the earliest head for that seq **authored by the same address**,
 - `TOTAL_CHUNKS`, slot occupancy and `BATCH_CRC32` reassembly are all evaluated within
   that publisher's own batch, and
 - a chunk whose publisher has no head for the seq is an orphan.
 
-Before the flag-day the parent is the earliest head for the seq regardless of author, which
-lets anyone deny a batch by broadcasting a junk head at the next seq: its `TOTAL_CHUNKS`
-invalidates every legitimate chunk, and its address becomes the only one whose chunks count.
-A publisher publishing one head per seq sees no difference between the two rules.
+Keying the batch on the seq alone would let anyone deny a batch by broadcasting a junk head
+at the next seq: its `TOTAL_CHUNKS` would invalidate every legitimate chunk, and its address
+would become the only one whose chunks count. A publisher publishing one head per seq sees
+the same result under either key.
 
 ### Version 3 only
 - **`SECTION_COUNT` must be at least 1.** Zero is never legal in v3: it describes an unsigned
@@ -682,19 +691,20 @@ A publisher publishing one head per seq sees no difference between the two rules
   verbatim: `MATCH_COUNT` must equal `matches.length` after decompression (checked at
   reassembly when chunked), `BATCH_CRC32` must match the CRC32 of the uncompressed JSON, and
   overflow rides v2 continuation chunks tied by `MATCH_BATCH_SEQ` to this v3 exactly as to a v1
-  head (including the flag-day-gated [archive batch identity](#archive-batch-identity-flag-day-gated)
-  rule above).
+  head (including the [archive batch identity](#archive-batch-identity) rule above).
 - **Verdict scope is gated by `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION`**, evaluated at the
-  same `SNAPSHOT_BLOCK` as `ANCHOR_FOLD_ACTIVATION`. Below it, a bad archive section (failed CRC,
-  an orphaned or missing continuation, or a `WRAPPER_SECTION_INDEX` signature that fails the
-  extended canonical) invalidates the WHOLE v3 action, checkpoint sections included: the v0
-  one-bad-section rule extended to treat the archive as one more section. AT OR ABOVE it,
+  same `SNAPSHOT_BLOCK` as `ANCHOR_FOLD_ACTIVATION`. Below it, a bad archive section (a
+  reassembled archive that fails its CRC or `MATCH_COUNT` check, or a `WRAPPER_SECTION_INDEX`
+  signature that fails the extended canonical) invalidates the WHOLE v3 action, checkpoint
+  sections included: the v0 one-bad-section rule extended to treat the archive as one more
+  section. AT OR ABOVE it,
   `setAnchorArchiveStatus` stamps ONLY the archive row (selected by
   `match_batch_seq IS NOT NULL AND version <> 2`); every checkpoint section keeps whatever
   verdict its own signatures earned, so a late chunk CRC failure can never retroactively
   invalidate a checkpoint a light client already consumed. A bad CHECKPOINT section always
   invalidates the whole action in both eras; only the archive's OWN failures are, or are not,
-  section-scoped.
+  section-scoped. An orphaned or missing continuation produces no verdict in either era: the
+  batch never assembles (see Version 2 only).
 - **One reward for the whole `(NETWORK, SNAPSHOT_BLOCK)` cycle, whatever the split count or
   `ARCHIVE_COUNT` is.** The `PUBLISHER` and
   attestation tail sign the same `XANCPUB|anchor_bundle|...` tuple a v0 bundle signs (see

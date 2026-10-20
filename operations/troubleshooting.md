@@ -129,7 +129,7 @@ This document covers common problems, their symptoms, and how to diagnose and re
 
 **Symptom:** every read for one coin fails with `503` and `{"code": "COIN_DATA_STALE"}`, WebSocket subscribes answer with the same code, and `/{COIN}/api/status` reports `stale: true` for it and leaves it out of `available`.
 
-**Cause:** the newest indexed block for that coin is older than `EXPLORER_TIP_MAX_AGE_S` (default `21600`, six hours), so the explorer refuses to serve data it cannot vouch for as current. On production that means the chain, the decoder, or the indexer has stopped, or this replica has stopped replicating.
+**Cause:** the explorer runs with `EXPLORER_STALE_FAIL_CLOSED=1`, and the newest indexed block for that coin is older than `EXPLORER_TIP_MAX_AGE_S` (default `21600`, six hours), so the explorer refuses to serve data it cannot vouch for as current. Without that opt-in the same coin is still served, with `XChain-Freshness: stale` on each response and `stale: true` on `/{COIN}/api/status`. On production that means the chain, the decoder, or the indexer has stopped, or this replica has stopped replicating.
 
 **Fix:** find what stopped and restart it. Verify with `/{COIN}/api/status`, which is exempt from the gate and reports `tip_age_seconds`.
 

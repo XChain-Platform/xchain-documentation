@@ -68,7 +68,7 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | Variable | Description | Default |
 |---|---|---|
 | `HUB_PRICE_SYNC_TIMEOUT_MS` | Price-sync barrier timeout. Before processing a block the indexer waits for its local price mirror to reach that block height, so native-coin fee validation is deterministic across operators. On timeout the block is deferred and retried rather than validated against a stale price copy. | `60000` |
-| `INDEXER_HEALTH_STALL_GRACE_MS` | How long with no committed block before the container reports unhealthy (`503`). Defaults to comfortably more than one barrier cycle so a single legitimate defer never flaps the healthcheck. Operational only, **not** a consensus parameter. | `max(2 × HUB_PRICE_SYNC_TIMEOUT_MS, 120000)` |
+| `INDEXER_HEALTH_STALL_GRACE_MS` | How long with no committed block before the container reports unhealthy (`503`). Defaults to comfortably more than one barrier cycle so a single legitimate defer never flaps the healthcheck. A roll-call or capability proof wait (`rollcall_proof_unavailable`, `capability_proof_unavailable`) is judged against its own longer window instead: twice `HUB_SYNC_BARRIER_HOLD_CEILING_S`, never less than this grace. It reports `rollcall_proof_wait` or `capability_proof_wait`, then the `_stuck` class past the ceiling (`/ready` answers `503`), and only then `wedged`, which buys one container restart. With the ceiling at `0` it falls back to this grace. Operational only, **not** a consensus parameter. | `max(2 × HUB_PRICE_SYNC_TIMEOUT_MS, 120000)` |
 | `INDEXER_POLL_SILENT_MS` | How long the block-poll loop may go without completing an iteration before the health payload reports it silent and the monitor crits. Deliberately **not** part of the `/status` 503 gate: one block can hold a single iteration across several sequential barrier waits, and restarting the container is the wrong answer to a slow block, so the default doubles the stall grace again. Measures loop **liveness**, never chain progress, so unlike the stall signal it has nothing to do with commits. Operational only, **not** a consensus parameter. | `2 × INDEXER_HEALTH_STALL_GRACE_MS` |
 | `INDEXER_READY_NO_COMMIT_MS` | How long the indexer may sit behind a known tip without committing a block before `GET /ready`, and the `ready` / `notReadyReasons` fields on `/status`, report it not ready (`behind_tip_no_commit`). Readiness only: the `/status` 503 liveness gate never reads it. A value that is not a positive integer keeps the default. Operational only, **not** a consensus parameter. | `600000` (10 min) |
 | `INDEXER_CHAIN_TIP_TTL_MS` | How long the coin node tip read from the utxo tracker is cached for the `chainLag` field on `/status`. Health reporting only. | `15000` |
@@ -161,6 +161,7 @@ Genesis is pinned per network in the coin registry and the bundled dumps ship in
 | `GENESIS_DUMP_PATH` | Path to the pre-derived genesis state dump. When present, the dump-import path runs and is verified against `XCHAIN_GENESIS_DUMP_HASH` (sha256 of the *uncompressed* content) plus a recheck of the genesis block hashes; absent, the canonical CSV derivation runs instead. | `data/genesis/<coin>-<network>-genesis-dump.ndjson.gz` |
 | `GENESIS_BLOCK_TIMEOUT_MS` | Watchdog for the genesis block on the CSV-derivation path, which is the slow one | `14400000` (4 h) |
 | `GENESIS_DUMP_TIMEOUT_MS` | Watchdog for the genesis block on the dump-import path. Kept tight (BTC measures around 15 s) so a wedged import is caught fast. | `600000` (10 min) |
+| `XCHAIN_GENESIS_BLOCK` | Genesis height `bin/generate-genesis-dump.js` seeds its scratch decoder and indexer at when it regenerates a dump. Read only by that tool, never by the service. | `100` |
 | `GENESIS_AIRDROP_PATHS` | **Regtest only.** Comma-separated airdrop snapshot files to replay at genesis | _(none)_ |
 | `GENESIS_AIRDROP_HASHES` | **Regtest only.** Comma-separated sha256 digests pinning each `GENESIS_AIRDROP_PATHS` entry, index-aligned (an empty entry leaves that bucket unpinned) | _(none)_ |
 | `GENESIS_AIRDROP_AMOUNTS` | **Regtest only.** Comma-separated per-file airdrop amounts, index-aligned with `GENESIS_AIRDROP_PATHS` | _(none)_ |
@@ -175,7 +176,7 @@ carries the credit. Arming the leg is an edit to that bundle plus a
 `xchain-hub/bin/sync-coins.sh` re-vendoring wave, never a per-node export.
 | `CROSS_CHAIN_ROYALTY_REGTEST_TIME` | **Regtest only.** Override the cross-chain royalty activation time so the OFF/deny path stays drillable on a single-node stack. Deliberately regtest-scoped: two nodes with different values would disagree on consensus. | `0` (activate at genesis) |
 | `CONTROLLER_CUSTODY_GUARD_REGTEST_TIME` | **Regtest only.** Override the controller custody guard activation time so the pre-activation bypass and the guarded path stay drillable on a single-node stack. Deliberately regtest-scoped: two nodes with different values would disagree on consensus. | `0` (activate at genesis) |
-| `EXACT_INTEGER_WIRE_FIELDS_REGTEST_TIME` | **Regtest only.** Arm the exact-integer wire fields activation at this time so a regtest venue can drive the strict wire parsing; a set non-negative integer arms it (0 means active from genesis). Deliberately regtest-scoped: testnet and mainnet read their pinned activation times. | unset (unarmed) |
+| `EXACT_INTEGER_WIRE_FIELDS_REGTEST_TIME` | **Regtest only.** Arm the exact-integer wire fields activation at this time so a regtest venue can drive the strict wire parsing; a set non-negative integer arms it at that time, unset or empty arms it from genesis (0), and `off` keeps the venue inert. Deliberately regtest-scoped: testnet and mainnet read their pinned activation times. | unset (armed from genesis) |
 
 ### A7 replay-equivalence harness
 
@@ -264,10 +265,11 @@ side-process reads the lever back to prove the era it actually resolved.
 ### List-owner replay witness
 
 Read only by `bin/verify-list-owner-replay-equivalence.js` (the below-the-flag
-replay witness for `LIST_OWNER_ACTIVATION`, which replays one mainnet or testnet
-corpus through a LEGACY tree with the general list-owner check removed and the
-OFF tree with its natural inert gate, and compares the resolved four-hash chain
-at every block; regtest is refused because its gate is active from height zero);
+replay witness for `LIST_OWNER_ACTIVATION`, which replays one testnet corpus
+through a LEGACY tree with the general list-owner check removed and the OFF tree
+with its natural inert gate, and compares the resolved four-hash chain at every
+block; mainnet and regtest are refused because their gate is active from height
+zero);
 never by the indexer service itself. Database credentials are loaded by dotenv
 from the project `.env` and read through `src/config.js`, never from argv. For
 each side-process the parent sets `INDEXER_COIN`, `INDEXER_NETWORK`,

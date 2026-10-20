@@ -12,10 +12,11 @@ The SDK includes a built-in WebSocket client for real-time event streaming from 
 ```javascript
 const { XChainSDK } = require('@dankest-llc/xchain-sdk');
 
+// The WebSocket follows the explorer: https://explorer.xchain.io becomes
+// wss://explorer.xchain.io/BTC/api/websocket. A bare host would dial ws://host:8080.
 const sdk = new XChainSDK({
     network: 'bitcoin-mainnet',
-    explorerUrl: 'explorer.xchain.io',
-    explorerPort: 8080
+    explorerUrl: 'https://explorer.xchain.io'
 });
 
 // Connect the WebSocket
@@ -370,7 +371,7 @@ Configure via the `retry` constructor option:
 ```javascript
 new XChainSDK({
     network: 'bitcoin-mainnet',
-    explorerUrl: 'explorer.xchain.io',
+    explorerUrl: 'https://explorer.xchain.io',
     retry: { maxRetries: 20, baseDelay: 500, maxDelay: 60000 }
 });
 ```
@@ -390,7 +391,7 @@ The WebSocket client supports five hooks, configured via the `hooks` constructor
 ```javascript
 const sdk = new XChainSDK({
     network: 'bitcoin-mainnet',
-    explorerUrl: 'explorer.xchain.io',
+    explorerUrl: 'https://explorer.xchain.io',
     hooks: {
         onWsConnect:    (info) => console.log('WS connected:', info.url),
         onWsDisconnect: (info) => console.log('WS disconnected:', info.code),

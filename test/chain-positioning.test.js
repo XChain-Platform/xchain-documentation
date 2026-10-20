@@ -13,7 +13,7 @@
  * Chain positioning: no bare closed-list definitions of the platform.
  *
  * WHY. XChain is a token platform for ANY blockchain. Adding a UTXO chain is a
- * configuration change (see blockchains.md), and account-model chains are a
+ * configuration change (see concepts/blockchains.md), and account-model chains are a
  * public roadmap item (whitepaper §16, concepts/scope-and-non-goals.md).
  * Bitcoin, Litecoin, and Dogecoin are where it is LIVE TODAY, not what it is.
  *
@@ -24,7 +24,7 @@
  * able, to a reader, from a hard architectural limit. On the 2026-08-21 sweep
  * ten such sentences were live across the intro pages, the FAQ, the use-cases
  * page, the key-terms glossary, and the SDK and wallet component READMEs, while
- * overview.md and whitepaper.md were already saying the opposite on the same
+ * getting-started/overview.md and whitepaper.md were already saying the opposite on the same
  * site. Nothing was factually wrong; the positioning was, and no existing guard
  * could see it. Each new chain the platform adds rots another one of these, in
  * the direction of understating the product.

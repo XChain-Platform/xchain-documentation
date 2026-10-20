@@ -264,7 +264,7 @@ All existing rails apply to NFT-pattern tokens, with one exception noted under T
   pattern. The one exception to
   "no special cases": below the `CROSS_CHAIN_ROYALTY` flag-day a **cross-chain**
   ORDER or SWAP whose controller guard returns `payoutLegs` is denied at create
-  (`royalty not enforceable cross-chain`), because the proceeds settle on a chain
+  (`invalid: royalty not enforceable cross-chain`), because the proceeds settle on a chain
   that never runs the guard. Same-chain listings and unbound tokens are unaffected.
   See [Cross-chain sales](./controller-bound-tokens.md#cross-chain-sales-cross_chain_royalty).
 - **Issuer-rights sales:** `GIVE_OWNERSHIP`/`GET_OWNERSHIP` on ORDER/SWAP/DISPENSER
@@ -306,7 +306,7 @@ enforcing the cut means also denying the dispenser listing from inside the guard
 returns legs is rejected at create rather than settled without the cut. At and above the
 flag-day the legs ride the validator-signed match and are applied on the proceeds chain,
 and every leg address must re-encode to `GET_COIN` at create; a leg that does not denies the
-listing (`royalty leg not payable on proceeds chain`). See
+listing (`invalid: royalty leg not payable on proceeds chain`). See
 [Cross-chain sales](./controller-bound-tokens.md#cross-chain-sales-cross_chain_royalty).
 
 Creators who prefer a custody model can instead implement royalties in an ordinary

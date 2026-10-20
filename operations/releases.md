@@ -9,6 +9,66 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.25.0
+
+Released 2026-10-19. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.25.0)
+
+A patch train: ten code components move to 0.25.0 (`xchain-documentation` is tagged v0.25.0 too),
+`xchain-contracts` keeps 0.17.0, and `xchain-e2e-test` and `xchain-regtest-miner` keep 0.21.0. The
+manifest keeps the 0.21.0 rule set in force, so this train adds no ruleset row and `trainActivation`
+still arms at Bitcoin testnet height 154566. No per-gate testnet activation height moved since
+v0.24.0; the Release notes list the heights this train carries.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.25.0 |
+| xchain-hub | 0.25.0 |
+| xchain-indexer | 0.25.0 |
+| xchain-sync | 0.25.0 |
+| xchain-explorer | 0.25.0 |
+| xchain-decoder | 0.25.0 |
+| xchain-encoder | 0.25.0 |
+| xchain-utxo-tracker | 0.25.0 |
+| xchain-sdk | 0.25.0 |
+| xchain-vm | 0.25.0 |
+| xchain-e2e-test | 0.21.0 (unchanged) |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.21.0 (unchanged) |
+
+Each component's own changelog lists its changes; the `xchain-node` Release carries the
+platform notes and the signed artifact set.
+
+## v0.24.0
+
+Released 2026-10-17. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.24.0)
+
+A patch train: ten code components move to 0.24.0 (`xchain-documentation` is tagged v0.24.0 too),
+`xchain-contracts` keeps 0.17.0, and `xchain-e2e-test` and `xchain-regtest-miner` keep 0.21.0. The
+manifest keeps the 0.21.0 rule set in force, so this train adds no ruleset row and `trainActivation`
+still arms at Bitcoin testnet height 154566. Two gates moved since v0.23.0:
+`ORDER_MATCH_PRICE_CROSS_ACTIVATION` and `REMOTE_TOKEN_ADMISSION_ACTIVATION` both arm on testnet at
+BTC 156908, LTC 4927400 and DOGE 68005165. The Release notes list every per-gate height this train
+carries.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.24.0 |
+| xchain-hub | 0.24.0 |
+| xchain-indexer | 0.24.0 |
+| xchain-sync | 0.24.0 |
+| xchain-explorer | 0.24.0 |
+| xchain-decoder | 0.24.0 |
+| xchain-encoder | 0.24.0 |
+| xchain-utxo-tracker | 0.24.0 |
+| xchain-sdk | 0.24.0 |
+| xchain-vm | 0.24.0 |
+| xchain-e2e-test | 0.21.0 (unchanged) |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.21.0 (unchanged) |
+
+Each component's own changelog lists its changes; the `xchain-node` Release carries the
+platform notes and the signed artifact set.
+
 ## v0.23.0
 
 Released 2026-10-11. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.23.0)
@@ -38,6 +98,391 @@ them moved since v0.22.4, are listed in the Release notes.
 Each component's own changelog lists its changes; the `xchain-node` Release carries the
 platform notes and the signed artifact set.
 
+## v0.22.7
+
+Released 2026-10-06. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.22.7)
+
+A hotfix patch train cut from v0.22.6: only `xchain-hub` moves, to 0.22.7, for the paged, backed-off
+peer catch-up fix. Every other component keeps its v0.22.6 pin and `xchain-documentation` is not
+tagged with this train. The train activation block is unchanged, so this train arms no new height
+and the 0.21.0 rule set stays in force at Bitcoin testnet height 154566.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.22.7 |
+| xchain-hub | 0.22.7 |
+| xchain-indexer | 0.22.4 (unchanged) |
+| xchain-sync | 0.22.4 (unchanged) |
+| xchain-explorer | 0.22.4 (unchanged) |
+| xchain-decoder | 0.21.0 (unchanged) |
+| xchain-encoder | 0.21.0 (unchanged) |
+| xchain-utxo-tracker | 0.21.0 (unchanged) |
+| xchain-sdk | 0.22.4 (unchanged) |
+| xchain-vm | 0.21.3 (unchanged) |
+| xchain-e2e-test | 0.21.0 (unchanged) |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.21.0 (unchanged) |
+
+Each component's own changelog lists its changes; the `xchain-node` Release carries the
+platform notes and the signed artifact set.
+
+## v0.22.6
+
+Released 2026-10-06. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.22.6)
+
+A hotfix patch train cut from v0.22.5: only `xchain-hub` moves, to 0.22.6, for the single-flight,
+read-bounded peer catch-up and price round catch-up fixes. Every other component keeps its v0.22.5
+pin and `xchain-documentation` is not tagged with this train. The train activation block is
+unchanged, so this train arms no new height and the 0.21.0 rule set stays in force at Bitcoin
+testnet height 154566.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.22.6 |
+| xchain-hub | 0.22.6 |
+| xchain-indexer | 0.22.4 (unchanged) |
+| xchain-sync | 0.22.4 (unchanged) |
+| xchain-explorer | 0.22.4 (unchanged) |
+| xchain-decoder | 0.21.0 (unchanged) |
+| xchain-encoder | 0.21.0 (unchanged) |
+| xchain-utxo-tracker | 0.21.0 (unchanged) |
+| xchain-sdk | 0.22.4 (unchanged) |
+| xchain-vm | 0.21.3 (unchanged) |
+| xchain-e2e-test | 0.21.0 (unchanged) |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.21.0 (unchanged) |
+
+Each component's own changelog lists its changes; the `xchain-node` Release carries the
+platform notes and the signed artifact set.
+
+## v0.22.5
+
+Released 2026-10-06. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.22.5)
+
+A hotfix patch train cut from v0.22.4: only `xchain-hub` moves, to 0.22.5, for the signer-set peer
+catch-up fix. Every other component keeps its v0.22.4 pin and `xchain-documentation` is not tagged
+with this train. The train activation block is unchanged, so this train arms no new height and the
+0.21.0 rule set stays in force at Bitcoin testnet height 154566.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.22.5 |
+| xchain-hub | 0.22.5 |
+| xchain-indexer | 0.22.4 (unchanged) |
+| xchain-sync | 0.22.4 (unchanged) |
+| xchain-explorer | 0.22.4 (unchanged) |
+| xchain-decoder | 0.21.0 (unchanged) |
+| xchain-encoder | 0.21.0 (unchanged) |
+| xchain-utxo-tracker | 0.21.0 (unchanged) |
+| xchain-sdk | 0.22.4 (unchanged) |
+| xchain-vm | 0.21.3 (unchanged) |
+| xchain-e2e-test | 0.21.0 (unchanged) |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.21.0 (unchanged) |
+
+Each component's own changelog lists its changes; the `xchain-node` Release carries the
+platform notes and the signed artifact set.
+
+## v0.22.4
+
+Released 2026-10-05. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.22.4)
+
+A hotfix patch train cut from v0.22.3: `xchain-indexer`, `xchain-hub`, `xchain-explorer`,
+`xchain-sync` and `xchain-sdk` move to 0.22.4 (`xchain-documentation` is tagged v0.22.4 too), and
+every other component keeps its pin. The train activation block is unchanged, so this train arms no
+new height and the 0.21.0 rule set stays in force at Bitcoin testnet height 154566. The strict
+same-chain landing gate (`PRICE_LANDED_STRICT_ACTIVATION`) ships unarmed on every network.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.22.4 |
+| xchain-hub | 0.22.4 |
+| xchain-indexer | 0.22.4 |
+| xchain-sync | 0.22.4 |
+| xchain-explorer | 0.22.4 |
+| xchain-decoder | 0.21.0 (unchanged) |
+| xchain-encoder | 0.21.0 (unchanged) |
+| xchain-utxo-tracker | 0.21.0 (unchanged) |
+| xchain-sdk | 0.22.4 |
+| xchain-vm | 0.21.3 (unchanged) |
+| xchain-e2e-test | 0.21.0 (unchanged) |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.21.0 (unchanged) |
+
+Each component's own changelog lists its changes; the `xchain-node` Release carries the
+platform notes and the signed artifact set.
+
+## v0.22.3
+
+Released 2026-10-04. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.22.3)
+
+A hotfix patch train cut from v0.22.2 that moves only `xchain-node` itself: a per-coin
+`HUB_SEED_URLS` now suppresses the default `HUB_API_URL` in generated indexer config. Every other
+component pin and the train activation block are unchanged from v0.22.2, and `xchain-documentation`
+is not tagged with this train.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.22.3 |
+| xchain-hub | 0.22.2 (unchanged) |
+| xchain-indexer | 0.22.0 (unchanged) |
+| xchain-sync | 0.21.3 (unchanged) |
+| xchain-explorer | 0.22.0 (unchanged) |
+| xchain-decoder | 0.21.0 (unchanged) |
+| xchain-encoder | 0.21.0 (unchanged) |
+| xchain-utxo-tracker | 0.21.0 (unchanged) |
+| xchain-sdk | 0.22.0 (unchanged) |
+| xchain-vm | 0.21.3 (unchanged) |
+| xchain-e2e-test | 0.21.0 (unchanged) |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.21.0 (unchanged) |
+
+Each component's own changelog lists its changes; the `xchain-node` Release carries the
+platform notes and the signed artifact set.
+
+## v0.22.2
+
+Released 2026-10-04. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.22.2)
+
+A hotfix patch train cut from v0.22.1: only `xchain-hub` moves, to 0.22.2, for the peer catch-up
+fallback. Every other component keeps its v0.22.1 pin and `xchain-documentation` is not tagged with
+this train. The train activation block is unchanged, so this train arms no new height and the 0.21.0
+rule set stays in force at Bitcoin testnet height 154566.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.22.2 |
+| xchain-hub | 0.22.2 |
+| xchain-indexer | 0.22.0 (unchanged) |
+| xchain-sync | 0.21.3 (unchanged) |
+| xchain-explorer | 0.22.0 (unchanged) |
+| xchain-decoder | 0.21.0 (unchanged) |
+| xchain-encoder | 0.21.0 (unchanged) |
+| xchain-utxo-tracker | 0.21.0 (unchanged) |
+| xchain-sdk | 0.22.0 (unchanged) |
+| xchain-vm | 0.21.3 (unchanged) |
+| xchain-e2e-test | 0.21.0 (unchanged) |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.21.0 (unchanged) |
+
+Each component's own changelog lists its changes; the `xchain-node` Release carries the
+platform notes and the signed artifact set.
+
+## v0.22.1
+
+Released 2026-10-04. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.22.1)
+
+A hotfix patch train cut from v0.22.0: only `xchain-hub` moves, to 0.22.1, for the peer catch-up
+fix. Every other component keeps its v0.22.0 pin and `xchain-documentation` is not tagged with this
+train. The train activation block is unchanged, so this train arms no new height and the 0.21.0 rule
+set stays in force at Bitcoin testnet height 154566.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.22.1 |
+| xchain-hub | 0.22.1 |
+| xchain-indexer | 0.22.0 (unchanged) |
+| xchain-sync | 0.21.3 (unchanged) |
+| xchain-explorer | 0.22.0 (unchanged) |
+| xchain-decoder | 0.21.0 (unchanged) |
+| xchain-encoder | 0.21.0 (unchanged) |
+| xchain-utxo-tracker | 0.21.0 (unchanged) |
+| xchain-sdk | 0.22.0 (unchanged) |
+| xchain-vm | 0.21.3 (unchanged) |
+| xchain-e2e-test | 0.21.0 (unchanged) |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.21.0 (unchanged) |
+
+Each component's own changelog lists its changes; the `xchain-node` Release carries the
+platform notes and the signed artifact set.
+
+## v0.22.0
+
+Released 2026-10-04. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.22.0)
+
+A patch train: `xchain-indexer`, `xchain-hub`, `xchain-explorer` and `xchain-sdk` move to 0.22.0
+(`xchain-documentation` is tagged v0.22.0 too), and every other component keeps its pin. The
+manifest keeps the 0.21.0 rule set in force, so this train adds no ruleset row and `trainActivation`
+still arms at Bitcoin testnet height 154566. One gate moved since v0.21.3:
+`ORACLE_ROUND_TIME_ACTIVATION` arms on testnet at BTC 155158, LTC 4907593 and DOGE 67966647. The
+Release notes list every per-gate height this train carries.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.22.0 |
+| xchain-hub | 0.22.0 |
+| xchain-indexer | 0.22.0 |
+| xchain-sync | 0.21.3 (unchanged) |
+| xchain-explorer | 0.22.0 |
+| xchain-decoder | 0.21.0 (unchanged) |
+| xchain-encoder | 0.21.0 (unchanged) |
+| xchain-utxo-tracker | 0.21.0 (unchanged) |
+| xchain-sdk | 0.22.0 |
+| xchain-vm | 0.21.3 (unchanged) |
+| xchain-e2e-test | 0.21.0 (unchanged) |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.21.0 (unchanged) |
+
+Each component's own changelog lists its changes; the `xchain-node` Release carries the
+platform notes and the signed artifact set.
+
+## v0.21.3
+
+Released 2026-10-03. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.21.3)
+
+A patch train: `xchain-vm`, `xchain-indexer`, `xchain-hub`, `xchain-sync`, `xchain-explorer` and
+`xchain-sdk` move to 0.21.3 (`xchain-documentation` is tagged v0.21.3 too), and every other
+component keeps its pin. The manifest keeps the 0.21.0 rule set in force, so this train adds no
+ruleset row and `trainActivation` still arms at Bitcoin testnet height 154566. Five gates moved
+since v0.21.1, all to BTC 155001, LTC 4906040 and DOGE 67962387 on testnet:
+`ANCHOR_BUNDLE_ORDER_ACTIVATION`, `STAKE_WEIGHT_COLLATION_ACTIVATION`, `ANCHOR_FOLD_ACTIVATION`,
+`ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` and `LIST_META_ACTIVATION`. The Release notes list
+every per-gate height this train carries.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.21.3 |
+| xchain-hub | 0.21.3 |
+| xchain-indexer | 0.21.3 |
+| xchain-sync | 0.21.3 |
+| xchain-explorer | 0.21.3 |
+| xchain-decoder | 0.21.0 (unchanged) |
+| xchain-encoder | 0.21.0 (unchanged) |
+| xchain-utxo-tracker | 0.21.0 (unchanged) |
+| xchain-sdk | 0.21.3 |
+| xchain-vm | 0.21.3 |
+| xchain-e2e-test | 0.21.0 (unchanged) |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.21.0 (unchanged) |
+
+Each component's own changelog lists its changes; the `xchain-node` Release carries the
+platform notes and the signed artifact set.
+
+## v0.21.2
+
+Released 2026-10-02. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.21.2)
+
+An indexer-only patch train: the manifest moves `xchain-indexer` to 0.21.2, which labels a shared
+list with the chain serving the token policy read. Every other component stays on its v0.21.1 pin,
+`xchain-documentation` is not tagged with this train, and the train activation block is unchanged.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.21.2 |
+| xchain-hub | 0.21.1 (unchanged) |
+| xchain-indexer | 0.21.2 |
+| xchain-sync | 0.21.1 (unchanged) |
+| xchain-explorer | 0.21.1 (unchanged) |
+| xchain-decoder | 0.21.0 (unchanged) |
+| xchain-encoder | 0.21.0 (unchanged) |
+| xchain-utxo-tracker | 0.21.0 (unchanged) |
+| xchain-sdk | 0.21.1 (unchanged) |
+| xchain-vm | 0.21.0 (unchanged) |
+| xchain-e2e-test | 0.21.0 (unchanged) |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.21.0 (unchanged) |
+
+Each component's own changelog lists its changes; the `xchain-node` Release carries the
+platform notes and the signed artifact set.
+
+## v0.21.1
+
+Released 2026-10-01. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.21.1)
+
+A patch train: `xchain-indexer`, `xchain-hub`, `xchain-sync`, `xchain-explorer` and `xchain-sdk`
+move to 0.21.1 (`xchain-documentation` is tagged v0.21.1 too), and every other component keeps its
+v0.21.0 pin. The manifest keeps the 0.21.0 rule set in force, so `trainActivation` still arms at
+Bitcoin testnet height 154566. The per-gate testnet activation heights this train carries, and which
+of them moved since v0.21.0, are listed in the Release notes.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.21.1 |
+| xchain-hub | 0.21.1 |
+| xchain-indexer | 0.21.1 |
+| xchain-sync | 0.21.1 |
+| xchain-explorer | 0.21.1 |
+| xchain-decoder | 0.21.0 (unchanged) |
+| xchain-encoder | 0.21.0 (unchanged) |
+| xchain-utxo-tracker | 0.21.0 (unchanged) |
+| xchain-sdk | 0.21.1 |
+| xchain-vm | 0.21.0 (unchanged) |
+| xchain-e2e-test | 0.21.0 (unchanged) |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.21.0 (unchanged) |
+
+Each component's own changelog lists its changes; the `xchain-node` Release carries the
+platform notes and the signed artifact set.
+
+## v0.21.0
+
+Released 2026-09-30. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.21.0)
+
+A thirteen-component train: every code component except `xchain-contracts` moves to 0.21.0,
+`xchain-documentation` included. The manifest is classified major and carries a `trainActivation`
+block that arms the 0.21.0 rule set on testnet at Bitcoin height 154566; mainnet stays unarmed. Its
+Release notes list the per-gate testnet heights it changed since v0.20.1, among them the Litecoin
+mirror admission heights that v0.20.1 left null (producer 4903068, consumer 4903291) and the testnet
+arming of `TOKEN_BRIDGE_ACTIVATION` and `TOKEN_POLICY_INHERITANCE_ACTIVATION` at BTC 154567, LTC
+4903068 and DOGE 67951140.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.21.0 |
+| xchain-hub | 0.21.0 |
+| xchain-indexer | 0.21.0 |
+| xchain-sync | 0.21.0 |
+| xchain-explorer | 0.21.0 |
+| xchain-decoder | 0.21.0 |
+| xchain-encoder | 0.21.0 |
+| xchain-utxo-tracker | 0.21.0 |
+| xchain-sdk | 0.21.0 |
+| xchain-vm | 0.21.0 |
+| xchain-e2e-test | 0.21.0 |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.21.0 |
+
+Each component's own changelog lists its changes; the `xchain-node` Release carries the
+platform notes and the signed artifact set.
+
+## v0.20.1
+
+Released 2026-09-24. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.20.1)
+
+A patch train: every code component except `xchain-contracts` moves to 0.20.1,
+`xchain-documentation` included. It corrects canonical boundary semantics across `xchain-indexer`,
+`xchain-hub` and `xchain-explorer`. The manifest keeps the 0.20.0 rule set and re-slides its
+`trainActivation` boundary.
+
+**v0.20.1 arms the train boundary at Bitcoin testnet height 154074**, re-slid twice (2026-09-19,
+then again 2026-09-23 to a 40-hour margin at each coin's measured cadence) after the live testnet
+tip outran the boundary v0.20.0 shipped, before the fleet ever rolled to it. The mirror admission
+producer arms at BTC 154234 and DOGE 67936053; the consumer arms later at BTC 154291 and DOGE
+67936888. LTC:testnet, which v0.20.0 shipped at producer 4891504 / consumer 4891766, ships null
+under both re-slides (disabled for v0.20.1, 2026-09-18) and arms on a later train instead. The
+anchor-attestation completeness barrier arms at the Bitcoin consumer height, 154291. Mainnet stays
+unarmed on every row in both v0.20.0 and v0.20.1, as do token-bridge ISSUE and policy inheritance on
+every network.
+
+| Component | Version |
+|---|---|
+| xchain-node | 0.20.1 |
+| xchain-hub | 0.20.1 |
+| xchain-indexer | 0.20.1 |
+| xchain-sync | 0.20.1 |
+| xchain-explorer | 0.20.1 |
+| xchain-decoder | 0.20.1 |
+| xchain-encoder | 0.20.1 |
+| xchain-utxo-tracker | 0.20.1 |
+| xchain-sdk | 0.20.1 |
+| xchain-vm | 0.20.1 |
+| xchain-e2e-test | 0.20.1 |
+| xchain-contracts | 0.17.0 (unchanged) |
+| xchain-regtest-miner | 0.20.1 |
+
+Each component's own changelog lists its changes; the `xchain-node` Release carries the
+platform notes and the signed artifact set.
+
 ## v0.20.0
 
 Released 2026-09-18. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.20.0)
@@ -51,9 +496,9 @@ messages and bootstrap pages, the indexer enforces the same rule in live process
 replay, and the hub mirror schema moves from 6 to 7. Because the barriers change what a node
 derives from a block, the manifest is classified major and carries a `trainActivation` block
 that armed the 0.20.0 rule set on testnet at Bitcoin height 153116 at cut. Testnet's live tip
-outran that boundary twice before the fleet rolled to it, so an in-flight v0.20.1 patch has
-re-slid it (see below); v0.20.0 itself, its manifest and every non-height behavior described
-here, is unchanged.
+outran that boundary twice before the fleet rolled to it, so the v0.20.1 train re-slid it (see
+[v0.20.1](#v0201)); v0.20.0 itself, its manifest and every non-height behavior described here, is
+unchanged.
 
 | Component | Version |
 |---|---|
@@ -83,17 +528,8 @@ mirror admission producer (`MIRROR_ADMISSION_ACTIVATION`) armed at BTC 153222, L
 DOGE 67911796; the consumer (`MIRROR_ADMISSION_CONSUMER_ACTIVATION`) armed later at BTC 153266,
 LTC 4891766 and DOGE 67912575, so writers publish admission metadata before readers require it.
 The anchor-attestation completeness barrier (`ANCHOR_ATTEST_BARRIER_ACTIVATION`) armed at the
-Bitcoin consumer height, 153266, and used the same bounded view of admitted rows.
-
-**v0.20.1 arms (currently in flight, not yet released): train boundary Bitcoin testnet height
-154074**, re-slid twice (2026-09-19, then again 2026-09-23 to a 40-hour margin at each coin's
-measured cadence) after the live testnet tip outran the boundary v0.20.0 shipped, before the
-fleet ever rolled to it. The mirror admission producer now arms at BTC 154234 and DOGE 67936053;
-the consumer now arms later at BTC 154291 and DOGE 67936888. LTC:testnet, which v0.20.0 shipped
-at producer 4891504 / consumer 4891766, ships null under both re-slides (disabled for v0.20.1, 2026-09-18) and
-arms on a later train instead. The anchor-attestation completeness barrier now arms at the
-Bitcoin consumer height, 154291. Mainnet stays unarmed on every row in both v0.20.0 and v0.20.1,
-as do token-bridge ISSUE and policy inheritance on every network.
+Bitcoin consumer height, 153266, and used the same bounded view of admitted rows. The heights
+v0.20.1 re-slid these to are in [its section](#v0201).
 
 Roll the hub first and apply the admission-height migration before rolling mirror readers: seven
 mirror tables gain admission-height columns, including the lifecycle and attestation data the

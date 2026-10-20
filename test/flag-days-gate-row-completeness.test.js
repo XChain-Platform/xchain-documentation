@@ -58,6 +58,21 @@ test('a canonical addGate time row is collected', () => {
     assert.deepStrictEqual(gen.collectGates(dir).map((g) => [g.gate, g.time]), [['FOO_ACTIVATION', 1786060800]]);
 });
 
+test('an addGate mainnet slot reads separators the way an addChange time slot does', () => {
+    // The map-slot reader once stripped `_` before testing for digits, so a
+    // leading-underscore NAME read as a number and a malformed literal read fine.
+    const ok = fixtureRegistry(
+        "addGate('foo_activation.SEP_ACTIVATION', 'time', { mainnet: 1_786_060_800, testnet: 0 });\n"
+        + "addGate('foo_activation.NAMED_ACTIVATION', 'time', { mainnet: _1786060800, testnet: 0 });\n"
+        + "this.addChange('CALL_NAMED', '1.0.0', _1786060800, 0, 0, 0, 0, 0);\n",
+    );
+    assert.deepStrictEqual(gen.collectGates(ok).map((g) => [g.gate, g.time]), [['SEP_ACTIVATION', 1786060800]]);
+    for (const bad of ['1786060800_', '1__786060800']) {
+        const dir = fixtureRegistry(`addGate('foo_activation.BAD_ACTIVATION', 'time', { mainnet: ${bad} });\n`);
+        assert.throws(() => gen.collectGates(dir), /BAD_ACTIVATION/, `${bad} was read as a number`);
+    }
+});
+
 test('a double-quoted key on a time row is refused, not skipped', () => {
     assertRefusedEverywhere("addGate(\"foo_activation.FOO_ACTIVATION\", 'time', { mainnet: 1786060800 });\n", 'FOO_ACTIVATION');
 });

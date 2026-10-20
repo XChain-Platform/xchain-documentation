@@ -784,7 +784,9 @@ either registers first and receives the row live above its frozen ceiling, or re
 and replays the row at or below its ceiling. The catch-up query never reads rows above that ceiling,
 even when they are committed before the query runs. As a result, a reconnecting client receives
 each matching `NEW_ACTION` exactly once per subscription key rather than once from replay and again
-from the live poll.
+from the live poll. The lifecycle events derived from a row stay on the same side as its
+`NEW_ACTION`: a key that becomes live while that row's events are still being produced receives
+them only through a catch-up replay, never live.
 
 Every ceiling is also bounded by the coin's current live mark, the position `WELCOME` reports, so a
 replay never reads a row the live poll has yet to send. A catch-up on a coin whose first poll has not
@@ -926,6 +928,7 @@ fails the entire subscribe request with `INVALID_TYPE`, so no channel in that re
 | Federation / oracle | `PRICE`, `ANCHOR`, `XCALL`, `NODEPROOF`, `ROLLCALL` |
 | Address, batching, bridge, governance | `ADDRESS`, `BATCH`, `CROSS_SETTLE`, `XBRIDGE`, `XEXEC`, `VOTE`, `SLASH` |
 | Settlement anchors | `XPOLICY`, `LIST_SHARE` |
+| Cancels and edits | `ORDER_CANCEL`, `ORDER_EDIT`, `SWAP_CANCEL`, `SWAP_EDIT`, `DISPENSER_CANCEL`, `DISPENSER_EDIT`, `BET_EDIT` |
 | Order lifecycle | `ORDER_EXPIRED` |
 | COINPay lifecycle | `COINPAY_REQUIRED`, `COINPAY_FULFILLED`, `COINPAY_EXPIRED` |
 | Swap lifecycle | `SWAP_EXPIRED` |
@@ -937,6 +940,10 @@ fails the entire subscribe request with `INVALID_TYPE`, so no channel in that re
 Settlement anchors are rows the indexer mints to anchor a bridge-policy or shared-list settlement
 record when the pass produced no action of its own. Their `NEW_ACTION` carries the ordinary `data`
 with `tx_hash` and `source` null and `destinations: []`.
+
+A cancel or edit renames the parent's own action to its cancel or edit name, and the `types` filter
+matches names exactly. A client that wants all order activity lists `ORDER_CANCEL` and `ORDER_EDIT`
+beside `ORDER`, and the same holds for swaps, dispensers and `BET_EDIT` beside `BET`.
 
 ---
 

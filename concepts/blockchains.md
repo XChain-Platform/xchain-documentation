@@ -31,7 +31,7 @@ The same protocol specification applies across all chains. Chain-specific differ
 - **Address formats**: Each chain uses its own address encoding (e.g., `1...` / `bc1...` for Bitcoin, `L...` / `ltc1...` for Litecoin, `D...` for Dogecoin)
 - **Transaction parsing**: Litecoin requires stripping the HogEx flag; Dogecoin requires stripping AuxPoW headers before parsing with bitcoinjs-lib
 
-Each chain and network combination runs its own independent set of services with its own databases. Tokens on Bitcoin are separate from tokens on Litecoin; they share the same protocol rules but maintain independent state. Cross-chain interaction is possible through four mechanisms: the ORDER action (which supports cross-chain limit orders settled by the validator federation), the SWAP action (token-for-token cross-chain exchange, also coordinated by the hub), XCALL (cross-chain contract calls that let a contract on one chain invoke a contract on another and receive the result as a callback), and the XBRIDGE action (which moves a token you already hold to another chain as the same asset, with no counterparty and no trade; today it is live on testnet and regtest only, not on mainnet). See [Cross-Chain Trading on XChain](./user-guide/cross-chain.md#moving-a-token-to-another-chain-xbridge) and [XBRIDGE](./protocol/actions/xbridge.md) for details.
+Each chain and network combination runs its own independent set of services with its own databases. Tokens on Bitcoin are separate from tokens on Litecoin; they share the same protocol rules but maintain independent state. Cross-chain interaction is possible through four mechanisms: the ORDER action (which supports cross-chain limit orders settled by the validator federation), the SWAP action (token-for-token cross-chain exchange, also coordinated by the hub), XCALL (cross-chain contract calls that let a contract on one chain invoke a contract on another and receive the result as a callback), and the XBRIDGE action (which moves a token you already hold to another chain as the same asset, with no counterparty and no trade; today it is live on testnet and regtest only, not on mainnet). See [Cross-Chain Trading on XChain](../user-guide/cross-chain.md#moving-a-token-to-another-chain-xbridge) and [XBRIDGE](../protocol/actions/xbridge.md) for details.
 
 ## Adding New Blockchains
 
@@ -41,7 +41,7 @@ Any Bitcoin-compatible blockchain can be added to the XChain Platform. The requi
 2. Transactions must be parseable by bitcoinjs-lib (with optional pre-processing for chain-specific quirks)
 3. A single canonical coin file must be created defining the network parameters, special addresses, fee schedules, gas costs, and staking parameters per network
 
-All coin-specific facts live in **one file per coin** in the canonical registry (`xchain-hub/src/coins/`), which is vendored byte-identically into every service. Adding a chain is "copy a file, change the values, add a consensus pin"; the protocol specification, indexer logic, action handlers, and tooling do not change. The full step-by-step procedure is in the developer guide: [Adding a Blockchain](./developer-guide/adding-a-blockchain.md).
+All coin-specific facts live in **one file per coin** in the canonical registry (`xchain-hub/src/coins/`), which is vendored byte-identically into every service. Adding a chain is "copy a file, change the values, add a consensus pin"; the protocol specification, indexer logic, action handlers, and tooling do not change. The full step-by-step procedure is in the developer guide: [Adding a Blockchain](../developer-guide/adding-a-blockchain.md).
 
 If you represent a blockchain project and would like to add support for your chain to the XChain Platform, please get in contact at [https://dankest.llc](https://dankest.llc).
 
@@ -82,5 +82,5 @@ Licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0-or-later
 with a commercial license available for proprietary use.
 
 You may use, modify, and distribute this material under the terms of the License.
-See [LICENSE](./LICENSE.md) and [NOTICE](./NOTICE.md) for full terms.
+See [LICENSE](../LICENSE.md) and [NOTICE](../NOTICE.md) for full terms.
 See the [licensing overview](https://docs.xchain.io/legal/LICENSING.html).

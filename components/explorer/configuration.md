@@ -45,7 +45,7 @@ Hub-sourced configuration takes precedence for database connection details, allo
 | `UTXO_TRACKER_URL_<COIN>` | No | None | Per-coin UTXO-tracker base URL, used to fill the address page's balance and UTXO panel from the tracker's `GET /info/<address>`. `COIN` is the route code (`BTC`, `TBTC`, `RDOGE`, …). |
 | `UTXO_TRACKER_URL` | No | None | Fallback tracker base URL when no coin-specific variable is set. With neither configured the address page shows an honest "Unavailable" rather than fabricated zeroes. |
 | `HUB_URL` | No | None | Hub base URL used to fetch the coin's USD price for the UI. Unset leaves the `$0.00` placeholder, which is also what testnet and regtest route codes get, since the oracle only prices mainnet assets. |
-| `EXPLORER_TIP_MAX_AGE_S` | No | `21600` | Age (seconds) past which a coin's newest indexed block counts as stale. A stale coin is reported `stale: true` by `/{COIN}/api/status` and dropped from that response's `available` map, so consumers stop treating this instance as current for it. The gate fails closed: a missing or unreadable `block_time` also reads stale. Set to `0` to disable the gate for every coin. |
+| `EXPLORER_TIP_MAX_AGE_S` | No | `21600` | Age (seconds) past which a coin's newest indexed block counts as stale. A stale coin is reported `stale: true` by `/{COIN}/api/status` and its data responses carry the freshness marker, so consumers stop treating this instance as current for it. It stays in that response's `available` map unless `EXPLORER_STALE_FAIL_CLOSED=1` is set. The gate fails closed: a missing or unreadable `block_time` also reads stale. Set to `0` to disable the gate for every coin. |
 | `EXPLORER_TIP_MAX_AGE_S_<COIN>` | No | value of `EXPLORER_TIP_MAX_AGE_S` | Per-coin override of the tip-age threshold, where `COIN` is the route code (`BTC`, `TBTC`, `RDOGE`, …). Use it where one chain's block interval makes the shared default wrong. Set to `0` to disable the gate for that coin only. |
 | `EXPLORER_TIP_MAX_FUTURE_SKEW_S` | No | `7200` | How far *ahead* of this host's clock a coin's newest indexed block may be dated before it counts as stale. A future-dated tip has a negative raw age, so without this bound it would clear the age gate by a margin that grows with the skew and a frozen chain could hide behind it indefinitely. The default matches the BTC-family consensus limit on future block times. Set to `0` to disable the check for every coin. |
 | `EXPLORER_STALE_FAIL_CLOSED` | No | None (serve with a freshness marker) | Opt-in to the pre-0.15.1 behaviour of refusing every data route for a stale coin with `503 COIN_DATA_STALE`. By default a stale coin is still served in full: every data response carries freshness headers, the body carries a `freshness` field while the coin is stale, and `/{COIN}/api/status` reports `stale: true`, so the consumer that knows whether it is reading or spending decides what a stale tip means for it. Set to `1` for a deployment that would rather go dark than serve a tip it cannot vouch for; it mirrors the hub mirror's `MIRROR_LAG_FAIL_CLOSED`. |
@@ -221,31 +221,6 @@ SSL certificates are loaded from:
 
 If SSL files are not found, only the HTTP server starts.
 
-### Font Awesome kit
-
-The web UI loads its generic glyphs from a Font Awesome kit. The kit token is an
-account credential and the `pro` license flag is an entitlement claim, so both
-are supplied per deployment instead of being shipped in the source tree. The
-explorer assembles `/js/fontawesome-kit.js` at request time from the vendored
-kit loader plus these values.
-
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `EXPLORER_FONTAWESOME_KIT_TOKEN` | No | None | Kit token. Unset means no kit is loaded. |
-| `EXPLORER_FONTAWESOME_KIT_ID` | No | None | Numeric kit id. |
-| `EXPLORER_FONTAWESOME_KIT_LICENSE` | No | `free` | Entitlement this deployment holds: `free` or `pro`. |
-| `EXPLORER_FONTAWESOME_KIT_VERSION` | No | `6.4.0` | Font Awesome version the kit serves. |
-| `EXPLORER_FONTAWESOME_KIT_CUSTOM_ICONS_PATH` | No | None | Path of the kit's uploaded-icons stylesheet, if it has one. |
-
-With no token set, `/js/fontawesome-kit.js` returns an inert stub and the
-explorer makes no requests to `fontawesome.com`. The UI still renders: the
-coin/network glyphs in the navigation bar are local images served from the
-explorer itself, so only the generic Font Awesome glyphs are absent.
-
-A value that does not match its expected shape (a non-numeric kit id, a
-license other than `free`/`pro`) is ignored with a warning rather than passed
-through to the browser.
-
 ### Metrics and Log Shipping
 
 The shared observability module adds a Prometheus scrape endpoint and a
@@ -403,16 +378,16 @@ The explorer uses `express-rate-limit` middleware:
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `EXPLORER_RATE_LIMIT_RPM` | No | `1080` | Maximum requests per IP per 60-second window, derived from the measured five-address wallet profile's worst minute with retries and 3x headroom. Image requests (`.png`, `.jpg`, `.jpeg`, `.gif`, `.ico`, `.svg`, `.webp`), `/icon/` paths, and `/images` paths are excluded from the limit. |
+| `EXPLORER_RATE_LIMIT_RPM` | No | `180` | Maximum requests per IP per 60-second window: the 30 reads a five-address wallet makes in its worst minute, times 2 for one SDK retry and 3 for testers sharing a NAT. Image requests (`.png`, `.jpg`, `.jpeg`, `.gif`, `.ico`, `.svg`, `.webp`), `/icon/` paths, and `/images` paths are excluded from the limit. |
 | `EXPLORER_ACTION_PROOF_RATE_LIMIT_RPM` | No | `90` | Separate, tighter limit for `/{COIN}/api/proof/action/{idx}` and its balance, contract-state and locked-balance siblings, derived from the measured wallet profile's proof jobs with retries and 3x headroom. |
 | `EXPLORER_VALIDATOR_SET_PROOF_RATE_LIMIT_RPM` | No | `30` | Separate, tighter limit for `/BTC/api/proof/validator-set` |
 | `EXPLORER_PREFLIGHT_POST_RATE_LIMIT_RPM` | No | `60` | Separate limit for `POST /{COIN}/api/preflight`, the only unauthenticated route that accepts a large body. The limiter runs before the body parser, so a limited caller is refused without the server reading the payload. |
 | `EXPLORER_BATCH_RATE_LIMIT_RPM` | No | `72` | One shared limit for the two batch routes, `POST /{COIN}/api/balances` and `POST /{COIN}/api/coinpay_obligations`. The default is the measured five-address wallet's batch traffic, 12 requests per minute, times 2 for retries and 3 for headroom. |
 | `EXPLORER_FEE_QUOTE_RATE_LIMIT_RPM` | No | `120` | Separate limit for the fee lookups `/{COIN}/api/feequote`, `/{COIN}/api/oraclefeequote` and `/{COIN}/api/feeschedule`. One tier looser than the proof routes because a quote is a lookup rather than a cryptographic recompute. |
 | `EXPLORER_CHECKPOINT_LIST_RATE_LIMIT_RPM` | No | `120` | Separate limit for `/{COIN}/api/checkpoints`, which lists stored checkpoints. |
-| `EXPLORER_CHECKPOINT_VERIFY_RATE_LIMIT_RPM` | No | `90` | Separate, tighter limit for `/{COIN}/api/checkpoint/{blockIndex}/verify`, which recomputes a checkpoint rather than reading one, derived from the measured wallet profile's one verify per proof job with retries and 3x headroom. |
+| `EXPLORER_CHECKPOINT_VERIFY_RATE_LIMIT_RPM` | No | `60` | Separate, tighter limit for `/{COIN}/api/checkpoint/{blockIndex}/verify`, which recomputes a checkpoint rather than reading one. Once the SDK caches the validator set, the wallet profile needs 18 verifications in its worst minute, counting one retry and three testers sharing a NAT. |
 | `EXPLORER_STATIC_RATE_LIMIT_RPM` | No | `1200` | Separate limit for static files (scripts, stylesheets, components, themes and fonts). The default is ten cold page loads of about 110 files each; these are disk reads, so the bucket only has to stop a flood, and a warm visitor sends almost none. |
-| `WS_TRUST_PROXY_HOPS` | No | `1` | Proxy hop count used to resolve the real client address for the WebSocket per-IP cap. The upgrade is handled on the raw HTTP server, where Express's `trust proxy` does not apply, so the hop count must be passed explicitly or the cap keys on a spoofable `X-Forwarded-For`. Keep it aligned with the HTTP side. |
+| `WS_TRUST_PROXY_HOPS` | No | `1` | Proxy hop count used to resolve the real client address for the WebSocket per-IP cap. The upgrade is handled on the raw HTTP server, where Express's `trust proxy` does not apply, so the hop count must be passed explicitly or the cap keys on a spoofable `X-Forwarded-For`. `0` ignores `X-Forwarded-For` and keys the cap on the TCP peer, for an explorer with no proxy in front; a missing or invalid value falls back to `1`. The HTTP rate limiters always trust one hop, so any value other than `1` keys the WebSocket cap and the HTTP limiters on different client addresses. |
 
 Rate limiting applies to all non-image endpoints (API, Explorer, and HTML).
 

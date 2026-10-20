@@ -38,6 +38,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 
 const DOC_ROOT = path.resolve(__dirname, '..', '..');
 const PLATFORM_ROOT = path.resolve(DOC_ROOT, '..');
@@ -107,4 +108,48 @@ function sibling(repo, wants = [], opts = {}) {
     return { root: state.root, have, skip: have ? false : reason, missing };
 }
 
-module.exports = { DOC_ROOT, PLATFORM_ROOT, REQUIRED, siblingRoot, checkoutState, sibling };
+const FULL_SHA = /^[0-9a-f]{40}$/;
+
+function gitIn(root, args) {
+    return execFileSync('git', ['-C', root, ...args], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        maxBuffer: 64 * 1024 * 1024,
+    });
+}
+
+/**
+ * Read a sibling at one declared commit instead of whatever its working tree holds.
+ *
+ * A twin guard that compares against a moving checkout passes or fails with the
+ * sibling's branch, so each guard declares the full 40-hex commit it was written
+ * against. CI sibling clones are depth 1, so the commit may be absent: it is fetched
+ * once from origin, and a commit that still does not resolve throws, so the guard fails
+ * rather than comparing against nothing.
+ *
+ * @param {string} root absolute path of the sibling checkout
+ * @param {string} commit full 40-hex sha
+ * @returns {{commit: string, show: function(string): Buffer, list: function(string): string[]}}
+ * @throws when the commit is not a full sha or cannot be resolved in the sibling
+ */
+function pinnedCommit(root, commit) {
+    if (!FULL_SHA.test(commit)) {
+        throw new Error(`declared twin commit ${commit} is not a full 40-hex sha`);
+    }
+    const resolves = () => {
+        try { gitIn(root, ['cat-file', '-e', `${commit}^{commit}`]); return true; } catch { return false; }
+    };
+    if (!resolves()) {
+        try { gitIn(root, ['fetch', '--quiet', '--depth=1', 'origin', commit]); } catch { /* reported below */ }
+        if (!resolves()) {
+            throw new Error(`${root} cannot resolve declared twin commit ${commit}, even after fetching it from origin`);
+        }
+    }
+    return {
+        commit,
+        show: (rel) => gitIn(root, ['show', `${commit}:${rel}`]),
+        list: (dir) => gitIn(root, ['ls-tree', '-r', '--name-only', commit, dir])
+            .toString().split('\n').filter(Boolean),
+    };
+}
+
+module.exports = { DOC_ROOT, PLATFORM_ROOT, REQUIRED, siblingRoot, checkoutState, sibling, pinnedCommit };

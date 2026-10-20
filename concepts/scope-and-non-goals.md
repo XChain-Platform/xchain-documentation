@@ -27,7 +27,8 @@ Bitcoin-family blockchains:
   and trustless cross-chain swaps (see [Cross-Chain](./cross-chain.md)).
 - **Moving a token between supported chains** with [XBRIDGE](../protocol/actions/xbridge.md):
   the balance is locked in a protocol escrow address nobody holds a key for (or burned on the
-  way back) and the same amount is credited on the destination, with no wrapped asset. That
+  way back) and the same amount is credited on the destination as a copy named after its home
+  chain (such as `BTC.PEPECASH`). That
   credit is authorized by the hub's validator federation, a
   [hub-trusted mint](../protocol/xchain-bridge.md#trust-model), not a trustless one. On the
   public networks the bridge runs on testnet only and is not active on mainnet (see
@@ -80,8 +81,8 @@ where it authorizes the destination credit and the release from escrow on the wa
 [hub-trusted mint](../protocol/xchain-bridge.md#trust-model)).
 
 *Why:* inheriting the host chain's proof-of-work is exactly what lets XChain avoid a
-third-party bridge and a new consensus layer for ordering and settling base-layer state, with
-XBRIDGE's hub-trusted mint as the one stated exception. Speed is the price of that security.
+sidechain and a new consensus layer for ordering and settling base-layer state; XBRIDGE's
+hub-trusted mint is the one place the federation decides a balance. Speed is the price of that security.
 
 ### A general-purpose "world computer"
 
@@ -116,9 +117,9 @@ assets, and pooled cross-ecosystem liquidity.
 *Why:* the metalayer technique, embedding and replaying data on an unmodified base chain,
 generalizes beyond UTXO chains, but each chain family needs its own carrier design; UTXO
 chains share Bitcoin's, which is why they onboard as configuration while account-model
-support is a build. Reaching other ecosystems through a bridge instead would reintroduce
-exactly the bridge risk XChain was designed to avoid, so new ecosystems arrive as supported
-chains or not at all.
+support is a build. Reaching other ecosystems through an outside bridge instead would put
+a trust boundary outside the protocol, so new ecosystems arrive as supported chains or not at
+all.
 
 ---
 
@@ -177,7 +178,7 @@ availability depends on where it is hosted; it is not part of the verifiable on-
 
 | XChain is a strong fit for… | Look elsewhere if you need… |
 |---|---|
-| Tokens secured directly by Bitcoin-family proof-of-work, no third-party bridge | Confidential balances or private transfers |
+| Tokens secured directly by Bitcoin-family proof-of-work | Confidential balances or private transfers |
 | A transparent, auditable, fully-replayable asset ledger | Sub-second / real-time settlement |
 | A native DEX and trustless cross-chain swaps among BTC/LTC/DOGE | Deep synchronous DeFi composability (EVM-style) |
 | Contracts that react to real-world data or AI judgments | Interop with Ethereum/Solana assets and liquidity |

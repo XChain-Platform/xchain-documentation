@@ -281,7 +281,7 @@ test('the cross-chain royalty source facts still hold', { skip: skipNoIndexer },
 
 test('the cross-chain guide carries the royalty availability caveat', () => {
     const pairs = section(crossChain, '## Available Pairs', 'cross-chain.md');
-    assert.match(pairs, /royalty not enforceable cross-chain/,
+    assert.match(pairs, /invalid: royalty not enforceable cross-chain/,
         'cross-chain.md "Available Pairs" no longer names the rejection a royalty-bearing '
         + 'cross-chain listing gets at create');
     assert.match(pairs, /CROSS_CHAIN_ROYALTY/,
@@ -293,23 +293,40 @@ test('the cross-chain guide carries the royalty availability caveat', () => {
         + 'the activation date is allowed to live');
 });
 
+// Refuse a backtick quote of either royalty denial without the stored `invalid: ` prefix.
+function assertPrefixedRoyaltyQuotes(text, name) {
+    assert.ok(!/`royalty (?:not enforceable cross-chain|leg not payable on proceeds chain)`/.test(text),
+        `${name} quotes a cross-chain royalty denial without the stored \`invalid: \` prefix, `
+        + 'so a wallet matching the documented text never matches the stored status');
+}
+
 test('the NFT standard does not claim the rails have no special cases', () => {
     assert.ok(!/All existing rails apply to NFT-pattern tokens with no special cases/.test(nft),
         'nft-standard.md again claims the rails apply with no special cases, while a '
         + 'royalty-bearing cross-chain listing is denied at create');
     assert.match(nft, /CROSS_CHAIN_ROYALTY/,
         'nft-standard.md no longer names the cross-chain royalty exception anywhere');
-    assert.match(nft, /royalty leg not payable on proceeds chain/,
-        'nft-standard.md no longer names the verdict a non-portable leg gets above the flag day');
+    assert.match(nft, /invalid: royalty leg not payable on proceeds chain/,
+        'nft-standard.md no longer quotes the full stored status a non-portable leg gets above the flag day');
+    assert.match(nft, /invalid: royalty not enforceable cross-chain/,
+        'nft-standard.md no longer quotes the full stored status of the below-flag-day denial');
+    assertPrefixedRoyaltyQuotes(nft, 'nft-standard.md');
 });
 
 test('the controller spec names both cross-chain royalty denials', () => {
     const sales = section(readDoc('protocol/controller-bound-tokens.md'),
         '### Cross-chain sales (`CROSS_CHAIN_ROYALTY`)', 'controller-bound-tokens.md');
-    assert.match(sales, /royalty not enforceable cross-chain/,
-        'the cross-chain sales section no longer names the below-flag-day denial');
-    assert.match(sales, /royalty leg not payable on proceeds chain/,
-        'the cross-chain sales section no longer names the non-portable-leg denial');
+    assert.match(sales, /invalid: royalty not enforceable cross-chain/,
+        'the cross-chain sales section no longer quotes the full stored status of the below-flag-day denial');
+    assert.match(sales, /invalid: royalty leg not payable on proceeds chain/,
+        'the cross-chain sales section no longer quotes the full stored status of the non-portable-leg denial');
+    assertPrefixedRoyaltyQuotes(sales, 'controller-bound-tokens.md');
+});
+
+test('the royalty quote guard fails on a quote that drops the stored prefix', () => {
+    assert.throws(() => assertPrefixedRoyaltyQuotes('(`royalty not enforceable cross-chain`)', 'fixture'), /fixture quotes/);
+    assert.throws(() => assertPrefixedRoyaltyQuotes('(`royalty leg not payable on proceeds chain`)', 'fixture'), /fixture quotes/);
+    assert.doesNotThrow(() => assertPrefixedRoyaltyQuotes('(`invalid: royalty not enforceable cross-chain`)', 'fixture'));
 });
 
 /* 6. A fee output is required only when a fee is actually owed. */
@@ -384,7 +401,7 @@ test('the bridge availability source facts still hold', { skip: skipNoIndexer },
     // The four bridge pages say general-token bridging is armed on testnet per chain and
     // not active on mainnet, so both halves are pinned on the per-chain keys the resolver
     // reads first (the bare testnet key is only the fallback and stays the sentinel).
-    const pages = 'cross-chain.md, what-is-xchain.md, concepts/metalayer.md and overview.md';
+    const pages = 'cross-chain.md, what-is-xchain.md, concepts/metalayer.md and getting-started/overview.md';
     assert.match(tokenGate[0], /\bmainnet:\s*UNARMED/,
         `TOKEN_BRIDGE_ACTIVATION mainnet is no longer the sentinel. ${pages} say it is not active on mainnet and must change in the same commit.`);
     for(const key of ['BTC:testnet', 'LTC:testnet', 'DOGE:testnet']){
@@ -406,7 +423,7 @@ test('the cross-chain guide covers the bridge with its scope and trust stated', 
 
 test('the intro pages state the bridge trust model instead of denying it', () => {
     const intro = readDoc('getting-started/what-is-xchain.md');
-    const noBridge = section(intro, '### No Sidechains, No Third-Party Bridge', 'what-is-xchain.md');
+    const noBridge = section(intro, '### No Sidechains, Cross-Chain Built In', 'what-is-xchain.md');
     const noConsensus = section(intro, '### No New Consensus', 'what-is-xchain.md');
     assert.ok(!/no wrapped asset and no custodian|chains you already trust/.test(noBridge),
         'what-is-xchain.md again says XBRIDGE has no custodian and trusts only the base chains; '
@@ -419,18 +436,18 @@ test('the intro pages state the bridge trust model instead of denying it', () =>
         'what-is-xchain.md bridge paragraph no longer says the bridge is off on mainnet');
     assert.ok(!/never custodies or gates/.test(noConsensus),
         'what-is-xchain.md again says the federation never gates a balance; it authorizes every XBRIDGE credit');
-    const overview = readDoc('overview.md');
-    const bullet = overview.split('\n').find((l) => l.startsWith('**No third-party bridge.**')) || '';
+    const overview = readDoc('getting-started/overview.md');
+    const bullet = overview.split('\n').find((l) => l.startsWith('**Cross-chain, inside the protocol.**')) || '';
     assert.match(bullet, /hub-trusted mint/,
-        'overview.md "No third-party bridge" bullet no longer says the XBRIDGE credit is a hub-trusted mint');
+        'overview.md "Cross-chain, inside the protocol" bullet no longer says the XBRIDGE credit is a hub-trusted mint');
 });
 
 test('the XCHAIN-only bridge limit reads as today\'s state, not a property of XBRIDGE', () => {
     const pages = [
         ['concepts/metalayer.md', /^\*\*Sidechains\*\*/],
-        ['overview.md', /^\*\*No third-party bridge\.\*\*/],
+        ['getting-started/overview.md', /^\*\*Cross-chain, inside the protocol\.\*\*/],
         ['user-guide/cross-chain.md', /^\*\*What is live today\.\*\*/],
-        ['getting-started/what-is-xchain.md', /^XChain has no third-party bridge\./],
+        ['getting-started/what-is-xchain.md', /^XChain moves tokens between its chains in the protocol itself\./],
         ['whitepaper.md', /^XChain is a token-and-settlement \*\*metalayer\*\*/],
         ['whitepaper.md', /^\*\*Inherited security\.\*\*/],
     ];
@@ -450,14 +467,14 @@ test('the XCHAIN-only bridge limit reads as today\'s state, not a property of XB
 });
 
 test('the overview keeps XBRIDGE off mainnet while its mainnet gate is the sentinel', () => {
-    const overview = readDoc('overview.md');
+    const overview = readDoc('getting-started/overview.md');
     const pending = /not active on mainnet|awaits mainnet activation/;
     const intro = section(overview, '## In one paragraph', 'overview.md');
     assert.match(intro, /token bridge that runs on testnet and regtest and awaits mainnet activation/,
         'overview.md "In one paragraph" lists the token bridge among live-in-production features without its mainnet caveat');
-    const bullet = overview.split('\n').find((l) => l.startsWith('**No third-party bridge.**')) || '';
+    const bullet = overview.split('\n').find((l) => l.startsWith('**Cross-chain, inside the protocol.**')) || '';
     assert.match(bullet, pending,
-        'overview.md "No third-party bridge" bullet no longer says XBRIDGE is off on mainnet');
+        'overview.md "Cross-chain, inside the protocol" bullet no longer says XBRIDGE is off on mainnet');
     assert.ok(!/not active on mainnet\.\s*Cross-chain settlement already works in production/.test(bullet),
         'overview.md again ends the XBRIDGE sentence with the production claim, which belongs to swap settlement');
     const going = section(overview, '## Where it\'s going', 'overview.md');
@@ -479,4 +496,14 @@ test('the scope page states the XBRIDGE exception to the hub\'s role', () => {
     ]) {
         assert.match(scope, needle, `scope-and-non-goals.md no longer does ${what}`);
     }
+});
+
+test('the bridge page describes credits as quorum-signed and proven against the home chain checkpoint', () => {
+    const bridge = section(readDoc('protocol/xchain-bridge.md'), '## Trust model', 'xchain-bridge.md');
+    assert.match(bridge, /quorum-signed and proven against the home chain's signed checkpoint/,
+        'xchain-bridge.md trust model no longer says credits are quorum-signed and proven against the home chain checkpoint');
+    assert.match(bridge, /bridge_checkpoint_check\.js/,
+        'xchain-bridge.md trust model no longer names bridge_checkpoint_check.js');
+    assert.doesNotMatch(bridge, /Closing that trust boundary is a stated follow-on/,
+        'xchain-bridge.md again presents the checkpoint cross-check as a future follow-on');
 });

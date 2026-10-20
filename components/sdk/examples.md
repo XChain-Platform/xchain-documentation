@@ -75,19 +75,17 @@ const { XChainSDK } = require('@dankest-llc/xchain-sdk');
 // Minimal setup: action string generation only (no network calls)
 const sdk = new XChainSDK();
 
-// With explorer (for querying blockchain data)
-const sdk = new XChainSDK({
-    network: 'bitcoin-mainnet',
-    explorerUrl: 'explorer.xchain.io',
-    explorerPort: 8080
-});
+// Zero-config: a mainnet/testnet network alone resolves the public explorer,
+// encoder and hub (https://explorer.xchain.io, https://encoder.xchain.io/BTC, ...)
+const sdk = new XChainSDK({ network: 'bitcoin-mainnet' });
 
-// With encoder (for generating PSBTs)
+// Explicit endpoints: pass FULL URLs. A bare host such as 'explorer.xchain.io'
+// is treated as http://host:<dev-port>, which the public hosts do not serve.
+// The encoder URL carries the coin path; the explorer client adds its own.
 const sdk = new XChainSDK({
     network: 'bitcoin-mainnet',
-    explorerUrl: 'explorer.xchain.io',
-    encoderUrl: 'encoder.xchain.io',
-    encoderPort: 3003
+    explorerUrl: 'https://explorer.xchain.io',
+    encoderUrl: 'https://encoder.xchain.io/BTC'
 });
 ```
 
@@ -738,7 +736,7 @@ try {
 ```js
 const sdk = new XChainSDK({
     network: 'bitcoin-regtest',
-    hubUrl: 'hub.xchain.io',
+    hubUrl: 'localhost',   // your local regtest hub (http://localhost:10000)
     hubPort: 10000
 });
 
@@ -760,8 +758,8 @@ const tx = await sdk.send(
 ```js
 const sdk = new XChainSDK({
     network: 'bitcoin-mainnet',
-    explorerUrl: 'explorer.xchain.io',
-    encoderUrl: 'encoder.xchain.io',
+    explorerUrl: 'https://explorer.xchain.io',
+    encoderUrl: 'https://encoder.xchain.io/BTC',
     hooks: {
         onRequest: (info) => {
             console.log(`[${info.service}] → ${info.method} ${info.url || ''}`);

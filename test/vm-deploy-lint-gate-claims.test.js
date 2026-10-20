@@ -170,13 +170,18 @@ function syntaxDepthFacts(root) {
     assert.ok(bound && map, 'xchain-vm no longer declares MAX_SYNTAX_DEPTH or LINT_SYNTAX_DEPTH_ACTIVATION in its known shape');
     const slots = [...map[1].matchAll(/'([A-Z]+:(?:mainnet|testnet))':\s*([^,\n]+)/g)].map((m) => [m[1], m[2].trim()]);
     assert.equal(slots.length, 6, `parsed ${slots.length} LINT_SYNTAX_DEPTH_ACTIVATION slots`);
-    return { bound: bound[1], armed: slots.filter(([, v]) => v !== 'null').map(([k]) => k) };
+    const armed = slots.filter(([, v]) => v !== 'null');
+    return { bound: bound[1], armed: armed.map(([k]) => k), heights: armed.map(([k, v]) => `\`${k}\` ${v}`) };
 }
 
-// The guide and VM pages quote the bound and message; the VM pages name the option and gate map.
+// The guide, VM and DEPLOY pages quote the bound and message; the VM pages name the option and
+// gate map; the DEPLOY spec names the indexer gate and quotes each armed testnet height.
 function assertSyntaxDepth(pages, facts) {
     const message = `syntax depth exceeds limit (${facts.bound})`;
-    for (const name of ['operations', 'guide']) assert.ok(pages[name].includes(message), `${name} omits "${message}"`);
+    for (const name of ['operations', 'guide', 'deploy']) assert.ok(pages[name].includes(message), `${name} omits "${message}"`);
+    for (const marker of ['VM_LINT_SYNTAX_DEPTH_ACTIVATION', ...facts.heights]) {
+        assert.ok(pages.deploy.includes(marker), `deploy omits ${marker}`);
+    }
     for (const name of ['operations', 'architecture']) {
         for (const marker of ['enforceLintSyntaxDepth', 'LINT_SYNTAX_DEPTH_ACTIVATION']) {
             assert.ok(pages[name].includes(marker), `${name} omits ${marker}`);
@@ -198,6 +203,10 @@ test('the syntax-depth page guard fails on a dropped message, option or a newly 
     assert.throws(() => assertSyntaxDepth({ ...PAGES, architecture: PAGES.architecture.replaceAll('enforceLintSyntaxDepth', 'x') }, facts),
         /architecture omits enforceLintSyntaxDepth/);
     assert.throws(() => assertSyntaxDepth(PAGES, { ...facts, armed: ['BTC:testnet'] }), /now sets a height/);
+    assert.throws(() => assertSyntaxDepth({ ...PAGES, deploy: PAGES.deploy.replaceAll(message, 'x') }, facts), /deploy omits "syntax depth/);
+    assert.throws(() => assertSyntaxDepth({ ...PAGES, deploy: PAGES.deploy.replaceAll('VM_LINT_SYNTAX_DEPTH_ACTIVATION', 'x') }, facts),
+        /deploy omits VM_LINT_SYNTAX_DEPTH_ACTIVATION/);
+    assert.throws(() => assertSyntaxDepth({ ...PAGES, deploy: PAGES.deploy.replaceAll(facts.heights[0], 'x') }, facts), /deploy omits `BTC:testnet`/);
 });
 
 test('the deploy-lint guards fail on a stale claim, a dropped height or a miscounted rule set',

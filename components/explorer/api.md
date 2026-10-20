@@ -71,14 +71,47 @@ All API endpoints return:
 | `total` | number | Total number of matching records (for paginated endpoints) |
 | `runtime` | string | Server-side query execution time |
 
+### Freshness marker
+
+Every data response says how current this coin's indexed data is, so a client
+can tell served-and-current from served-and-behind without a second request.
+The marker is stamped on JSON responses of the `/{COIN}/api/...` and
+`/{COIN}/explorer/...` data routes, except a `503`. The response headers are
+listed in the CORS `Access-Control-Expose-Headers`, so cross-origin browser
+callers can read them.
+
+| Header | Value | When present |
+|---|---|---|
+| `XChain-Freshness` | `live` or `stale` | Always, when the marker applies |
+| `XChain-Tip-Block` | The newest indexed block index, as a decimal string | Omitted when the tip block is unknown |
+| `XChain-Tip-Age-S` | Seconds since that block's timestamp, as a decimal string | Omitted when the tip age is unknown |
+
+While the coin is stale, the JSON body also carries a top-level `freshness`
+object. It is added only when the body is a JSON object, never to an array
+body. A fresh response has no `freshness` key at all, so its body is unchanged.
+
+| Key | Type | Description |
+|---|---|---|
+| `stale` | `true` | Always the literal `true`; the object is present only while the coin is stale |
+| `tip_block` | integer or `null` | The newest indexed block index; `null` when unknown |
+| `tip_age_seconds` | integer or `null` | Seconds since that block's timestamp; `null` when unknown |
+| `replica_halted` | `true`, `false` or `null` | The same verdict as the `replica_halted` field of [Get Status](#get-status); `null` means it could not be determined and is never coerced to `false` |
+
+The read-only contract call, `POST /{COIN}/api/contract/{contractIndex}/call`,
+sends `XChain-Freshness` only, with no tip headers and no body object.
+Other hand-registered routes, such as `feequote` and `preflight`, carry no marker.
+`stale` follows the thresholds described under [Get Status](#get-status). With
+`EXPLORER_STALE_FAIL_CLOSED=1` a stale coin's data routes answer
+`503 COIN_DATA_STALE` instead, and that refusal carries no marker.
+
 ### Error Responses
 
 | Status | Cause |
 |---|---|
 | `400` | Bad request or database query error |
 | `404` | Invalid endpoint path |
-| `429` | Rate limit exceeded (1080 requests per IP per 60s window by default; proof, batch, preflight, fee-quote and checkpoint routes have tighter limits, see [Rate Limiting](configuration.md#rate-limiting)) |
-| `503` | Coin not configured or database unavailable |
+| `429` | Rate limit exceeded (180 requests per IP per 60s window by default; proof, batch, preflight, fee-quote and checkpoint routes have tighter limits, see [Rate Limiting](configuration.md#rate-limiting)) |
+| `503` | Coin not configured or database unavailable; or, only with `EXPLORER_STALE_FAIL_CLOSED=1`, `COIN_DATA_STALE` for a coin whose indexed tip is stale |
 
 ---
 
@@ -122,7 +155,7 @@ GET /{COIN}/api/status
 {
     "data": {
         "supported": { "BTC": "BTC (mainnet)", "RBTC": "BTC (regtest)", ... },
-        "available": { "BTC": "BTC (mainnet)" },
+        "available": { "BTC": "BTC (mainnet)", "RBTC": "BTC (regtest)" },
         "hub_config_fetched_at": "2026-06-13T12:00:00.000Z",
         "hub_config_age_seconds": 42,
         "last_block": { "BTC": 893000, "RBTC": 41 },
@@ -143,12 +176,16 @@ GET /{COIN}/api/status
 ```
 
 The example above shows the gate in action: `RBTC` has a frozen tip, so it is
-`stale` and absent from `available`, while still listed in `supported`.
+`stale`. By default it stays in `available`, because its data is still served
+with the [freshness marker](#freshness-marker). Only an explorer running with
+`EXPLORER_STALE_FAIL_CLOSED=1` drops a stale coin from `available`, while it
+stays in `supported`, and answers that coin's data routes with
+`503 COIN_DATA_STALE`.
 
 | Field | Description |
 |---|---|
 | `supported` | Every coin code the explorer's config defines, mapped to its display name. Static: the freshness gate never removes a coin from here |
-| `available` | The subset of coins this instance currently serves as up-to-date data, mapped to display names. Computed per request: it starts from the configured availability map and then drops every coin the freshness gate marks `stale`, so a coin can leave `available` and stay in `supported` |
+| `available` | The subset of coins this instance currently serves, mapped to display names. Computed per request: it starts from the configured availability map. By default a coin the freshness gate marks `stale` stays listed, so being in this map does not mean the data is current. Only under `EXPLORER_STALE_FAIL_CLOSED=1` is a stale coin dropped, and then a coin can leave `available` and stay in `supported` |
 | `hub_config_fetched_at` | ISO-8601 timestamp of the last successful hub config fetch; `null` if hub has never responded |
 | `hub_config_age_seconds` | Seconds since last hub config fetch; `null` if no fetch has occurred |
 | `last_block` | Per-coin latest block index written to the indexer DB |
@@ -162,7 +199,7 @@ The example above shows the gate in action: `RBTC` has a frozen tip, so it is
 | `next_block_future_seconds` | Per-coin seconds the next block to be committed is dated ahead of this host's clock; `0` when it is not ahead, `null` when unknown. This is the honest measure of a consensus wait that `tip_future_seconds` is often mistaken for. Only coins this instance measures appear here |
 | `indexer_wait_clears_at` | Per-coin ISO-8601 instant the current indexer wait may first clear. For `future_block_wait` it is the moment this host's clock reaches the next block's timestamp and the block becomes committable. For `behind` on a time-bounded indexer barrier it is the indexer's own `stallClearsAt`, while the indexer still reports that instant as ahead. `null` otherwise, including an ordinary slow indexer, a barrier keyed to height rather than time, and a barrier whose clear time has already passed. Lets a client show a countdown instead of leaving a confirmed but unindexed transaction looking lost |
 | `stale` | Per-coin freshness verdict: `true` when `tip_age_seconds` has passed that coin's threshold, and also `true` when `tip_future_seconds` has passed that coin's future-skew tolerance. Fails closed, so a missing or unreadable `block_time` also reads `true`. Only coins this instance actually measures (those with a live connection pool) appear here |
-| `replica_halted` | Per-coin durable consensus-divergence halt verdict, read from the sync client's `sync_halt` table on the same replica this instance reads (`true` when an active, uncleared halt row exists). A halted replica keeps reporting a small lag until its source mints past it, so this catches what neither `stale` nor `tip_age_seconds` can see; it composes with `stale` rather than replacing it (this field flags the halt immediately, `stale`/`available` only drop the coin once its tip actually ages out). `true`/`false` only once the table was read successfully; `null` when the signal could not be determined (no live pool, the table doesn't exist on this replica, or the read failed), and `null` is never coerced to `false`. Only coins this instance measures appear here |
+| `replica_halted` | Per-coin durable consensus-divergence halt verdict, read from the sync client's `sync_halt` table on the same replica this instance reads (`true` when an active, uncleared halt row exists). A halted replica keeps reporting a small lag until its source mints past it, so this catches what neither `stale` nor `tip_age_seconds` can see; it composes with `stale` rather than replacing it (this field flags the halt immediately, `stale` flags the coin only once its tip actually ages out). `true`/`false` only once the table was read successfully; `null` when the signal could not be determined (no live pool, the table doesn't exist on this replica, or the read failed), and `null` is never coerced to `false`. Only coins this instance measures appear here |
 | `chain_tip` | Per-coin chain tip as reported by the decoder's own health endpoint (what the coin node sees) |
 | `chain_lag_blocks` | `chain_tip − decoder_tip` (how far the decoder trails the chain) |
 | `decoder_health` | Per-coin decoder health string: `"healthy"`, `"unhealthy"` (decoder up but reporting problems), `"reorg-halt-parked"` (the decoder has stopped on a durable REORG_HALT marker that only an operator clear removes), `"reorg-halted"` (the decoder carries that marker but is still parsing; both halt values outrank every value after them), `"node-stale"` (the decoder's cached coin-node height is frozen, so `chain_tip` and `chain_lag_blocks` are nulled), `"unreachable"` (decoder not responding), or `"unconfigured"` (no decoder endpoint resolves for this coin, from either the explorer's configuration or `DECODER_API_URL[_<COIN>_<NETWORK>]`; see [Configuration](configuration.md)) |
@@ -176,9 +213,12 @@ way by `EXPLORER_TIP_MAX_FUTURE_SKEW_S` (2 hours by default, per coin with
 `EXPLORER_TIP_MAX_FUTURE_SKEW_S_<COIN>`, `0` to disable): skew past it reads
 `stale`, so a frozen chain cannot sit behind a future-dated block forever. See
 [configuration.md](configuration.md#environment-variables). A client that wants
-only current data should read `available` rather than `supported`, and treat a
-coin's disappearance from `available` as a transient outage of this instance,
-not as the coin being unknown.
+only current data should check `stale[coin]`, or the
+[freshness marker](#freshness-marker) on the data response itself, rather than
+a coin's presence in `available`: by default a stale coin stays listed there.
+On an explorer running with `EXPLORER_STALE_FAIL_CLOSED=1`, treat a coin's
+disappearance from `available` as a transient outage of this instance, not as
+the coin being unknown.
 
 **Hub consensus-hash signal.** The two `hub_consensus_hash_mismatch` fields are
 an advisory transport-integrity signal across all bundled coins and networks.
@@ -1968,9 +2008,18 @@ GET /{COIN}/api/contract_stakes[/{query}/{type}]
 GET /{COIN}/api/contract_unstakes[/{query}/{type}]
 GET /{COIN}/api/contract_delegations[/{query}/{type}]
 GET /{COIN}/api/slash_events[/{query}/{type}]
+GET /{COIN}/api/rollcalls[/{query}/{type}]
+GET /{COIN}/api/rollcall_closes[/{query}/{type}]
 ```
 
 Validator federation data. `validators` rows are the on-chain active set, and each one also carries the hub's view of the same signing pubkey: `hub_addr` (the validator's network address), `hub_chains` (the chains it serves) and `hub_status`. The status merges two hub sources. The hub's manual registry (`registervalidator`) supplies `active`, `suspended` or `removed` plus the address and chains when it has a row; on a live federation that registry is normally empty, because membership is the on-chain stake set. The gossiped `validator_capabilities` rows supply the rest: `active` when at least one capability is qualified, self-tested and enabled, `peered` when the hub has heard the pubkey over P2P but no capability is active yet (typically a hub that cannot read its own stake: no BTC indexer). `unregistered` means the hub answered and has never heard from the pubkey. The address and chains are `null` for gossip-derived entries. All three are `null` when neither hub source is reachable, which means unknown rather than unregistered. `stakes` and `delegations` `type` values: `block`, `address`, `source`. `rewards` `type` values: `address`, `source`. `delegation_revocations` (DELEGATE v2/v3 signing-key revocations) and `collects` (COLLECT validator reward claims) `type` values: `block`, `address`, `source`. `full_node_verifications` `type` values: `block`, `epoch`, `pubkey`, `address`. Contract-targeted staking (`contract_stakes`, `contract_unstakes`, `contract_delegations`) and `slash_events` support types: `block`, `address`, `contract`.
+
+ROLLCALL data is split by chain, because each half is written on a different chain:
+
+- `rollcalls` lists ROLLCALL publications and is served on DOGE coins only (`DOGE`, `TDOGE`, `RDOGE`). Each row is one ROLLCALL action with its `epoch_height`, `ledger_hash`, `publisher` and `signer_count`. `type` values: `block`, `address`.
+- `rollcall_closes` lists epoch closes and is served on BTC coins only (`BTC`, `TBTC`, `RBTC`). Each row is one epoch with `snapshot_block`, `close_block`, `rolled`, `absence_count`, `evicted_count` and `gate_signer_count`. `type` value: `block` (the close block).
+
+Asking either route on another coin answers `400` rather than an empty page: `ROLLCALLS_DOGE_ONLY` from `rollcalls`, `ROLLCALL_CLOSES_BTC_ONLY` from `rollcall_closes`.
 
 ---
 
@@ -2341,6 +2390,8 @@ Content-Type: application/json
 | `GET /{COIN}/api/contract_unstakes/...` | `block`, `address`, `contract` |
 | `GET /{COIN}/api/contract_delegations/...` | `block`, `address`, `contract` |
 | `GET /{COIN}/api/slash_events/...` | `block`, `address`, `contract` |
+| `GET /{COIN}/api/rollcalls/...` (DOGE only) | `block`, `address` |
+| `GET /{COIN}/api/rollcall_closes/...` (BTC only) | `block` |
 
 ### ANCHOR and Attestation and Cross-Chain Call List Endpoints
 

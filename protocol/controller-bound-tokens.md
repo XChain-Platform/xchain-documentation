@@ -428,9 +428,9 @@ cross-chain listing is decided by the `CROSS_CHAIN_ROYALTY` flag-day, layered on
 | `CONTROLLER_GUARD` | `CROSS_CHAIN_ROYALTY` | Cross-chain listing whose guard returns legs |
 |---|---|---|
 | off | (n/a) | no legs produced (unchanged) |
-| on | **off** | **denied at create** (`royalty not enforceable cross-chain`, fail-closed) |
+| on | **off** | **denied at create** (`invalid: royalty not enforceable cross-chain`, fail-closed) |
 | on | **on** | accepted when every leg re-encodes to `GET_COIN`; legs travel in the validator-signed match and are applied at settlement |
-| on | **on** | **denied at create** when any leg does not re-encode (`royalty leg not payable on proceeds chain`, fail-closed) |
+| on | **on** | **denied at create** when any leg does not re-encode (`invalid: royalty leg not payable on proceeds chain`, fail-closed) |
 
 When the flag is on:
 
@@ -638,8 +638,8 @@ string. See [DEPLOY](actions/deploy.md#contract-identity-manifest-meta-required-
 
 ## Gas
 
-Running the guard costs VM gas, billed to the action's `SOURCE` in `XCHAIN` at
-`fee = gasBilled × GAS_PRICE`:
+Running the guard costs VM gas, billed to the action's `SOURCE` in `XCHAIN`. The metered fee
+is `fee = gasBilled × GAS_PRICE`, and what is actually charged depends on the chain:
 
 - The guard runs against a bounded ceiling, `GAS_SCHEDULE.VM_GUARD_GAS_CEILING`
   (default 200,000), on every chain.
@@ -653,6 +653,12 @@ Running the guard costs VM gas, billed to the action's `SOURCE` in `XCHAIN` at
   [XChain bridge](./xchain-bridge.md#the-xchain-token-off-btc) creates an `XCHAIN` row on
   that chain. Extending the reservation to every chain would be a separate, future flag-day
   change.
+- **Off BTC the charge is capped at `SOURCE`'s balance.** With no reservation, the metered fee
+  is capped at the `XCHAIN` balance `SOURCE` holds: the full fee when it holds that much, its
+  whole balance when it holds less, and nothing when it holds none. The guard still runs
+  against the full ceiling, an allowing action still settles, and no balance goes negative. So
+  off BTC a `SOURCE` holding no `XCHAIN` runs guards at no gas cost, and only the on-chain
+  transaction cost of each attempt bounds repeated guard runs.
 - **v1 charges guard gas on ALLOW only.** A denied action records no ledger change of its own
   (preserving the ledger/balance invariant). Before the `CONTROLLER_GUARD_LEG_SAVEPOINTS` flag
   day, an earlier guard on the same leg that allowed keeps its committed state writes and
@@ -750,7 +756,8 @@ From the [`CONTROLLER_CUSTODY_GUARD` flag day](./flag-days.md), a `DEPOSIT` into
 `WITHDRAW` out of contract custody runs the token's `transfer` or fallback `all` guard, then
 the depositor's own `transfer` address guard for a `DEPOSIT` or the withdrawer's own
 `transfer` address guard for a `WITHDRAW`. `SOURCE` pays the metered guard gas for both runs,
-and the reservations are cumulative. There is no grandfathering: a withdrawal of a balance
+and on BTC the reservations are cumulative (off BTC the charge is capped at `SOURCE`'s balance,
+see [Gas](#gas)). There is no grandfathering: a withdrawal of a balance
 deposited before the flag day is still gated, and a denial leaves that balance in custody.
 
 Because a guard's decision and side effects are consensus-relevant, the VM engine and the

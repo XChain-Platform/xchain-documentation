@@ -201,7 +201,7 @@ Run the full pass before every release on an Android LG K51-class phone, an iOS 
 
 ## URI schemes
 
-- ⬜ `xchain:<address>` opens the wallet (the web shell registers via `navigator.registerProtocolHandler`).
+- ⬜ A `web+xchain:` link opens the web wallet (registered via `navigator.registerProtocolHandler`; bare `xchain:` registers only in browsers that accept it).
 - ⬜ Extension popup deep-link opens with the URI as a routable intent, where wired.
 - ⬜ Desktop `xchain:` URI from the OS opens the wallet on macOS / Windows / Linux.
 - ⬜ The URI-parser fuzz harness is green. It is the standing guard for the deep-link audit below; a release that skips it has not checked the wallet's widest untrusted-string surface.

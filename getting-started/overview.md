@@ -5,17 +5,17 @@
 
 **What XChain is, why it matters, and where it's going**
 
-A short, plain-language introduction to the platform. For the full protocol specification, see the [XChain Platform White Paper](./whitepaper.md).
+A short, plain-language introduction to the platform. For the full protocol specification, see the [XChain Platform White Paper](../whitepaper.md).
 
 ---
 
 ## In one paragraph
 
-XChain is a token platform that turns the world's most secure blockchains into programmable, multi-chain token networks: no third-party bridge, no sidechain, and no new chain to trust. It embeds a complete protocol (tokens, a built-in exchange, cross-chain swaps, smart contracts, cross-chain contract calls, a native cross-chain token bridge that runs on testnet and regtest and awaits mainnet activation, and on-chain data) directly inside ordinary blockchain transactions, so every token inherits the host chain's proof-of-work security wholesale. It is chain-agnostic by design, live in production today on Bitcoin, Litecoin, and Dogecoin, and built to extend across many blockchains. The product exists, runs, and has settled cross-chain trades end-to-end.
+XChain is a token platform that turns the world's most secure blockchains into programmable, multi-chain token networks: no sidechain and no new chain to trust. It embeds a complete protocol (tokens, a built-in exchange, cross-chain swaps, smart contracts, cross-chain contract calls, a native cross-chain token bridge that runs on testnet and regtest and awaits mainnet activation, and on-chain data) directly inside ordinary blockchain transactions, so every token inherits the host chain's proof-of-work security wholesale. It is chain-agnostic by design, live in production today on Bitcoin, Litecoin, and Dogecoin, and built to extend across many blockchains. The product exists, runs, and has settled cross-chain trades end-to-end.
 
 ## The problem
 
-For a decade, the way to do "more than payments" on a blockchain has been to leave the secure chains behind: moving value onto bridges, sidechains, and new Layer-1s with their own validators and their own trust assumptions. That's also where the money gets stolen: cross-chain bridges are among the most exploited constructs in all of crypto, with billions lost.
+For a decade, the way to do "more than payments" on a blockchain has been to leave the secure chains behind: moving value onto sidechains and new Layer-1s with their own validators and their own trust assumptions, usually joined by outside bridge services. XChain takes the other route: tokens stay on the chains people already use, and moving between those chains is part of the protocol.
 
 The largest, most liquid, most secure chains (Bitcoin and its relatives) were never extended to do this safely. The opportunity is to add the capabilities the market wants *on top of* those chains, inheriting their security instead of rebuilding it on something weaker.
 
@@ -39,7 +39,7 @@ Three things are genuinely hard to replicate:
 
 **AI- and web-callable contracts.** XChain contracts can ask the outside world a question (an HTTPS fetch, or a prompt to an approved AI model) and get a *verified* answer back on-chain. A validator network fetches the answer independently, agrees on the result, and writes it so the outcome is reproducible by anyone replaying the chain. This makes a long-promised class of applications finally practical: AI-judged contests and moderation, parametric insurance, prediction markets settled from real sources, data-reactive treasuries.
 
-**No third-party bridge.** XChain never wraps a token or hands it to an outside chain. Cross-chain swaps are coordinated (never custodied) by a stake-weighted Byzantine-fault-tolerant validator network; tokens stay on their home chains and only ownership changes, and the same rail carries cross-chain contract calls. Cross-chain swap settlement already works in production. The one exception is XBRIDGE, which on the public networks runs on testnet only, carrying XCHAIN, the platform's own fee token (bridging other tokens is armed on testnet, switching on chain by chain): it moves the token between supported chains by locking on its own chain and crediting the destination, with no outside contract ever holding the balance. That credit rests on the hub's validator federation, a [hub-trusted mint](./protocol/xchain-bridge.md#trust-model) that is not active on mainnet.
+**Cross-chain, inside the protocol.** XChain never hands a token to an outside chain or bridge operator. Cross-chain swaps are coordinated (never custodied) by a stake-weighted Byzantine-fault-tolerant validator network; tokens stay on their home chains and only ownership changes, and the same rail carries cross-chain contract calls. Cross-chain swap settlement already works in production. To move a token itself, the protocol has X-Bridge (the XBRIDGE action), which on the public networks runs on testnet only, carrying XCHAIN, the platform's own fee token (bridging other tokens is armed on testnet, switching on chain by chain): it moves the token between supported chains by locking on its own chain and crediting the destination, with no outside contract ever holding the balance. That credit rests on the hub's validator federation, a [hub-trusted mint](../protocol/xchain-bridge.md#trust-model) that is not active on mainnet.
 
 Reinforcing these: token-gated encrypted content that unlocks client-side with no key server, a staking primitive that lets any token back any contract on any chain, a fully transparent ledger anyone can replay from genesis, and a light-client path that lets an app verify a balance against quorum-signed checkpoints without trusting any single server.
 
@@ -51,7 +51,7 @@ The gas token, **XCHAIN**, is conservative by design:
 - **No inflation**: validator rewards are paid from a pre-funded pool, never minted.
 - **Demand** comes from fee payment and staking lockup against that fixed cap.
 
-The genesis distribution honors the communities that pioneered Bitcoin-native tokens: a snapshot reserving tick-name ownership for prior holders, plus a 30% airdrop to those same Counterparty and Dogeparty holders. The rest of the cap is 25% open mint, 20% treasury, 10% market and liquidity, 9.7% independent validators and 5.3% pre-funded validator reward pool, with **0% to the team**. No ICO, no pre-mint, no insider faucet; the open-mint leg is first-come at 1,000 XCHAIN per mint, capped at 1,000 XCHAIN per address, with no closing date. Full figures and the snapshot pins are in the [white paper](./whitepaper.md#133-genesis-and-fair-launch).
+The genesis distribution honors the communities that pioneered Bitcoin-native tokens: a snapshot reserving tick-name ownership for prior holders, plus a 30% airdrop to those same Counterparty and Dogeparty holders. The rest of the cap is 25% open mint, 20% treasury, 10% market and liquidity, 9.7% independent validators and 5.3% pre-funded validator reward pool, with **0% to the team**. No ICO, no pre-mint, no insider faucet; the open-mint leg is first-come at 1,000 XCHAIN per mint, capped at 1,000 XCHAIN per address, with no closing date. Full figures and the snapshot pins are in the [white paper](../whitepaper.md#133-genesis-and-fair-launch).
 
 XChain is open source (AGPL-3.0) with a commercial license available for proprietary use.
 
@@ -69,7 +69,7 @@ Near term: protocol freeze, public site and API documentation, the public releas
 
 ---
 
-*For the complete technical specification, read the [XChain Platform White Paper](./whitepaper.md).*
+*For the complete technical specification, read the [XChain Platform White Paper](../whitepaper.md).*
 
 ---
 

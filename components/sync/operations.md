@@ -199,6 +199,23 @@ GET /status
 }
 ```
 
+#### Freshness fields: when `lag_blocks: 0` is not a clean bill of health
+
+Each row also carries lag and freshness fields, and their shape depends on the mode the node runs in. Read the freshness flags before trusting a `lag_blocks` of 0.
+
+| Mode | Field | Meaning |
+|---|---|---|
+| Server | `source_height`, `lag_blocks` | The served database's tip and how far the broadcaster trails it. `lag_blocks` is `null`, never `0`, whenever `replica_stale` or `replica_halted` is `true`. |
+| Server | `replica_stale` | Always a boolean. `true` when the served database is a native SQL replica behind its source, when no replication measurement has arrived yet, while `replica_halted` is `true`, or when the halt read failed. |
+| Server | `replica_seconds_behind` | Seconds the served replica trails its source, or `null` when unmeasured. |
+| Server | `replica_halted` | `true` while the node's protocol client holds an active halt, `false` when none, `null` when it could not be read. |
+| Client | `source_height`, `lag_blocks` | The last source height heard live and the replica's distance from it. `lag_blocks` stays a number while the flags below qualify it, and is `null` only when either height is unknown. |
+| Client | `source_height_stale` | `true` once no WebSocket event has arrived within `CLIENT_SOURCE_STALE_MS`; `null` before the first event. |
+| Client | `upstream_replica_stale` | The source's own `replica_stale` verdict: `true` when any connected source reports its database stale, `null` when no source reported it. |
+| Client | `halted`, `halt` | A consensus-divergence halt on this replica and its details. |
+
+A client row's `lag_blocks` of 0 certifies the replica only while `source_height_stale` and `upstream_replica_stale` are both `false`; a `true` in either means the zero was measured against a frozen source tip.
+
 ### `GET /status/:dbType/:chain/:network`
 
 Returns sync status for a specific dbType/chain/network combination. `:dbType` must be `indexer` or `decoder`.
@@ -253,6 +270,17 @@ Sync tolerates a missing table on purpose. A replica whose schema is older than 
 Alert on `missing_tables` being anything other than `[]`. A replica also writes the same list once to its log at startup, on a line beginning `MISSING_REPLICATED_TABLES`.
 
 This matters most right after a new feature ships. If an indexer starts writing a new family of tables before its replicas are migrated, those replicas hold none of that data while every other health figure stays perfect.
+
+#### `table_counts` and `table_counts_height`
+
+Every status row carries `table_counts`, the row count of each replicated table, and `table_counts_height`, the block height those counts describe.
+
+On a source, `block_height` is the height the server has broadcast, while the counts are read from the live database, which can already hold later blocks. So the counts carry their own height rather than borrowing `block_height`:
+
+- A number is the database tip, read before and after the counts and found unchanged. The counts describe exactly that block.
+- `null` means a block was committed or rolled back while the counts were being read, or the tip could not be read. The counts describe no single height.
+
+A follower compares its own counts against a source's only when `table_counts_height` equals its own applied height. Any other value skips that completeness check and leaves the follower's tracked gaps unchanged. A source that does not publish `table_counts_height` is compared at `block_height`, and only while its `source_height` equals its `block_height`.
 
 ### `POST /validator-heartbeat/:dbType/:chain/:network`
 
@@ -378,6 +406,8 @@ Authorization: Bearer <SYNC_API_KEY>
 ```
 
 Returns `400` if `:dbType` is invalid, `401` if the Bearer key is missing or wrong, `403` if in server mode, `404` if the chain/network/dbType client is not found.
+
+Returns `500` when the clear cannot be written to the `sync_halt` table. The halt stays in force, its pending copy is kept, and the clear can be retried once the database accepts writes; a restart in that state would halt again on the surviving row.
 
 ### `GET /schema/:dbType/:chain/:network`
 

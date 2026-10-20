@@ -747,7 +747,7 @@ const { XChainSDK } = require('@dankest-llc/xchain-sdk');
 
 const sdk = new XChainSDK({
     network: 'bitcoin-mainnet',
-    explorerUrl: 'explorer.xchain.io'
+    explorerUrl: 'https://explorer.xchain.io'
 });
 
 await sdk.connectWs();

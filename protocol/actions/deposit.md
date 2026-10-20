@@ -33,7 +33,7 @@ Deposit 500 of the token with TICK_ID 99 into contract 12345
 - The contract identified by `CONTRACT_ACTION_INDEX` must exist and be in an active state
 - `SOURCE` address must hold a sufficient balance of `TICK` to cover `QUANTITY`
 - From the [`CONTROLLER_CUSTODY_GUARD` flag day](../flag-days.md), a deposit runs the token's `transfer` or `all` controller guard and then the depositor's own address controller guard. The guarded move is from the depositor (`SOURCE`) to the contract custody address `C:<CHAIN>:<index>`, where `<index>` is `CONTRACT_ACTION_INDEX`. See the [controller guard model](../controller-bound-tokens.md).
-- The metered guard gas for both runs is paid by `SOURCE` in `GAS` and burned. The action fails with `insufficient funds (guard gas)` when `SOURCE` cannot cover the reservation.
+- The metered guard gas for both runs is paid by `SOURCE` in `GAS` and burned. On BTC the action fails with `insufficient funds (guard gas)` when `SOURCE` cannot cover the reservation; on other chains no reservation is taken, that verdict never occurs, and the charge is capped at `SOURCE`'s balance (see [Controller-Bound Tokens: Gas](../controller-bound-tokens.md#gas)).
 - An unbound token moved by an unbound address runs neither guard and pays no guard gas.
 - `QUANTITY` must be a positive value with valid decimal format for the token
 

@@ -31,21 +31,30 @@ Errors are JSON objects:
 | `NOT_FOUND` | 404 | No row for that lookup | No |
 | `ACTION_NOT_YET_INDEXED` | 404 | The action index lies above what this explorer's indexer has committed so far; the body carries `indexed_through` and the response a `Retry-After` header | Yes: the indexer is catching up; honor `Retry-After` |
 | `CHECKPOINT_NOT_FOUND` | 404 | No quorum-signed checkpoint at that height | Maybe: checkpoints lag the tip |
-| `RATE_LIMITED` | 429 | Per-IP request budget exhausted (app-wide default 1080/min; some routes have tighter limits, see [explorer rate limiting](../components/explorer/configuration.md#rate-limiting)) | Yes: back off; honor `RateLimit-*` headers |
+| `RATE_LIMITED` | 429 | Per-IP request budget exhausted (app-wide default 180/min; some routes have tighter limits, see [explorer rate limiting](../components/explorer/configuration.md#rate-limiting)) | Yes: back off; honor `RateLimit-*` headers |
 | `SERVER_ERROR` | 500 | Unexpected internal failure | Yes: with backoff |
 | `UPSTREAM_ERROR` | 502 | The colocated indexer fee service failed. Four indexer proxy routes return it when their indexer call fails: native fee quote, oracle fee quote, fee schedule and action pre-flight (a validator-set proof reports the same failure as `INDEXER_UNAVAILABLE`) | Yes: with backoff |
 | `COIN_NOT_AVAILABLE` | 503 | Coin supported but not configured for data requests here | No: use another instance |
 | `INDEXER_NOT_CONFIGURED` | 501 | The route needs an indexer API this instance lacks for the coin/network: native and oracle fee quote, fee schedule, action pre-flight, and validator-set proof | No: use another instance |
 | `SERVICE_UNAVAILABLE` | 503 | The endpoint cannot serve this request | No |
 | `INVALID_PARAMETER` | 400 | A query or body parameter is malformed, repeated, over-long, or outside its allowed values; the generic 400 when no narrower code below applies | No: fix the request |
-| `INVALID_ACTION` | 400 | The `action` parameter names no known action (fee quote and preflight routes) | No |
+| `INVALID_ACTION` | 400 | The `action` parameter names no known action (fee quote and preflight routes). **What is checked:** the explorer refuses a value that is not 1 to 32 characters of `A-Z`, `0-9` and `_`, the pattern the OpenAPI spec publishes. The check is case-sensitive and does not trim, so `send` or ` SEND` is refused, while a well-formed name that is not an action, such as `FOO`, is forwarded and answered with HTTP 200 and the indexer's verdict in the body. Read that verdict to detect an unknown action | No |
 | `INVALID_HEIGHT` | 400 | The `height` parameter is not a non-negative integer (proof routes) | No |
-| `INVALID_LIMIT` | 400 | The `limit` parameter is not a non-negative integer (checkpoint list) | No |
+| `INVALID_LIMIT` | 400 | The `limit` parameter is malformed. API list routes: `limit` is not a whole number of at least 1 (a larger value is clamped to the route's maximum, not refused). Checkpoint list: `limit` is not a non-negative integer (`0` reads as 1 and a value above 100 reads as 100) | No |
 | `INVALID_RANGE` | 400 | `from` and `to` are not both integers, or `to` is below `from` (block-range proof) | No |
 | `INVALID_CONTRACT_INDEX` | 400 | The contract index is not a non-negative integer | No |
+| `INVALID_TX_INDEX` | 400 | API and explorer data routes: the `tx_index` path segment is not a non-negative integer | No: fix the request |
+| `INVALID_POLL_INDEX` | 400 | API and explorer data routes: the `poll_index` path segment is not a non-negative integer | No: fix the request |
+| `INVALID_FEED_INDEX` | 400 | API and explorer data routes: the `feed_action_index` path segment is not a non-negative integer | No: fix the request |
+| `INVALID_ROUND_NUMBER` | 400 | API and explorer data routes: the `round_number` path segment is not a non-negative integer | No: fix the request |
+| `INVALID_EPOCH_HEIGHT` | 400 | API and explorer data routes: the `epoch_height` path segment is not a non-negative integer | No: fix the request |
+| `INVALID_EXECUTION_INDEX` | 400 | API and explorer data routes: the `execution_index` path segment is not a non-negative integer | No: fix the request |
+| `INVALID_DISPENSER_INDEX` | 400 | API and explorer data routes: the `dispenser_action_index` path segment is not a non-negative integer | No: fix the request |
 | `INVALID_KEY_NUL` | 400 | A contract state key contains a NUL byte | No |
 | `KEY_TOO_LONG` | 400 | A contract state key exceeds the VM's maximum state-key size | No |
 | `STAKES_BTC_ONLY` | 400 | Validator-set proofs are served for BTC only (`stakes_root` is BTC-only) | No |
+| `ROLLCALLS_DOGE_ONLY` | 400 | `GET /{COIN}/api/rollcalls`: ROLLCALL publications are served for DOGE coins only, because only the DOGE indexer records them; BTC epoch closes are at `/{COIN}/api/rollcall_closes` | No: ask a DOGE coin |
+| `ROLLCALL_CLOSES_BTC_ONLY` | 400 | `GET /{COIN}/api/rollcall_closes`: ROLLCALL epoch closes are served for BTC coins only, because only the BTC indexer closes epochs; DOGE publications are at `/{COIN}/api/rollcalls` | No: ask a BTC coin |
 | `BAD_METHOD` | 400 | Contract simulation: `method` is missing, too long, or contains wire delimiters | No |
 | `BAD_PARAMS` | 400 | Contract simulation: `params` is not an array, has too many entries, an over-long entry, or a wire delimiter | No |
 | `BAD_CALLER` | 400 | Contract simulation: `caller` is not an address string | No |
@@ -143,11 +152,12 @@ A `-32010` error always carries `error.data.reason`, a stable string that is app
 | `DUPLICATE_TRANSACTION` | A transaction with the same inputs and outputs (same txid) was built inside the reservation window | `txid` | No: broadcast the one already built, or change the inputs or outputs |
 | `INPUT_RESERVED` | `options.exactInputs` names outpoints reserved by a transaction built inside the reservation window | `reserved` (outpoints) | No: broadcast that transaction and rebuild, or wait for the reservation to lapse |
 | `INPUT_SELECTION_RACE` | Input selection raced a concurrent reservation, so the obfuscation key is bound to an outpoint that is not the first input | `expectedFirstInput`, `actualFirstInput` | Caller may retry the request |
+| `UTXO_SET_TOO_LARGE` | The address holds more UTXOs than the encoder will return in one set, so it refuses rather than build from a partial set | `limit` | No: consolidate the address or pass `utxos` explicitly |
 | `UTXO_TRACKER_ERROR` | The UTXO tracker is unreachable or returned a malformed response | none | Caller may retry with backoff |
 | `UTXO_TRACKER_STALE` | The tracker's view lags the node past the configured threshold, or is ahead of the node (an orphaned view), or the tracker reports `synced: false` (the remote tracker profile also refuses an absent `synced`) | `lag`, `tracker_height`, `node_height` | Caller may retry with backoff |
 | `UTXO_TRACKER_HALTED` | The tracker is halted (for example after an unrecoverable reorg) | `lag`, `tracker_height`, `node_height`, `halt_reason` | No: operator action |
 | `UTXO_TRACKER_NOT_READY` | The tracker has not reconverged its mempool, so an already-spent confirmed output cannot be filtered | `lag`, `tracker_height`, `node_height` | Caller may retry with backoff |
-| `NODE_CHAIN_MISMATCH` | The coin node reports a chain that does not match the encoder's configured network, for example a mainnet encoder pointed at a testnet node. The check runs once per process and is skipped when no network is configured | none | No: operator action, point the encoder at a node on its own network |
+| `NODE_CHAIN_MISMATCH` | The coin node reports a chain that does not match the encoder's configured network, for example a mainnet encoder pointed at a testnet node, or its block-0 hash differs from the coin registry's pinned `chainGenesisHash`, for example a Bitcoin mainnet encoder pointed at a Dogecoin mainnet node. The tier check is skipped when no network is configured and the block-0 check while nothing is pinned; each passes once per process, and a check that cannot read the node is retried on the next request | none | No: operator action, point the encoder at a node on its own network |
 | `ENVELOPE_RECOGNITION_UNKNOWN` | The node returned no chain height, so Taproot envelope recognition cannot be confirmed active | none | Caller may retry with backoff |
 | `ENVELOPE_NOT_YET_ACTIVE` | Taproot envelope recognition is not active on this network yet, so the envelope is refused rather than built for decoders to ignore | `recognitionHeight`, `chainTip`, `blocksRemaining` | No: use P2WSH until the activation height |
 | `ENVELOPE_CANCEL_BELOW_DUST` | The envelope-cancel sweep output would fall below the dust floor | `commitValue`, `fee`, `sweepValue` | No: spend via the reveal or CPFP |

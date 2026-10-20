@@ -107,6 +107,21 @@ The encoder exposes a JSON-RPC API via Express with `express-json-rpc-router`.
 | `ping` | Health check: returns `{ status: "success" }` |
 | `health` | Probes hard dependencies (UTXO tracker) and reports their reachability and sync state |
 
+#### Batch entries require an `id`
+
+The encoder refuses an id-less entry in a JSON-RPC batch. Every call object inside a batch array must carry an `id`; an entry without one (a JSON-RPC notification) is not executed and is refused rather than silently dropped, so a caller never mistakes a skipped call for a completed one. Give each batch entry its own `id` and match responses to requests by `id`. The batch size cap is `ENCODER_MAX_RPC_BATCH`.
+
+#### `GET /status` node-tier fields
+
+`GET /status` publishes two node-tier fields next to the tracker readiness fields:
+
+| Field | Meaning |
+|---|---|
+| `node_tier_checked` | Whether the encoder has checked that its coin node meets the tier the encoder requires. `false` means the check has not completed, so `node_tier_mismatch` carries no evidence yet. |
+| `node_tier_mismatch` | `true` when the check ran and the coin node does not meet the required tier. Treat `true` as a deployment fault to fix at the node, not a transient condition. |
+
+Read the two together: only `node_tier_checked: true` with `node_tier_mismatch: false` positively confirms a matching node. See the [remote tracker profile](../utxo-tracker/trackerless-profile.md) for the rest of the `/status` surface.
+
 A machine-readable OpenRPC 1.3.2 spec for all JSON-RPC methods is served at `GET /openrpc.json`.
 
 See the **[API Reference](api.md)** for full per-method parameters, request and response examples, the UTXO object shape, and the JSON-RPC error codes.

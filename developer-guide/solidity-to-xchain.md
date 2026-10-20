@@ -104,7 +104,7 @@ build step and nothing to install (contracts stay single-file and import-free).
 | `uint` math / SafeMath | `xchain.math.add/subtract/multiply/divide/compare/gt/gte/lt/lte/eq/...` | bignumber, no overflow; banned `Math.*` is rejected at deploy, a decimal literal is only a **warning** |
 | `transfer` / `send` value | `xchain.emit.send({ ... })` | emits a SEND; applied after return |
 | external call (returns a value) | `xchain.emit.execute({ contractIndex, method, params, gasLimit })` | **async, no return value**; respond via a callback method |
-| cross-chain call | `xchain.emit.crossExecute({ targetChain, contractIndex, method, params, callbackMethod, callbackParams, deadlineBlocks })` | bridgeless; target must export `crossCallable` |
+| cross-chain call | `xchain.emit.crossExecute({ targetChain, contractIndex, method, params, callbackMethod, callbackParams, deadlineBlocks })` | a signed message, no token transfer; target must export `crossCallable` |
 | `modifier onlyOwner` | a guard helper from `patterns/` | check `getSourceAddress()` against stored owner |
 | `Ownable` / `AccessControl` | `patterns/` access control | OZ-equivalent, audited |
 | `Pausable` | `patterns/` pausable (or token-level `SLEEP`) | |

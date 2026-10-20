@@ -835,9 +835,9 @@ const ATTEST_ADMISSION_ACTIVATION = {
     regtest: 0,
 };
 
-// ATTEST_REQUEST_CAP_ACTIVATION (framework spec §11.1 per-block admission caps): the flag-day
-// at/above which the indexer REJECTS an ATTEST v0 request that would exceed either the
-// per-contract or the network-wide per-block admission ceiling (ATTEST_REQUEST_CAPS below).
+// Per-block ATTEST v0 admission caps (framework spec §11.1): the indexer REJECTS an ATTEST v0
+// request that would exceed either the per-contract or the network-wide per-block admission
+// ceiling (ATTEST_REQUEST_CAPS below). The caps are in force from genesis on every network.
 //
 // Why a protocol rule rather than a price: an admitted request obliges REDUNDANCY validators to
 // make a provider call, and for the `llm` provider that call is a real invoice on each operator's
@@ -856,27 +856,8 @@ const ATTEST_ADMISSION_ACTIVATION = {
 //
 // Counted deterministically from the attests table at (block_index = this block, action_index <
 // this action, request_status <> 'rejected'): a total order every node replays identically.
-//
-// CONSENSUS-VISIBLE, so arming at 0 on a chain that already has history is replay-safe only if no
-// past block ever admitted more than the cap - a chain-state question the CROSS_SETTLE_MAX_PER_BLOCK
-// ruling refused to assume. For testnet it was MEASURED instead of assumed, across all three chains
-// the `testnet` key covers: the live explorer reports `total: 0` attestation rows ever recorded on
-// BTC, LTC and DOGE testnet alike (/{TBTC,TLTC,TDOGE}/api/attestations, checked 2026-08-18), so no
-// block of any of them can have exceeded a cap of 10 and arming from genesis reinterprets nothing.
-// testnet 0 is operator-ratified (2026-08-18) so the public testnet launches with the cap in force.
-// regtest is armed at genesis (rebuilt from scratch). mainnet was armed at genesis by the
-// 2026-09-09 ruling on its own measurement: the explorer reports 0 attestation rows ever recorded
-// on BTC, LTC and DOGE mainnet (measured 2026-09-09), so no mainnet block can have exceeded the
-// cap and arming from genesis reinterprets nothing.
-// Kept value-identical to the local copy in xchain-indexer/src/actions/attest/attest_request_cap_gate.js
-// by the activation-constants parity suite.
-const ATTEST_REQUEST_CAP_ACTIVATION = {
-    mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (0 attestations, measured 2026-09-09)
-    testnet: 0,           // ARMED at genesis (operator-ratified 2026-08-18; zero historical attestations, so nothing is reinterpreted)
-    regtest: 0,           // ARMED at genesis so the e2e venue exercises the cap
-};
 
-// The cap VALUES the gate above applies. perContract keeps one busy or hostile contract from
+// The cap VALUES applied above. perContract keeps one busy or hostile contract from
 // taking the whole ceiling and starving every other contract; perBlock is the number that bounds
 // validator spend (at REDUNDANCY 3 and BTC's ~144 blocks/day a full 10/block admits ~1440
 // requests/day, i.e. ~4320 provider calls/day across the responsible sets). Sized above any rate
@@ -1068,40 +1049,7 @@ const ATTEST_RESPONSIBLE_WIDENING_V2 = {
     maxSlots:    2,
 };
 
-// ATTEST_BROADCAST_FEE_ACTIVATION (attestation Phase 3 economics, spec §11 leader broadcast-fee
-// reimbursement): the flag-day at/above which a FULFILLED ATTEST settle carves a broadcast-fee
-// reimbursement out of the v0 fee escrow and pays it to the lowest-hash member of the request's
-// responsible set, before splitting what is left equally across that set. Below the height the
-// whole escrow goes to the split, so a from-genesis replay of historical blocks is bit-identical.
-//
-// This changes v0 ESCROW COMPUTATION, which is why it needs a height of its own rather than
-// riding an existing anchor: two nodes on opposite sides of it settle the same request into
-// different reward rows, and validator_rewards is COLLECT-spendable.
-//
-// Evaluated against the LOCAL block_index of the SETTLING action. That is safe without the
-// plane caveat ATTEST_ADMISSION_ACTIVATION carries: the carve-out can only fire where the
-// responsible set is non-empty, and attestation capability stake is BTC-only, so the only chain
-// that reaches the predicate is the one whose local height IS a BTC height.
-//
-// UNALLOCATED. The four sub-decisions (denomination, broadcaster identity, height, amount bound)
-// were pinned by the operator on 2026-08-11 with the HEIGHT explicitly reserved to the operator,
-// so the implementation ships inert. Nearby cohort anchors in use are 961000, 962500 and 969500.
-// Kept value-identical to xchain-indexer/src/actions/attest/attest_broadcast_fee_gate.js by the
-// activation-constants parity suite.
-// TESTNET ARMED AT 0, operator-ratified 2026-08-18 under the standing ruling that every platform
-// feature must be ACTIVE on testnet. Safe by MEASUREMENT, not assumption: this gate only changes how
-// a fulfilled ATTEST settle splits its escrow, and the live explorer reports `total: 0` attestation
-// rows EVER recorded on BTC, LTC and DOGE testnet alike (/{TBTC,TLTC,TDOGE}/api/attestations, checked
-// 2026-08-18), so no settle exists to reinterpret. Mainnet was measured the same way on
-// 2026-09-09 (0 attestation rows on BTC, LTC and DOGE mainnet) and armed at genesis by that
-// day's ruling.
-const ATTEST_BROADCAST_FEE_ACTIVATION = {
-    mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (0 attestations, measured 2026-09-09)
-    testnet: 0,           // ARMED at genesis (operator-ratified 2026-08-18; zero historical attestation settles, so nothing is reinterpreted)
-    regtest: 0,           // ARMED at genesis on regtest so the e2e venue exercises the carve-out
-};
-
-// ATTEST_BROADCAST_FEE_CAP: the per-provider broadcast-fee allowance the gate above pays out,
+// ATTEST_BROADCAST_FEE_CAP: the per-provider broadcast-fee allowance a fulfilled ATTEST settle pays the leader,
 // denominated in NATIVE coin (whole coins, not satoshis) and converted to XCHAIN at the oracle
 // price read at the SETTLE block. The allowance is paid FLAT rather than metered against the
 // settling transaction's actual miner fee: that number comes from each node's own decoder and is
@@ -1563,36 +1511,6 @@ const PRICE_PAIR_WIDEN_ACTIVATION = {
     regtest: 0,
 };
 
-// Per-network activation TIME, keyed on the action's own block time.
-//
-// ARMED at genesis on every network, mainnet by the 2026-09-09 ruling on the measurement
-// the header records (0 PRICE actions ever indexed on any mainnet chain).
-const PRICE_SCALE_ACTIVATION = {
-    mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (0 PRICE actions, measured 2026-09-09)
-    testnet: 0,
-    regtest: 0,
-};
-
-// Per-network activation TIME, Unix seconds, matching the unit the wire-format gate
-// uses so the two are directly comparable.
-//
-// ARMED at genesis on mainnet by the 2026-09-09 ruling, together with
-// PRICE_PAIR_WIDEN_ACTIVATION and at the same instant, which satisfies the
-// at-or-after ordering the header states. No PRICE action has ever been indexed on any
-// mainnet chain (measured 2026-09-09), so composing the derived pair from block 0
-// reinterprets no signed round, and the from-genesis OLD-vs-ON replay is the witness.
-// Arming at 0 rather than at the contract-era stamp 1786060800 (2026-08-07) is what
-// keeps LTC/DOGE native-coin fees payable from the first mainnet block onward.
-//
-// testnet/regtest are genesis-on, so the pair is composed on every test venue and
-// in the suites today. §8 notes testnet is EXPECTED to be steerable (free public
-// MINT plus open venues), so monitoring must not alert on testnet price excursions.
-const XCHAIN_PRICE_ACTIVATION = {
-    mainnet: 0,           // ARMED at genesis by the 2026-09-09 ruling: identity on the indexed mainnet history (0 PRICE actions, measured 2026-09-09)
-    testnet: 0,
-    regtest: 0,
-};
-
 // ── PRICE v0 signature-tally ordering ─────────────────────────────────────────
 //
 // The PRICE v0 tally keeps at most one signature per pubkey. Below this gate the
@@ -1678,17 +1596,6 @@ const PRICE_FEE_BATCH_LANDED_ACTIVATION = {
 const PRICE_ZERO_VALIDITY_ACTIVATION = {
     mainnet: null,
     testnet: 1790812800,
-    regtest: 0,
-};
-
-// PRICE_BATCHING_FLOOR_ACTIVATION: the earliest block time for which price sync
-// barriers apply. A positive floor may only be armed at or below the network's
-// first finalized price round; 0 preserves the existing barrier on every block.
-// Mainnet has no rail start yet, testnet still needs that measured first-round
-// timestamp, and regtest deliberately keeps no pre-batch era for seeded rounds.
-const PRICE_BATCHING_FLOOR_ACTIVATION = {
-    mainnet: 0,
-    testnet: 0,
     regtest: 0,
 };
 
@@ -2053,7 +1960,8 @@ const LIST_META_ACTIVATION = {
 // table, so refusing them on replay would move block hashes on a live chain. The replay corpus
 // being hash-identical below the height is the hard gate on this change.
 //
-// Mainnet is armed at genesis (height 0; no mainnet history can disagree). Each testnet
+// Mainnet is armed at genesis (height 0) by the 2026-10-07 ruling: identity on the indexed
+// mainnet history, which holds 0 LIST actions on every chain (measured 2026-09-09). Each testnet
 // chain's height is chosen at a cut, and a non-sentinel public-chain height is required for
 // the LIST owner security fix.
 const LIST_OWNER_ACTIVATION = {
@@ -2569,11 +2477,9 @@ module.exports = {
     RETRACTION_SIGNING_ACTIVATION,
     CROSS_CHAIN_ROYALTY_ACTIVATION,
     ATTEST_ADMISSION_ACTIVATION,
-    ATTEST_REQUEST_CAP_ACTIVATION,
     ATTEST_REQUEST_CAPS,
     ATTEST_RELAY_ACTIVATION,
     ATTEST_RELAY_FEE_ACTIVATION,
-    ATTEST_BROADCAST_FEE_ACTIVATION,
     ATTEST_BROADCAST_FEE_CAP,
     ATTEST_RESPONSIBLE_WIDENING_ACTIVATION,
     ATTEST_RESPONSIBLE_WIDENING,
@@ -2598,12 +2504,9 @@ module.exports = {
     PRICE_PAIR_TICKER_MAX_LEGACY,
     PRICE_PAIR_TICKER_MAX_WIDE,
     PRICE_PAIR_WIDEN_ACTIVATION,
-    PRICE_SCALE_ACTIVATION,
-    XCHAIN_PRICE_ACTIVATION,
     PRICE_SIG_TALLY_ACTIVATION,
     PRICE_FEE_BATCH_LANDED_ACTIVATION,
     PRICE_ZERO_VALIDITY_ACTIVATION,
-    PRICE_BATCHING_FLOOR_ACTIVATION,
     VALID_FIAT_CODES,
     GAS_TICK,
     PRICE_MAX,

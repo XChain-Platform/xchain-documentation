@@ -15,7 +15,7 @@ The XChain Platform is in pre-launch development and ships under a single primar
 Contact:
 
 - General and non-sensitive: open an issue at <https://github.com/XChain-Platform/xchain-documentation/issues>.
-- Code of Conduct: `conduct@dankest.llc` (per `CODE_OF_CONDUCT.md`).
+- Code of Conduct: `conduct@dankest.llc` (per the org Code of Conduct).
 - Security disclosures: GitHub Private Vulnerability Reporting, or `security@dankest.llc` (per `SECURITY.md`).
 
 ---
@@ -35,8 +35,8 @@ Until additional maintainers join, the lead owns every area below. The table is 
 | User guide | `user-guide/` capabilities, use cases, and FAQ for non-technical readers |
 | AI and agents | `ai-agents/` guides for building AI agents on the platform |
 | Operations | `operations/` deployment, monitoring, upgrades, and troubleshooting |
-| Overview and whitepaper | `overview.md`, `whitepaper.md`, `blockchains.md` |
-| Legal and project files | `legal/`, `LICENSE.md`, `NOTICE.md`, `CHANGELOG.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `MAINTAINERS.md` |
+| Overview and whitepaper | `getting-started/overview.md`, `whitepaper.md`, `concepts/blockchains.md` |
+| Legal and project files | `legal/`, `LICENSE.md`, `NOTICE.md`, `CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md`, `MAINTAINERS.md` |
 
 ---
 
@@ -64,7 +64,7 @@ If you cannot reach the relevant area maintainer within a reasonable window:
 |---|---|
 | Active security incident | `security@dankest.llc` (per `SECURITY.md`) |
 | A documented consensus rule, encoding, or validation requirement that is unsafe or ambiguous | GitHub Private Vulnerability Reporting, or `security@dankest.llc`; do not open a public issue (per `SECURITY.md`) |
-| Code-of-conduct concern | `conduct@dankest.llc` (per `CODE_OF_CONDUCT.md`) |
+| Code-of-conduct concern | `conduct@dankest.llc` (per the org Code of Conduct) |
 | PR has been open without review for 14+ days | Comment `@J-Dog` on the PR; if no response within 7 more days, open an issue tagged `governance` with the PR link |
 
 ---

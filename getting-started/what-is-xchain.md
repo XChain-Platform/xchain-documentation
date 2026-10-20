@@ -29,7 +29,7 @@ flowchart TD
 
 In practice, XChain works by embedding small pieces of data inside ordinary blockchain transactions. Those data packets are invisible to Bitcoin itself, they're just part of a normal transaction. But XChain's software layer reads those packets, interprets them as commands, and maintains its own database of token balances, orders, and state.
 
-**Nothing about Bitcoin, Litecoin, or Dogecoin is changed.** XChain tokens exist on the actual blockchain, secured by the same proof-of-work consensus that secures every other Bitcoin transaction. There is no sidechain and no third-party bridge: your token balances need no separate validators and no new consensus mechanism to trust. (A staked validator federation does provide the optional cross-chain, oracle, and attestation services described later, including XBRIDGE, the protocol action that moves a token between chains. Those services never sit between you and your base-layer token records, with one exception: a balance XBRIDGE credits on another chain rests on the federation's signature, as [described below](#no-sidechains-no-third-party-bridge).)
+**Nothing about Bitcoin, Litecoin, or Dogecoin is changed.** XChain tokens exist on the actual blockchain, secured by the same proof-of-work consensus that secures every other Bitcoin transaction. There is no sidechain: your token balances need no separate validators and no new consensus mechanism to trust. (A staked validator federation does provide the optional cross-chain, oracle, and attestation services described later, including XBRIDGE, the protocol action that moves a token between chains. Those services never sit between you and your base-layer token records, with one exception: a balance XBRIDGE credits on another chain rests on the federation's signature, as [described below](#no-sidechains-cross-chain-built-in).)
 
 ---
 
@@ -55,7 +55,7 @@ XChain has a native decentralized exchange built directly into the protocol. You
 
 ### Swap Across Chains
 
-The SWAP action enables escrowed cross-chain exchanges, trading a token on Bitcoin for a token on Litecoin, for example. This happens without a bridge or a trusted intermediary. Each chain settles its own leg against a validator-signed match, so the exchange is not atomic in the single-chain sense (see [Residual risk](../user-guide/cross-chain.md#residual-risk)).
+The SWAP action enables escrowed cross-chain exchanges, trading a token on Bitcoin for a token on Litecoin, for example. Each side stays in protocol escrow on its own chain, with no trusted intermediary. Each chain settles its own leg against a validator-signed match, so the exchange is not atomic in the single-chain sense (see [Residual risk](../user-guide/cross-chain.md#residual-risk)).
 
 ### Store Data and Messages
 
@@ -121,11 +121,11 @@ XCALL, the platform's cross-chain contract call, works differently: it's emitted
 
 There are a lot of blockchain protocols out there. Here's what sets XChain apart.
 
-### No Sidechains, No Third-Party Bridge
+### No Sidechains, Cross-Chain Built In
 
-Many blockchain token systems work by "locking" assets on one chain and "mirroring" them on another; a process that requires a bridge. Bridges are one of the most attacked surfaces in all of crypto; billions of dollars have been lost to bridge exploits.
+Many blockchain token systems run on a sidechain or a separate network, and reach other chains through an outside bridge operator with its own contracts and keys. XChain does neither.
 
-XChain has no third-party bridge. Your token record literally exists inside a Bitcoin transaction, with no separate chain to trust. Moving a token between supported chains is a protocol action, XBRIDGE: the balance is locked in a protocol escrow address that nobody holds a key for (or, on the way back, burned) on its own chain in an ordinary transaction, and the same amount is credited on the destination, with no wrapped asset. That credit is authorized by the hub's validator federation, so it is a hub-trusted mint, not a trustless one: a compromised hub could supply both the transfer record and the validator roster that checks it. On the public networks the bridge runs on testnet only: XCHAIN, the platform's own fee token, can be bridged there, and bridging other tokens is armed on testnet, switching on chain by chain. The bridge is not active on mainnet. See the [bridge trust model](../protocol/xchain-bridge.md#trust-model) and [Token Bridge](../concepts/token-bridge.md).
+XChain moves tokens between its chains in the protocol itself. Your token record literally exists inside a Bitcoin transaction, with no separate chain to trust, and moving a token between supported chains is a protocol action, X-Bridge (the XBRIDGE action): the balance is locked in a protocol escrow address that nobody holds a key for (or, on the way back, burned) on its own chain in an ordinary transaction, and the same amount is credited on the destination as a copy named after its home chain (such as `BTC.PEPECASH`). That credit is authorized by the hub's validator federation, so it is a hub-trusted mint, not a trustless one: a compromised hub could supply both the transfer record and the validator roster that checks it. On the public networks the bridge runs on testnet only: XCHAIN, the platform's own fee token, can be bridged there, and bridging other tokens is armed on testnet, switching on chain by chain. The bridge is not active on mainnet. See the [bridge trust model](../protocol/xchain-bridge.md#trust-model) and [Token Bridge](../concepts/token-bridge.md).
 
 ### No New Consensus
 

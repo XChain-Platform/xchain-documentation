@@ -28,11 +28,12 @@ The wallet routes scanned or pasted input through `core/src/uri/detectQrContent.
 
 Per-shell registration:
 
-| Shell | Mechanism |
-|---|---|
-| Web | Modern Web `navigator.registerProtocolHandler` API; surfaced as a one-click "make this site the default handler" prompt |
-| Extension | Chrome MV3 manifest doesn't directly register protocol handlers; the extension installs a redirect page that intercepts URIs from companion sites |
-| Desktop | Electron's `app.setAsDefaultProtocolClient(scheme)` on first run; OS-level handler registration |
+| Shell | Schemes claimed | Mechanism |
+|---|---|---|
+| Web | `web+xchain:`, plus bare `xchain:` where the browser accepts it | `navigator.registerProtocolHandler` at boot (`packages/web/src/main.jsx`), pointing at `/?uri=%s`. `web+xchain` is always allowed; a browser that rejects the bare `xchain` scheme is ignored, so `web+xchain:` is the dependable form. Effective only on https origins (and localhost). The web shell registers no coin schemes. |
+| Extension | `web+xchain:` (declared only) | `packages/extension/manifest.json` declares a `protocol_handlers` entry mapping `web+xchain:` to `popup.html?uri=%s`. No shipped build acts on it: the extension ships only for Chromium browsers, which ignore the key (Chrome warns of an unrecognized key at load), and the key is kept for a future Firefox port. The extension registers no coin schemes and installs no redirect page; it ships only the popup, approval and side-panel pages. |
+| Desktop | `xchain:` as default handler; `bitcoin:`, `litecoin:`, `dogecoin:` declared, default only after an opt-in | `packages/desktop/electron-builder.config.cjs` declares all four schemes to the OS at install time, and `packages/desktop/main/protocol.js` calls `app.setAsDefaultProtocolClient('xchain')` on every launch. The app makes itself the default handler for the coin schemes only when the user opts in, which is off by default and has no settings toggle yet. The OS may still route a coin URI to the app where no other app is the default handler, and the app then parses it as BIP21 and opens it like any other deep link. |
+| Mobile | `xchain:`, `bitcoin:`, `litecoin:`, `dogecoin:` | Android intent filters (`AndroidManifest.xml`, beside an https App Link for `xchain.io/wallet/link/`) and iOS `CFBundleURLSchemes` (`Info.plist`). |
 
 ## BIP21
 

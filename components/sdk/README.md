@@ -158,7 +158,7 @@ console.log(result.encoding);      // encoding format used
 
 When using xchain-hub for service discovery, call `init()` after construction. The SDK fetches endpoint config from the hub and automatically re-resolves clients if config changes.
 
-For a mainnet or testnet network, `hubUrl` already defaults to `https://hub.xchain.io`, so `init()` works with zero config too. Pass `hubUrl` explicitly (as below) only when pointing at a self-hosted hub instance.
+For a mainnet or testnet network, `hubUrl` already defaults to the coin-routed public hub `https://hub.xchain.io/{COIN}` (for example `https://hub.xchain.io/BTC` for `bitcoin-mainnet`), so `init()` works with zero config too. Pass `hubUrl` explicitly (as below) only when pointing at a self-hosted hub instance.
 
 ```javascript
 const XChainSDK = require('./index.js');

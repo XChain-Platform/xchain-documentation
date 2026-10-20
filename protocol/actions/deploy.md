@@ -70,7 +70,7 @@ Final slice of the same group; a later DEPLOY|2 (or DEPLOY|3) then assembles by 
 - Available on all chains
 - `CODE_ENCODING` must be valid UTF-8 JavaScript source code (base64-encoded at/after the `DEPLOY_BASE64_CODE` activation, hex-encoded before it; see Encoding activation below) and must not exceed 64KB (65536 bytes decoded)
 - `GAS_LIMIT` must be a positive integer
-- The VM validates syntax before charging gas. Ahead of step 1, a nesting-depth pre-check (consensus-gated on its own per-coin `VM_LINT_NESTING_DEPTH_ACTIVATION` height gate) rejects source whose `(`, `[`, `{` and `${` delimiters nest more than 64 deep; it is live from genesis on regtest, armed on testnet at each chain's own local block height (`BTC:testnet` 156230, `LTC:testnet` 4912984, `DOGE:testnet` 67989993), and unarmed on mainnet:
+- The VM validates syntax before charging gas. Ahead of step 1, two pre-checks run in this order. First, a nesting-depth pre-check (consensus-gated on its own per-coin `VM_LINT_NESTING_DEPTH_ACTIVATION` height gate) rejects source whose `(`, `[`, `{` and `${` delimiters nest more than 64 deep; it is live from genesis on regtest, armed on testnet at each chain's own local block height (`BTC:testnet` 156230, `LTC:testnet` 4912984, `DOGE:testnet` 67989993), and unarmed on mainnet. Second, a syntax-depth pre-check (consensus-gated on its own per-coin `VM_LINT_SYNTAX_DEPTH_ACTIVATION` height gate, VM map `LINT_SYNTAX_DEPTH_ACTIVATION`) rejects source whose syntactic depth exceeds 200, with `syntax depth exceeds limit (200) at line N`. That depth also counts delimiter-free constructs (unary and binary operator chains, ternary and `else if` chains, chained assignment), so a source that passes the 64-deep nesting check can still fail it. It is live from genesis on regtest, armed on testnet at each chain's own local block height (`BTC:testnet` 156908, `LTC:testnet` 4927400, `DOGE:testnet` 68005165), and unarmed on mainnet; at or above its height the nesting-depth pre-check also runs whatever `VM_LINT_NESTING_DEPTH_ACTIVATION` says. The numbered checks follow:
   1. V8 compilation check, rejects JavaScript syntax errors
   2. Acorn metering pass, rejects syntax beyond ES2020 (the supported syntax set)
   3. Reserved identifier check, rejects code containing `__gas` (reserved for gas metering), the allocator metering helpers (`__concat`, `__setconcat`, `__setconcatL`, `__tmpl`, `__tmpltag`, `__tmpltagm`, `__arrspread`, `__objspread`, `__objspreadmeter`), or the call-depth metering helpers (`__depth_enter`, `__depth_exit`); all are harness-injected and a contract may not define or reference them
@@ -88,7 +88,9 @@ Final slice of the same group; a later DEPLOY|2 (or DEPLOY|3) then assembles by 
 flowchart TD
     Start["DEPLOY submitted"] --> Nest{"Nesting-depth pre-check, VM_LINT_NESTING_DEPTH_ACTIVATION gate"}
     Nest -->|"fail"| Reject["invalid: CODE_ENCODING (reason), no gas charged"]
-    Nest -->|"pass"| V8{"1. V8 compilation check"}
+    Nest -->|"pass"| SynDepth{"Syntax-depth pre-check, VM_LINT_SYNTAX_DEPTH_ACTIVATION gate, also forces the nesting check on"}
+    SynDepth -->|"fail"| Reject
+    SynDepth -->|"pass"| V8{"1. V8 compilation check"}
     V8 -->|"syntax error"| Reject
     V8 -->|"pass"| Acorn{"2. Acorn metering pass, ES2020 syntax set"}
     Acorn -->|"fail"| Reject
@@ -114,7 +116,8 @@ flowchart TD
 - A gas fee is charged at deployment: `VM_DEPLOY_BASE + (code_bytes * VM_DEPLOY_PER_BYTE)`
 - `SOURCE` address must hold sufficient XCHAIN tokens to cover the gas fee
 - `CONSTRUCTOR_PARAMS` is a rest-field in v0/v2 (the indexer joins all pipe-segments from position 3 onward with `|`, so a multi-argument constructor passes each argument as its own pipe-delimited segment). In v1/v3 it is a single fixed field (position 3 only) because `COOLDOWN_BLOCKS` and `SLASH_DESTINATION` follow; a v1/v3 constructor that needs multiple arguments must sub-delimit them within that one field.
-- If `CONSTRUCTOR_PARAMS` is provided, the VM executes the contract's `initialize` method immediately after deployment:
+- If the contract exports an `initialize` method, the VM executes it immediately after deployment, with `CONSTRUCTOR_PARAMS` as its arguments when present and no arguments otherwise. This holds at or above the [`DEPLOY_INIT_STRICT` flag day](../flag-days.md#contract-era-flag-day); below it, `initialize` runs only when `CONSTRUCTOR_PARAMS` is non-empty:
+  - With no `CONSTRUCTOR_PARAMS`, `initialize` runs with zero arguments and `xchain.getInputParam(i)` returns `null`; a constructor that requires an argument and checks it with `xchain.require` fails, which rejects the deploy
   - Constructor gas is added to the deployment gas: `total_gas = deploy_gas + constructor_gas`
   - If the constructor fails (reverts, out of gas, etc.), the entire deployment is rolled back; the contract is not stored
   - The caller pays the combined gas even on constructor failure

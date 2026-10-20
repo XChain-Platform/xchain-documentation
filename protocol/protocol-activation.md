@@ -174,15 +174,13 @@ shorthand for "a BTC height per rule, in two batches" rather than a single share
 whole cohort.
 
 The cohort is its **armed** rules. `constants.js` also carries validator-era maps that sit outside
-it. Six of them are **armed at genesis** (`0`) on mainnet under the
+it. Four of them are **armed at genesis** (`0`) on mainnet under the
 [mainnet genesis arm](#the-mainnet-genesis-arm): `SNAPSHOT_BURIAL_ACTIVATION`,
-`ANCHOR_REWARD_DERIVE_ACTIVATION`, `ATTEST_BROADCAST_FEE_ACTIVATION`,
-`ATTEST_REQUEST_CAP_ACTIVATION` (the per-block attestation admission ceiling, a sibling of the
-attestation-admission gate in the cohort table above), `ROLLCALL_ACTIVATION` (keyed on the BTC
+`ANCHOR_REWARD_DERIVE_ACTIVATION`, `ROLLCALL_ACTIVATION` (keyed on the BTC
 `EPOCH_HEIGHT` a ROLLCALL carries) and `ATTEST_RESPONSIBLE_WIDENING_ACTIVATION`. Arming them at `0`
 was state-neutral on the indexed mainnet history, which holds no validator, roll call or
 attestation, so none of them needed a mainnet flag day; they are still not counted in the cohort
-table above. `ATTEST_RESPONSE_MIRROR_ACTIVATION` is the one of the seven that still holds `null` on
+table above. `ATTEST_RESPONSE_MIRROR_ACTIVATION` is the one of the five that still holds `null` on
 mainnet, which is the encoding of "never" and the fail-closed default until an operator ratifies a
 height; the 2026-09-09 ruling holds it back until its quorum defect is closed. It was also the one
 of them unarmed on **testnet**; it was ratified there at block 151324 in the v0.15.0 train, so
@@ -377,11 +375,13 @@ Cohort B batch, the later per-chain gates under
 [Additional armed gates](#additional-armed-gates-service-carried) below, and the four time-keyed
 gates that carry a date of their own (`BATCH_ISSUANCE_LIMITS`, `CONTRACT_DELEGATION_MATERIALIZE`,
 `DISPENSER_ORACLE_PER_TOKEN_PRICE`, `CROSS_CHAIN_ROYALTY`), whose instants are on
-[Flag-Day Values](./flag-days.md). Five time-keyed gates now carry a date of their own rather than
-the shared contract-era instant: those four plus `REST_PATTERN_METER` (the `xchain-vm`
-`REST_PATTERN_METER_GATE_BLOCK_TIME` destructuring rest-pattern meter and its indexer twin), which
-landed after that snapshot. [Flag-Day Values](./flag-days.md) lists each instant and is the source for
-which of the five have passed.
+[Flag-Day Values](./flag-days.md). More time-keyed gates with a date of their own landed after that
+snapshot, among them `REST_PATTERN_METER` (the `xchain-vm` `REST_PATTERN_METER_GATE_BLOCK_TIME`
+destructuring rest-pattern meter and its indexer twin) and
+[the mainnet launch gate](#the-mainnet-launch-gate) (`MAINNET_LAUNCH_ACTIVATION`). This page keeps no
+count of them: [Flag-Day Values](./flag-days.md) is generated from the gate registry, lists every
+gate that does not ride the shared contract-era instant together with its own date, and is the
+source for which of them have passed.
 
 ## Additional armed gates (service-carried)
 

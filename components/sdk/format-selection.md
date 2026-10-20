@@ -109,7 +109,7 @@ sdk.createAction({ action: 'ISSUE', params: {
 
 ## Version Quick Reference
 
-Actions with a single format version (BATCH, CALLBACK, DIVIDEND, FILE, LINK, MINT, SWEEP) are omitted from this table; the selector always uses version 0 for those.
+Actions with a single format version (BATCH, CALLBACK, COINPAY, COLLECT, DEPOSIT, DIVIDEND, EXECUTE, FILE, LINK, MINT, PRICE, SWEEP, WITHDRAW) are omitted from this table; the selector always uses that one version, which is version 0 for all of them except PRICE, whose only format is version 1. Every action with more than one format version has a row. A version that exists on chain but is never broadcast by a user (VOTE v2, XBRIDGE v2 and v5) has no SDK format and reads "None".
 
 | ACTION | v0 | v1 | v2 | v3 | v4 | v5 | v6 | v7 |
 |--------|----|----|----|----|----|----|-----|-----|
@@ -119,7 +119,7 @@ Actions with a single format version (BATCH, CALLBACK, DIVIDEND, FILE, LINK, MIN
 | DELEGATE | Add new signing pubkey (validator delegation) | Add signing pubkey scoped to a contract + tick | Revoke signing pubkey | Revoke signing pubkey scoped to a contract + tick | None | None | None | None |
 | DEPLOY | Inline code (rest constructor params) | Inline code with staking fields (cooldown, slash destination) | Chunked code by hash (rest constructor params) | Chunked code by hash with staking fields | Chunk carrier: one ordered base64 slice identified by code hash + chunk index | None | None | None |
 | SLEEP | Wake at block (address-wide) | Wake at block, tick-scoped | None | None | None | None | None | None |
-| STAKE | _(unused; no v0)_ | Stake with signing pubkey | Stake with signing pubkey (v2 wire; same fields as v1) | Contract-targeted stake: signing pubkey + target contract + tick | None | None | None | None |
+| STAKE | _(unused; no v0)_ | New capability stake: signing pubkey | Capability top-up on a pubkey that already has a stake (same fields as v1; pin `version: 2`) | Contract-targeted stake: signing pubkey + target contract + tick | None | None | None | None |
 | UNSTAKE | Revoke signing pubkey (address-wide unstake) | Revoke signing pubkey scoped to a contract + tick | None | None | None | None | None | None |
 | ORDER | Full order (give/get/expiry/lists) | Cancel by index | Edit expiry/lists by index | None | None | None | None | None |
 | SWAP | Full swap (give/get/expiry/lists) | Cancel by index | Edit expiry/lists by index | None | None | None | None | None |
@@ -128,9 +128,14 @@ Actions with a single format version (BATCH, CALLBACK, DIVIDEND, FILE, LINK, MIN
 | AIRDROP | Single tick, list index | Two ticks, two list indexes | Single tick, two list indexes alternating | Two ticks, two list indexes, two memos | None | None | None | None |
 | BROADCAST | Message + value | Message + value + fee + memo | Message + fee + memo (no value) | Data feed update: new value + memo on an existing feed, by index | None | None | None | None |
 | MESSAGE | ECDH v0 (key exchange) | ECDH v1 (key exchange) | Encrypted message payload | Plaintext message | None | None | None | None |
-| LIST | Create list (type + item) | Edit existing list by index | None | None | None | None | None | None |
+| LIST | Create list (type + item) | Edit existing list by index | Share a list by index (pin-only) | Transfer a list by index to a destination (pin-only) | Create list with name + description (pin-only) | Set name + description by index (pin-only) | None | None |
+| BET | Create market | Cancel market by feed index | Place bet: feed index + outcome + amount | Resolve market: feed index + outcome | Edit market allow/block lists by feed index | None | None | None |
+| VOTE | Create poll | Cast ballot | None | Set or clear delegation | None | None | None | None |
+| XBRIDGE | Lock XCHAIN (BTC only) | Burn XCHAIN back to a BTC address (non-BTC only) | None | Lock a token on its origin chain | Burn a bridged token | None | None | None |
 
-**STAKE note:** STAKE has no v0. Versions 1 and 2 have the same field layout (`AMOUNT|SIGNING_PUBKEY`). v3 adds contract targeting. The selector picks the lowest-version that fits the provided fields, so v1 is chosen when no contract target is provided.
+**STAKE note:** STAKE has no v0. Versions 1 and 2 have the same field layout (`AMOUNT|SIGNING_PUBKEY`) but different meanings: v1 opens a new capability stake and v2 tops up an existing one. The selector cannot tell them apart from the fields, so with no pinned version and no contract target it picks v1. A top-up must pass `version: 2`, as described under [Overriding Version Selection](#overriding-version-selection). v3 adds contract targeting.
+
+**LIST note:** versions 2 to 5 are pin-only. Auto-selection never builds them: a share is permanent and charges a fee, a transfer hands ownership of the list to the destination, and a metadata change has to be asked for. Pass `version` explicitly to build one; see [LIST](./actions.md#list) for the fields.
 
 **DEPLOY note:** v0 and v2 use a rest field (`...CONSTRUCTOR_PARAMS`) for variadic constructor arguments. v4 is a chunk carrier action, not a deploy action itself; submit as many v4 chunk carriers as needed before the final v2/v3 DEPLOY that references the assembled code by its SHA-256 hash.
 
@@ -138,7 +143,20 @@ Actions with a single format version (BATCH, CALLBACK, DIVIDEND, FILE, LINK, MIN
 
 ## Overriding Version Selection
 
-There is no API to force a specific version number; the selector always chooses the best fit. However, you control version selection indirectly through which fields you provide:
+A caller can pin a version by passing `version` in `params` (or as a top-level `version` on the request). The SDK then uses that version without auto-selection, after two checks. The version must be defined for the action, and every field you populated must have a slot in it, or `select()` throws an `SDKFormatError` (`INVALID_VERSION` or `NO_MATCHING_FORMAT`) rather than drop data. Pinning is required in two cases:
+
+- A STAKE top-up (`version: 2`), whose fields are identical to a new stake (v1).
+- LIST versions 2 to 5, which auto-selection never builds.
+
+```js
+// Top up an existing capability stake: v1 and v2 share a layout, so pin it
+sdk.stake({ version: 2, amount: '500', signingPubkey: 'aabb...' });
+
+// Share list 55: a pin-only LIST version
+sdk.list({ version: 2, listActionIndex: 55 });
+```
+
+Without a pin, the selector chooses the best fit, and you control version selection indirectly through which fields you provide:
 
 - Providing only the fields unique to a specific version will cause that version to be selected.
 - Providing fields that span multiple versions will cause the selector to find the eligible version with the shortest output.
