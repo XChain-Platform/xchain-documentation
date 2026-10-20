@@ -265,10 +265,11 @@ side-process reads the lever back to prove the era it actually resolved.
 ### List-owner replay witness
 
 Read only by `bin/verify-list-owner-replay-equivalence.js` (the below-the-flag
-replay witness for `LIST_OWNER_ACTIVATION`, which replays one mainnet or testnet
-corpus through a LEGACY tree with the general list-owner check removed and the
-OFF tree with its natural inert gate, and compares the resolved four-hash chain
-at every block; regtest is refused because its gate is active from height zero);
+replay witness for `LIST_OWNER_ACTIVATION`, which replays one testnet corpus
+through a LEGACY tree with the general list-owner check removed and the OFF tree
+with its natural inert gate, and compares the resolved four-hash chain at every
+block; mainnet and regtest are refused because their gate is active from height
+zero);
 never by the indexer service itself. Database credentials are loaded by dotenv
 from the project `.env` and read through `src/config.js`, never from argv. For
 each side-process the parent sets `INDEXER_COIN`, `INDEXER_NETWORK`,

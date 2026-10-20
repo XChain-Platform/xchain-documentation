@@ -703,20 +703,26 @@ See also: [`../actions/LINK.md`](../../protocol/actions/link.md)
 
 ### LIST
 
-Create or edit an allow/block list of ticks or addresses.
+Create, edit, share, or transfer an allow/block list of ticks or addresses, or a union of such lists, and set its name and description.
 
-**Format Versions:** v0 (create), v1 (edit, add/remove items)
+**Format Versions:** v0 (create), v1 (edit, add/remove items), v2 (share), v3 (transfer), v4 (create with name and description), v5 (set name and description)
 
 **Format v0 (create):** `LIST|VERSION|TYPE|MEMO|...ITEM`  
-**Format v1 (edit):** `LIST|VERSION|EDIT|LIST_ACTION_INDEX|MEMO|...ITEM`
+**Format v1 (edit):** `LIST|VERSION|EDIT|LIST_ACTION_INDEX|MEMO|...ITEM`  
+**Format v2 (share):** `LIST|VERSION|LIST_ACTION_INDEX|MEMO`  
+**Format v3 (transfer):** `LIST|VERSION|LIST_ACTION_INDEX|DESTINATION|MEMO`  
+**Format v4 (create with meta):** `LIST|VERSION|TYPE|NAME|DESCRIPTION|MEMO|...ITEM`  
+**Format v5 (set meta):** `LIST|VERSION|LIST_ACTION_INDEX|NAME|DESCRIPTION|MEMO`
 
 Note that `MEMO` comes before `ITEM` here, while every other action puts it last. `ITEM` repeats, so a memo placed after it could not be told apart from one more item.
+
+Versions 2 to 5 are pin-only: the format selector never picks them, so pass `version` explicitly to build one (see [Format Selection](./format-selection.md#overriding-version-selection)). Each is accepted on chain only from its activation height, and a share is permanent and charges a fee; the rules are in the protocol spec linked below.
 
 **Params (create (v0):)**
 
 | Param | Type | Required | Description |
 |---|---|---|---|
-| type | integer | Yes | List type: `1` = TICK list, `2` = ADDRESS list |
+| type | integer | Yes | List type: `1` = TICK list, `2` = ADDRESS list, `3` = UNION of lists (each item is the `ACTION_INDEX` of a member list) |
 | memo | string | No | An optional memo to include |
 | item | string | Yes | Initial item to add |
 
@@ -729,6 +735,27 @@ Note that `MEMO` comes before `ITEM` here, while every other action puts it last
 | memo | string | No | An optional memo to include |
 | item | string | Yes | Item to add or remove |
 
+**Params (share (v2) and transfer (v3):)**
+
+| Param | Type | Required | Description |
+|---|---|---|---|
+| version | integer | Yes | `2` to share, `3` to transfer |
+| listActionIndex | integer | Yes | ACTION_INDEX of the LIST to share or transfer |
+| destination | string | v3 only | Address that receives ownership, or an address id written `^<id>` |
+| memo | string | No | An optional memo to include |
+
+**Params (create with meta (v4) and set meta (v5):)**
+
+| Param | Type | Required | Description |
+|---|---|---|---|
+| version | integer | Yes | `4` to create, `5` to set metadata on an existing list |
+| type | integer | v4 only | List type, as in v0 |
+| listActionIndex | integer | v5 only | ACTION_INDEX of the LIST to change |
+| name | string | No | List name, 1 to 64 UTF-8 bytes; on v5, `-` clears it and empty leaves it unchanged |
+| description | string | No | List description, 1 to 512 UTF-8 bytes; on v5, `-` clears it and empty leaves it unchanged |
+| memo | string | No | An optional memo to include |
+| item | string | v4 only | Initial item to add, as in v0 |
+
 ```js
 // Create an address list
 await sdk.list({ type: 2, item: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' })
@@ -738,6 +765,17 @@ await sdk.list({ type: 2, memo: 'Q3 partner payouts', item: 'bc1qxy2kgdygjrsqtzq
 
 // Add to an existing list
 await sdk.list({ edit: 1, listActionIndex: 55, item: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' })
+
+// Union of two existing lists of one type
+await sdk.list({ type: 3, item: ['55', '61'] })
+
+// Share list 55 permanently, then transfer it to another owner
+await sdk.list({ version: 2, listActionIndex: 55 })
+await sdk.list({ version: 3, listActionIndex: 55, destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' })
+
+// Create a named list, then rename it
+await sdk.list({ version: 4, type: 1, name: 'Partners', description: 'Partner tokens', item: 'JDOG' })
+await sdk.list({ version: 5, listActionIndex: 70, name: 'Partner tokens' })
 ```
 
 See also: [`../actions/LIST.md`](../../protocol/actions/list.md)

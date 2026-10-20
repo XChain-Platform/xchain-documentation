@@ -116,7 +116,8 @@ flowchart TD
 - A gas fee is charged at deployment: `VM_DEPLOY_BASE + (code_bytes * VM_DEPLOY_PER_BYTE)`
 - `SOURCE` address must hold sufficient XCHAIN tokens to cover the gas fee
 - `CONSTRUCTOR_PARAMS` is a rest-field in v0/v2 (the indexer joins all pipe-segments from position 3 onward with `|`, so a multi-argument constructor passes each argument as its own pipe-delimited segment). In v1/v3 it is a single fixed field (position 3 only) because `COOLDOWN_BLOCKS` and `SLASH_DESTINATION` follow; a v1/v3 constructor that needs multiple arguments must sub-delimit them within that one field.
-- If `CONSTRUCTOR_PARAMS` is provided, the VM executes the contract's `initialize` method immediately after deployment:
+- If the contract exports an `initialize` method, the VM executes it immediately after deployment, with `CONSTRUCTOR_PARAMS` as its arguments when present and no arguments otherwise. This holds at or above the [`DEPLOY_INIT_STRICT` flag day](../flag-days.md#contract-era-flag-day); below it, `initialize` runs only when `CONSTRUCTOR_PARAMS` is non-empty:
+  - With no `CONSTRUCTOR_PARAMS`, `initialize` runs with zero arguments and `xchain.getInputParam(i)` returns `null`; a constructor that requires an argument and checks it with `xchain.require` fails, which rejects the deploy
   - Constructor gas is added to the deployment gas: `total_gas = deploy_gas + constructor_gas`
   - If the constructor fails (reverts, out of gas, etc.), the entire deployment is rolled back; the contract is not stored
   - The caller pays the combined gas even on constructor failure

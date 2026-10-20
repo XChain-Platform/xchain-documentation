@@ -54,13 +54,19 @@ The coin node's RPC port is reachable on the stack's Docker network. xchain-node
 
 ## Keeping an Idle Chain Available
 
-The explorer refuses to serve a coin whose newest indexed block has aged past a wall-clock threshold, so a frozen replica returns an error instead of passing old data off as current. That threshold is `EXPLORER_TIP_MAX_AGE_S` and it defaults to `21600` seconds (6 hours).
+The explorer marks a coin stale once its newest indexed block has aged past a wall-clock threshold, so a frozen replica never passes old data off as current. That threshold is `EXPLORER_TIP_MAX_AGE_S` and it defaults to `21600` seconds (6 hours).
 
 A live chain never reaches it, because blocks keep arriving. Regtest reaches it all the time, because blocks are mined on demand. Leave a dev stack idle overnight and by morning the coin has aged out:
 
+- REST reads still answer, carrying `XChain-Freshness: stale` and a body `freshness` object
+- WebSocket frames carry a top-level `stale: true`
+- `/{COIN}/api/status` reports `stale: true` and keeps the coin in its `available` map
+
+With `EXPLORER_STALE_FAIL_CLOSED=1` the same idle chain is refused instead:
+
 - REST reads return `503` with `{"code": "COIN_DATA_STALE"}`
 - WebSocket subscribe and catch-up frames come back as an `error` frame with the same code
-- `/{COIN}/api/status` reports `stale: true` and drops the coin from its `available` map, while leaving it in `supported`
+- `/{COIN}/api/status` drops the coin from its `available` map, while leaving it in `supported`
 
 Nothing is broken and nothing is lost. Mining one block clears it immediately. To stop it happening at all, switch the gate off for your regtest coin:
 

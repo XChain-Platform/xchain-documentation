@@ -137,7 +137,7 @@ Set `ownerWithdraw: true` for a contract the deployer is meant to be able to swe
 
 ### Constructor
 
-If a contract exports an `initialize` method and the DEPLOY action includes `CONSTRUCTOR_PARAMS`, the VM calls `initialize` immediately after deployment. Constructor state changes and emissions are processed atomically with the deployment; if the constructor fails (or any of its emissions does), the contract is not deployed.
+If a contract exports an `initialize` method, the VM calls it immediately after deployment, passing `CONSTRUCTOR_PARAMS` as its arguments when the DEPLOY carries them and no arguments when it does not. That rule holds at or above the [`DEPLOY_INIT_STRICT` flag day](../protocol/flag-days.md#contract-era-flag-day); below it, `initialize` runs only when `CONSTRUCTOR_PARAMS` is non-empty. With no arguments, `xchain.getInputParam(i)` returns `null`, so an `initialize` that needs a parameter should check it with `xchain.require(...)`: the failed check rejects the deploy instead of storing `null`. A contract that should not run a constructor does not export `initialize`. Constructor state changes and emissions are processed atomically with the deployment; if the constructor fails (or any of its emissions does), the contract is not deployed.
 
 Constructors may emit any action a method can, including `emit.execute`, so a contract can register itself with a registry contract in the same transaction that deploys it. The constructor runs at call depth 0; remember the contract's derived address holds no tokens yet, so token-moving emissions (`emit.send`, …) from a constructor will fail the deployment unless the tokens were somehow pre-funded.
 

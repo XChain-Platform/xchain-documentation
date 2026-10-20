@@ -595,6 +595,13 @@ describe('checkComputedReads (the blind-spot ratchet)', () => {
         assert.match(problems[0], /set the baseline to/);
     });
 
+    test('a count that dropped to zero names its sites as none, like the no-baseline message', () => {
+        assert.ok(baseline > 0, 'this case needs a non-zero baseline to reach the dropped-count message');
+        const problems = cov.checkComputedReads(new Map([['decoder', entryWith(0)]]));
+        assert.equal(problems.length, 1);
+        assert.match(problems[0], /set the baseline to 0\. Sites: none$/);
+    });
+
     test('a component with no baseline entry fails, so a new component cannot join unmeasured', () => {
         const problems = cov.checkComputedReads(new Map([['not-a-component', entryWith(9)]]));
         assert.equal(problems.length, 1);

@@ -202,6 +202,25 @@ for it. Choose the window from the proof horizon the deployment intends to
 honor, and leave retention off on any tier that advertises proofs over full
 history.
 
+## Sync replica state tree
+
+An indexer sync replica keeps its own copy of the state commitment store,
+`state_tree_roots` and `state_tree_nodes`. Decoder replicas have neither table.
+No retention pruner runs on the replica:
+
+- `state_tree_roots` loses rows only when a rollback, or a full-snapshot
+  apply, deletes the heights at or above its target block.
+- `state_tree_nodes` is never pruned. Reorg orphans stay, and identical
+  subtrees dedupe by hash as on the indexer. A full-snapshot apply replaces
+  the whole table with the source's rows.
+- `STATE_ROOT_RETENTION_BLOCKS` and `STATE_NODE_RECLAIM` are indexer settings
+  and have no effect on a replica.
+
+Between full-snapshot applies both tables grow with chain history, so size a
+replica's disk for the full state tree. The replica's periodic state-tree
+metric (`STATE_TREE_METRIC_INTERVAL_MS`) reports total and reachable node
+counts and never deletes anything.
+
 ## Decoder tables
 
 The decoder retains full transaction history by design (it is the source the

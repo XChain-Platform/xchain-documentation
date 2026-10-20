@@ -199,6 +199,23 @@ GET /status
 }
 ```
 
+#### Freshness fields: when `lag_blocks: 0` is not a clean bill of health
+
+Each row also carries lag and freshness fields, and their shape depends on the mode the node runs in. Read the freshness flags before trusting a `lag_blocks` of 0.
+
+| Mode | Field | Meaning |
+|---|---|---|
+| Server | `source_height`, `lag_blocks` | The served database's tip and how far the broadcaster trails it. `lag_blocks` is `null`, never `0`, whenever `replica_stale` or `replica_halted` is `true`. |
+| Server | `replica_stale` | Always a boolean. `true` when the served database is a native SQL replica behind its source, when no replication measurement has arrived yet, while `replica_halted` is `true`, or when the halt read failed. |
+| Server | `replica_seconds_behind` | Seconds the served replica trails its source, or `null` when unmeasured. |
+| Server | `replica_halted` | `true` while the node's protocol client holds an active halt, `false` when none, `null` when it could not be read. |
+| Client | `source_height`, `lag_blocks` | The last source height heard live and the replica's distance from it. `lag_blocks` stays a number while the flags below qualify it, and is `null` only when either height is unknown. |
+| Client | `source_height_stale` | `true` once no WebSocket event has arrived within `CLIENT_SOURCE_STALE_MS`; `null` before the first event. |
+| Client | `upstream_replica_stale` | The source's own `replica_stale` verdict: `true` when any connected source reports its database stale, `null` when no source reported it. |
+| Client | `halted`, `halt` | A consensus-divergence halt on this replica and its details. |
+
+A client row's `lag_blocks` of 0 certifies the replica only while `source_height_stale` and `upstream_replica_stale` are both `false`; a `true` in either means the zero was measured against a frozen source tip.
+
 ### `GET /status/:dbType/:chain/:network`
 
 Returns sync status for a specific dbType/chain/network combination. `:dbType` must be `indexer` or `decoder`.
@@ -389,6 +406,8 @@ Authorization: Bearer <SYNC_API_KEY>
 ```
 
 Returns `400` if `:dbType` is invalid, `401` if the Bearer key is missing or wrong, `403` if in server mode, `404` if the chain/network/dbType client is not found.
+
+Returns `500` when the clear cannot be written to the `sync_halt` table. The halt stays in force, its pending copy is kept, and the clear can be retried once the database accepts writes; a restart in that state would halt again on the surviving row.
 
 ### `GET /schema/:dbType/:chain/:network`
 

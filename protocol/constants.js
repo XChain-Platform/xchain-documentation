@@ -1960,7 +1960,8 @@ const LIST_META_ACTIVATION = {
 // table, so refusing them on replay would move block hashes on a live chain. The replay corpus
 // being hash-identical below the height is the hard gate on this change.
 //
-// Mainnet is armed at genesis (height 0; no mainnet history can disagree). Each testnet
+// Mainnet is armed at genesis (height 0) by the 2026-10-07 ruling: identity on the indexed
+// mainnet history, which holds 0 LIST actions on every chain (measured 2026-09-09). Each testnet
 // chain's height is chosen at a cut, and a non-sentinel public-chain height is required for
 // the LIST owner security fix.
 const LIST_OWNER_ACTIVATION = {

@@ -115,7 +115,7 @@ This section contains 2 entries: `PRICE` (user-submittable) and `ATTEST` (includ
 | ACTION | What it does |
 |---|---|
 | `PRICE` | Publish oracle price data on-chain. v0 carries validator-aggregated COIN/FIAT snapshots; v1 carries user-defined TOKEN/FIAT oracles. Used by FIAT dispensers and any application that needs verifiable price feeds. |
-| `ATTEST` | External-data attestation lifecycle. **Not SDK-invocable.** v0 is emitted by a smart contract calling `xchain.attestation.request(...)`; v1 is broadcast by the validator network after consensus on the answer; v2 is system-synthesized when a request expires unanswered. This is how contracts ask the outside world (HTTPS fetches, AI prompts) and receive verified answers back on-chain. |
+| `ATTEST` | External-data attestation lifecycle. **Not SDK-invocable.** v0 is emitted by a smart contract calling `xchain.attestation.request(...)`; v1 carries the validator network's agreed answer, broadcast on-chain below the network's response-mirror activation height and delivered through the hub mirror at or above it; v2 is system-synthesized when a request expires unanswered; v3/v4 relay a request emitted on LTC or DOGE to BTC and its response back; v5/v6 are the Dogecoin batches that land mirror-delivered responses on chain. See [ATTEST](../protocol/actions/attest.md) for the full lifecycle. This is how contracts ask the outside world (HTTPS fetches, AI prompts) and receive verified answers back on-chain. |
 
 ### Hub Staking (capability staking is BTC-only; contract-targeted staking runs on all chains)
 

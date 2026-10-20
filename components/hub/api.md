@@ -1361,7 +1361,7 @@ Read-only, no-auth counters for the cross-chain call and state-checkpoint subsys
 
 ### `getcrosschaincallstats`
 
-Cross-chain call relay backlog depth and lifetime failure counters. Useful for spotting a stalled XCALL relay (a growing backlog) or repeated result-fetch errors.
+Cross-chain call relay backlog depth and lifetime failure counters. Useful for spotting a stalled XCALL relay (a growing backlog), repeated result-fetch errors, or a source-chain indexer the hub cannot read (a rising `dispatch_poll_failures`, which no backlog shows because unread requests create no dispatch rows).
 
 **Request:**
 ```json
@@ -1373,7 +1373,8 @@ Cross-chain call relay backlog depth and lifetime failure counters. Useful for s
 {
   "pending_relay_count":3,
   "pending_by_chain":{"DOGE":2,"LTC":1},
-  "result_attempt_failures":0
+  "result_attempt_failures":0,
+  "dispatch_poll_failures":0
 }
 ```
 
@@ -1382,6 +1383,7 @@ Cross-chain call relay backlog depth and lifetime failure counters. Useful for s
 | `pending_relay_count` | integer | Finalized dispatches with no non-retracted result row yet, awaiting relay (total across chains) |
 | `pending_by_chain` | object | The same backlog broken down by `target_chain` |
 | `result_attempt_failures` | integer | Process-lifetime count of result-fetch attempts that errored |
+| `dispatch_poll_failures` | integer | Process-lifetime count of failed reads of pending XCALL requests from a source-chain indexer (a thrown call, an error body, or a malformed result); per chain, the hub logs a warning on the first failure after a good read, then at most once every 5 minutes while failures continue |
 
 ### `getcheckpointstats`
 

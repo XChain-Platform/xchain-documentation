@@ -64,13 +64,14 @@ The response to `get_utxos` has this shape:
       "lag": 1,
       "synced": true,
       "mempool_ready": true,
-      "reorg_count": 0
+      "reorg_count": 0,
+      "committed_hash": "0000000000000000000215c1a0e7d4f3b8a9c6e2d1f0a7b4c3e5d6f7a8b9c0d1"
     }
   }
 }
 ```
 
-Paginated responses can also carry `nextCursor`. The encoder compares `tracker_height` and `reorg_count` across pages and refuses to merge pages read from different chain states.
+Paginated responses can also carry `nextCursor`. The encoder compares `tracker_height`, `reorg_count` and `committed_hash` across pages and refuses to merge pages read from different chain states. A REST pager on `GET /utxos/:address?limit=&after=` reads the same values from the `X-Tracker-Height`, `X-Reorg-Count` and `X-Tracker-Tip-Hash` response headers and restarts when any of them changes.
 
 ## Freshness Fields
 
@@ -85,6 +86,7 @@ Paginated responses can also carry `nextCursor`. The encoder compares `tracker_h
 | `halted` | `true` after an unrecoverable reorg stops tracker polling. It always refuses service. |
 | `halt_reason` | Sanitized operator-facing reason for a halt. It does not change the verdict. |
 | `reorg_count` | Lifetime rollback counter used with `tracker_height` to keep multi-page reads on one snapshot. |
+| `committed_hash` | Hash of the committed tip block, read with the page's rows. It names the chain a page was read on, so it catches a same-height reorg after a restart has reset `reorg_count`. Sent only on `get_utxos`; an absent field is tolerated for compatibility with an older tracker. |
 
 The refusal order is significant: halted, stale, then mempool not ready. A halted tracker whose lag is also excessive is reported as halted, while a lagging tracker whose `mempool_ready` has consequently fallen false is reported as stale.
 
