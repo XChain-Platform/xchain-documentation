@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-10-20
+
+### Changed
+- Corrected the protocol, glossary, component, explorer, SDK and wallet docs against shipped behaviour.
+- Described X-Bridge as part of the protocol, with quorum-signed and checkpoint-proven bridge credits.
+- Documented the hub configuration settings, the encoder batch id rule and the node tier status fields.
+- Moved the overview and blockchains pages into getting-started and concepts.
+- Pinned the twin parity tests to declared sibling commits.
+
+### Removed
+- Retired dropped activation gate names and the obsolete explorer Font Awesome settings from the docs.
+
 ## [0.25.0] - 2026-10-18
 
 ### Added
