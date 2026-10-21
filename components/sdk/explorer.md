@@ -638,6 +638,8 @@ Native-coin fee pre-flight for a single action, proxied through the indexer's re
 
 Refuse to broadcast when `supported === false` or `valid === false`; a failed native-fee action forfeits the fee on-chain.
 
+**Request size switch.** The SDK sends the `GET` above until the query string passes 6144 characters. A larger quote (a long `params` array, for example) is sent as `POST /{COIN}/api/feequote` instead, with the same `action`, `params`, `source` and `feeOutputSats` fields as a JSON body. The response shape is the same either way. If the explorer answers the `POST` with 404 or 405, as an explorer without the POST route does, the SDK retries the `GET` once; any other status is returned as an error without a retry.
+
 Higher-level callers should use `sdk.estimateFees(actionData, { payFeeInNativeCoin: true })` or `sdk.quoteNativeFee(actionData)` rather than calling this directly.
 
 #### `getFeeSchedule()`
