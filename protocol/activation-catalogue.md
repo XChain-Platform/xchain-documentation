@@ -41,6 +41,7 @@ same chain or field.
 | `archive_orphan_geometry_activation` | `ARCHIVE_ORPHAN_GEOMETRY_ACTIVATION` | height |
 | `archive_rollback_author_scope_activation` | `ARCHIVE_ROLLBACK_AUTHOR_SCOPE_ACTIVATION` | height |
 | `archive_section_verdict_activation` | `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` | height |
+| `archive_v1_reissue_refusal_activation` | `ARCHIVE_V1_REISSUE_REFUSAL_ACTIVATION` | height |
 | `attest_admission_activation` | `ATTEST_ADMISSION_ACTIVATION` | height |
 | `attest_broadcast_fee_activation` | `ATTEST_BROADCAST_FEE_CAP` | constant |
 | `attest_callback_batch_position_activation` | `ATTEST_CALLBACK_BATCH_POSITION_ACTIVATION` | height |
@@ -54,6 +55,7 @@ same chain or field.
 | `batch_airdrop_leg_weight_activation` | `BATCH_AIRDROP_LEG_WEIGHT_ACTIVATION` | height |
 | `bet_feed_list_edit_activation` | `BET_FEED_LIST_EDIT_ACTIVATION` | height |
 | `bigint_surface_strip_heights` | `BIGINT_SURFACE_STRIP_ACTIVATION` | height |
+| `bridge_checkpoint_v3_section_activation` | `BRIDGE_CHECKPOINT_V3_SECTION_ACTIVATION` | height |
 | `bridge_escrow_anchor_match_activation` | `BRIDGE_ESCROW_ANCHOR_MATCH_ACTIVATION` | height |
 | `bridge_policy_apply_order_activation` | `BRIDGE_POLICY_APPLY_ORDER_ACTIVATION` | height |
 | `bridge_policy_detach_activation` | `BRIDGE_POLICY_DETACH` | height |
