@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.2] - 2026-10-21
+
+### Changed
+- Regenerated the flag-day page for the seven gates this release arms on testnet.
+
 ## [0.26.1] - 2026-10-21
 
 ### Added
