@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.1] - 2026-10-21
+
+### Added
+- Catalogued the seven new activation gates and regenerated the flag-day page.
+- Documented the explorer POST fee quote route and the SDK size switch.
+- Named the indexer rollcall_actions table in the database reference.
+
+### Changed
+- Documented the testnet oracle epoch pin and corrected the ORACLE_EPOCH_START row.
+
 ## [0.26.0] - 2026-10-20
 
 ### Changed

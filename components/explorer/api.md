@@ -1925,6 +1925,7 @@ row's content key when correlating the same record across nodes.
 
 ```
 GET /{COIN}/api/feequote?action=ISSUE&params=0|NEWTICK&source=...&feeOutputSats=...
+POST /{COIN}/api/feequote   {"action":"ISSUE","params":"0|NEWTICK","source":"...","feeOutputSats":0}
 GET /{COIN}/api/feeschedule
 GET /{COIN}/api/preflight?action=SEND&params=...&source=...&feeMode=xchain|native
 POST /{COIN}/api/preflight   {"action":"BATCH","params":"...","source":"...","feeMode":"xchain"}
@@ -1932,6 +1933,10 @@ GET /{COIN}/api/oraclefeequote?oracleAddress=...&giveTick=...&fiatCode=USD&giveE
 ```
 
 Proxied to the colocated indexer's `feequote` / `feeschedule` / `preflight` / `oraclefeequote` JSON-RPC. Returns `501` with code `INDEXER_NOT_CONFIGURED` when no `INDEXER_API_URL` is configured. See [CONFIGURATION.md](configuration.md) for `INDEXER_API_URL_<COIN>_<NETWORK>`.
+
+A `GET` `feequote` is length-capped before the indexer is asked. If its `params` value passes 8192 characters, or its `source` passes 4096, the explorer refuses it with `400` and the body `{ "error": "parameter too long", "code": "INVALID_PARAMETER" }`. Likewise, repeated query parameters (for example `params` given twice) are refused with `400` and code `INVALID_PARAMETER`, rather than one of the values being picked.
+
+`POST /{COIN}/api/feequote` takes the same four fields (`action`, `params`, `source`, `feeOutputSats`) as a JSON body and returns the same response as the `GET`. Use it for a quote whose `params` will not fit a query string, such as a long `params` array. The [SDK](../sdk/explorer.md) switches on size: it sends the `GET` until the query string passes 6144 characters, and sends the `POST` beyond that. If the explorer answers the `POST` with `404` or `405`, as an explorer without the POST route does, the SDK retries the `GET` once; any other status is returned as an error without a retry. Direct callers can apply the same rule.
 
 `preflight` answers "would the indexer accept this action?" independently of native-fee support, returning `{ supported, valid, status, error, guardInert, feeExempt, denied, xchainFee, feeMode, feeTick, feeTokenBalance, feeAffordable, blockIndex, blockTime }`. `xchainFee` is the protocol fee the action would owe as an XCHAIN-denominated decimal string, taken from the same dry-run that produced the verdict, so a confirm screen can disclose the fee without a second call to `feequote` (it is `null` when the run staged no fee record, and absent when no verdict was produced). Sizing a native-coin fee output still needs `feequote`, which prices that fee against the oracle.
 
@@ -2295,6 +2300,7 @@ Content-Type: application/json
 | `GET /BTC/api/proof/validator-set` | Stake-weighted validator-set proof (BTC-only) |
 | `GET /{COIN}/api/proof/contract-state/{idx}/{key}` | Contract-state SMT inclusion/non-inclusion proof (409 where the slot is unarmed) |
 | `GET /{COIN}/api/feequote` | Native-coin fee pre-flight quote |
+| `POST /{COIN}/api/feequote` | Same fee quote with the inputs in a JSON body, for quotes too large for a URL |
 | `GET /{COIN}/api/feeschedule` | Native-coin fee schedule |
 | `GET /{COIN}/api/preflight` | Validity-first action pre-flight, independent of fee support |
 | `POST /{COIN}/api/preflight` | Same pre-flight with the inputs in a JSON body, for actions too large for a URL |

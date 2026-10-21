@@ -25,6 +25,7 @@ same chain or field.
 |---|---|---|
 | `active_stake_collation_activation` | `ACTIVE_STAKE_COLLATION_ACTIVATION` | height |
 | `airdrop_native_fee_tally_activation` | `AIRDROP_NATIVE_FEE_TALLY_ACTIVATION` | height |
+| `airdrop_native_fee_tally_rollback_activation` | `AIRDROP_NATIVE_FEE_TALLY_ROLLBACK_ACTIVATION` | height |
 | `amount_representability_activation` | `AMOUNT_REPRESENTABILITY_ACTIVATION` | time |
 | `anchor_activation` | `ANCHOR_ACTIVATION` | height |
 | `anchor_archive_fold_term_activation` | `ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION` | height |
@@ -37,8 +38,10 @@ same chain or field.
 | `anchor_reward_activation` | `ANCHOR_REWARD_ACTIVATION` and related anchor/archive reward gates | height |
 | `anchor_reward_copy_selection_activation` | `ANCHOR_REWARD_COPY_SELECTION_ACTIVATION` | height |
 | `archive_match_count_activation` | `ARCHIVE_MATCH_COUNT_ACTIVATION` | height |
+| `archive_orphan_geometry_activation` | `ARCHIVE_ORPHAN_GEOMETRY_ACTIVATION` | height |
 | `archive_rollback_author_scope_activation` | `ARCHIVE_ROLLBACK_AUTHOR_SCOPE_ACTIVATION` | height |
 | `archive_section_verdict_activation` | `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` | height |
+| `archive_v1_reissue_refusal_activation` | `ARCHIVE_V1_REISSUE_REFUSAL_ACTIVATION` | height |
 | `attest_admission_activation` | `ATTEST_ADMISSION_ACTIVATION` | height |
 | `attest_broadcast_fee_activation` | `ATTEST_BROADCAST_FEE_CAP` | constant |
 | `attest_callback_batch_position_activation` | `ATTEST_CALLBACK_BATCH_POSITION_ACTIVATION` | height |
@@ -49,8 +52,10 @@ same chain or field.
 | `attest_response_mirror_activation` | `ATTEST_RESPONSE_MIRROR_ACTIVATION` | height |
 | `attest_responsible_widening_activation` | `ATTEST_RESPONSIBLE_WIDENING_ACTIVATION` | height |
 | `attest_zero_conf_activation` | `ATTEST_ZERO_CONF_ACTIVATION` | height |
+| `batch_airdrop_leg_weight_activation` | `BATCH_AIRDROP_LEG_WEIGHT_ACTIVATION` | height |
 | `bet_feed_list_edit_activation` | `BET_FEED_LIST_EDIT_ACTIVATION` | height |
 | `bigint_surface_strip_heights` | `BIGINT_SURFACE_STRIP_ACTIVATION` | height |
+| `bridge_checkpoint_v3_section_activation` | `BRIDGE_CHECKPOINT_V3_SECTION_ACTIVATION` | height |
 | `bridge_escrow_anchor_match_activation` | `BRIDGE_ESCROW_ANCHOR_MATCH_ACTIVATION` | height |
 | `bridge_policy_apply_order_activation` | `BRIDGE_POLICY_APPLY_ORDER_ACTIVATION` | height |
 | `bridge_policy_detach_activation` | `BRIDGE_POLICY_DETACH` | height |
@@ -85,6 +90,7 @@ same chain or field.
 | Module prefix | Principal registry row | Unit |
 |---|---|---|
 | `gas_ceiling_exhausted_heights` | `GAS_CEILING_EXHAUSTED_ACTIVATION` | height |
+| `guard_emitted_host_discriminator_activation` | `GUARD_EMITTED_HOST_DISCRIMINATOR_ACTIVATION` | height |
 | `host_error_stack_strip_heights` | `HOST_ERROR_STACK_STRIP_ACTIVATION` | height |
 | `host_fault_halt_heights` | `HOST_FAULT_HALT_ACTIVATION` | height |
 | `json_stringify_reentry_heights` | `JSON_STRINGIFY_REENTRY_ACTIVATION` | height |
@@ -151,6 +157,7 @@ same chain or field.
 | `swap_edit_rematch_activation` | `SWAP_EDIT_REMATCH_ACTIVATION` | height |
 | `sweep_zero_leg_activation` | `SWEEP_ZERO_LEG_ACTIVATION` | height |
 | `swq_source_cap_activation` | `SWQ_SOURCE_CAP_ACTIVATION` | height |
+| `tick_cache_null_prototype_activation` | `TICK_CACHE_NULL_PROTOTYPE_ACTIVATION` | height |
 | `tick_namespace_activation` | `TICK_NAMESPACE_ACTIVATION` | height |
 | `token_bridge_activation` | `TOKEN_BRIDGE_ACTIVATION` | height |
 | `token_policy_activation` | `TOKEN_POLICY_INHERITANCE_ACTIVATION` | height |
