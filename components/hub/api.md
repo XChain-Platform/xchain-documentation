@@ -454,7 +454,11 @@ Retract user oracle prices after an indexer rolled back PRICE actions in a reorg
   "method":"pushpricereorg",
   "params":{
     "source_chain":"DOGE",
-    "from_action_index":12345
+    "from_action_index":12345,
+    "batches":[
+      {"first_round":840,"last_round":845},
+      {"first_round":846,"last_round":851}
+    ]
   },
   "id":1
 }
@@ -466,8 +470,11 @@ Retract user oracle prices after an indexer rolled back PRICE actions in a reorg
 | `from_action_index` | integer | Yes | Lowest rolled-back action index; rows at or above it are retracted |
 | `to_action_index` | integer | No | Upper bound; retracts the closed range `[from, to]` instead of everything at or above `from`. Omit for an open-ended retraction |
 | `retraction_generation` | integer | No | Push generation captured at rollback start; only rows stamped at or below it are retracted, so a row re-published at a recycled index survives. Omit for no fence |
+| `batches` | object[] | No | Up to 1,000 rolled-back PRICE batch windows, each containing non-negative integer `first_round` and `last_round` values with `last_round >= first_round`. The hub clears the landing clock for every round in each window, including rounds it finalized before learning that they landed in the batch. Omit when no PRICE batch was rolled back |
 
 Omitting an optional bound is the open-ended / unfenced behaviour older indexers rely on. Sending one that is not a non-negative integer (or a `to_action_index` below `from_action_index`) is **rejected** rather than treated as omitted, since a widened retraction deletes rows the caller never asked for.
+
+A missing `batches` value is treated as an empty list for compatibility with older indexers. A malformed list is logged and ignored so the requested row retraction still runs, but no batch landing clocks are cleared from that list.
 
 **Response:** a summary of the retracted price rows, or an `{ "error": ... }` object on failure.
 
