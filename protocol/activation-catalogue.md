@@ -41,6 +41,7 @@ same chain or field.
 | `archive_match_count_activation` | `ARCHIVE_MATCH_COUNT_ACTIVATION` | height |
 | `archive_orphan_geometry_activation` | `ARCHIVE_ORPHAN_GEOMETRY_ACTIVATION` | height |
 | `archive_rollback_author_scope_activation` | `ARCHIVE_ROLLBACK_AUTHOR_SCOPE_ACTIVATION` | height |
+| `archive_rollcall_presence_activation` | `ARCHIVE_ROLLCALL_PRESENCE_ACTIVATION`, the `archive_publish` set: `oracle_publish` minus the sources absent from the latest rolled roll call | height |
 | `archive_section_verdict_activation` | `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` | height |
 | `archive_v1_reissue_refusal_activation` | `ARCHIVE_V1_REISSUE_REFUSAL_ACTIVATION` | height |
 | `attest_admission_activation` | `ATTEST_ADMISSION_ACTIVATION` | height |

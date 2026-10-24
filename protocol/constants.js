@@ -665,6 +665,28 @@ const ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION = {
     regtest: null,
 };
 
+// ARCHIVE_ROLLCALL_PRESENCE_ACTIVATION: the BTC snapshot_block height at/above which the
+// archive leg is elected, signed and judged against the archive_publish capability set instead
+// of oracle_publish. At a BTC block b where the oracle_publish set is resolved, archive_publish
+// is the stake-weighted oracle_publish set at b minus every row whose source appears in
+// rollcall_absences for E*, the latest epoch with rolled = 1 AND close_block <= b; when no such
+// epoch exists, or the subtraction leaves no row, it is the full oracle_publish set. Hubs write
+// the set into capability_snapshots and the DOGE indexer reads it through the mirror, so a
+// member absent from the last roll call no longer counts toward the archive quorum.
+//
+// Read with coin BTC at the snapshot_block on every side, the DOGE indexer included, and only
+// where stake-weighted quorum is active. Consensus-relevant (it moves the archive head and
+// wrapper-section quorum verdicts), so hubs must run the new code before the armed height.
+//
+// Mainnet is unpinned (null). Testnet ships on the UNARMED sentinel until the cut after the
+// fleet roll arms one BTC height. Regtest is 0: with no rolled epoch the set equals oracle_publish.
+const ARCHIVE_ROLLCALL_PRESENCE_ACTIVATION = {
+    mainnet: null,
+    'BTC:testnet': 9999999999, // UNARMED: the next cut sets it
+    testnet: 9999999999,       // UNARMED: the next cut sets it
+    regtest: 0,
+};
+
 // ROLLCALL (validator liveness eviction). A roll call is a signed proof of presence bound to a
 // BTC epoch block's ledger_hash: hubs sign, an elected leader lands the signatures on DOGECOIN
 // as a ROLLCALL action, and the BTC indexer -- the only place the membership predicate runs --
@@ -2464,6 +2486,7 @@ module.exports = {
     ANCHOR_FOLD_ACTIVATION,
     ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION,
     ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION,
+    ARCHIVE_ROLLCALL_PRESENCE_ACTIVATION,
     ADMIT_MARGIN_BLOCKS,
     ADMIT_MIN_FUTURE_BLOCKS,
     ADMIT_MAX_FUTURE_BLOCKS,
