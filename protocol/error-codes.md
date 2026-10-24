@@ -94,6 +94,10 @@ Errors are JSON objects:
 | `CURSOR_UNSUPPORTED` | 400 | Keyset paging on API list routes: `before` or `after` was given on a list that does not page by cursor (a list whose rows can share an action index, such as sends; only lists whose OpenAPI entry documents `before`/`after` accept them). The cursor value is not inspected | No: page with `page` instead |
 | `INVALID_SORTORDER` | 400 | List routes, API and explorer feeds alike: `sortorder` is neither `asc` nor `desc` in any letter case | No: fix the request |
 | `INVALID_PAGE` | 400 | API list routes: `page` is not a whole number of at least 1 | No: fix the request |
+| `INVALID_START` | 400 | Explorer feeds: the `start` offset is not a whole number of at least 0 | No: fix the request |
+| `INVALID_TOTAL` | 400 | Explorer feeds: a supplied `total` is not a whole number of at least 0 (an empty or absent `total` is allowed and read as unknown) | No: fix the request |
+| `INVALID_TX_HASH` | 400 | Transaction lookups: the hash is neither a 64-character hex transaction id nor one of the synthetic forms the explorer serves (`GENESIS-*`, `XPOLICY-*`, `XBRIDGE*`, `LIST_SHARE*`) | No: fix the request |
+| `INVALID_TICK_REF` | 400 | Ticker routes: a `^` reference is not followed by a safe whole-number ticker id | No: fix the request |
 | `PAGE_TOO_DEEP` | 400 | API list routes: the requested `page` starts past row 100000, the deepest row served by position. A request carrying `before` or `after` is not held to this cap | No: page by `before`/`after` where the list offers them |
 | `INVALID_LENGTH` | 400 | Explorer list feeds (`/{COIN}/explorer/...`): `length` is not a whole number of at least 1 | No: fix the request |
 | `INVALID_OFFSET` | 400 | Explorer list feeds on a cursor-paged list: the `offset` cursor a next or previous page continues from is not a whole number. A feed paged by row position never reads it | No: fix the request |
