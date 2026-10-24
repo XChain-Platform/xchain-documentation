@@ -431,15 +431,22 @@ Its `screenshots-pinned` check asks whether the images the console holds are the
 > - Universal Links into the wallet from the project's website.
 > - App-switcher privacy: the window is covered when the app resigns active, so the recovery phrase cannot land in the snapshot cache.
 >
-> Demo steps (about three minutes):
+> There are no accounts, usernames or passwords anywhere in the app, so there are no sign-in credentials to provide. Either route below reaches every feature.
 >
-> 1. Open the app and choose "Import wallet". Enter the recovery phrase below and any password. The wallet opens on the balances screen.
-> 2. Turn on Developer mode. Open Settings and set Network to "Testnet". The app reloads onto a public test network, so no real funds are involved at any point in this demo. Balances are read from a public blockchain indexer; no account is involved.
-> 3. Tap Receive. The app shows an address and a QR code. Tap the camera icon to scan one; this uses the device camera directly.
-> 4. **Route A: compose first, then Airplane Mode.** Tap Send, enter the address shown below and any small amount, and continue to the confirmation screen. **Now turn on Airplane Mode**, and confirm. With no network at all, the app signs the transaction on the device and shows "Signed. Not broadcast yet." Turn Airplane Mode off and the app prompts you about the queued transaction; tap "Broadcast now" in the queued-transactions banner and that same signed transaction goes out. Signing needed no server, no account and no connection.
-> 5. Settings also holds the privacy toggles that turn off the only third-party requests the app makes.
+> ROUTE A: DEMO MODE (no setup)
+> On the first screen, tap "Try in demo mode". A demo wallet opens with example balances, history and contacts, so every screen can be explored straight away.
+>
+> ROUTE B: FUNDED TEST WALLET (live test networks, no real money)
+>
+> 1. On the first screen, tap "Import wallet". Enter the recovery phrase at the end of these notes and any password.
+> 2. Turn on Developer mode. Open Settings and set Network to "Testnet". Every wallet starts on the main networks, so the test balances (5 TBTC, 25 TLTC, 200,000 TDOGE) appear only after this step.
+> 3. Receive shows an address and QR code; the camera icon scans one. Send works to any testnet address, including the wallet's own.
+> 4. To see offline signing, tap Send, continue a send to the confirmation screen, turn on Airplane Mode, then confirm: the device signs with no network and shows "Signed. Not broadcast yet." Turn Airplane Mode off and tap "Broadcast now".
+> 5. Settings > Safety has Biometric unlock (Face ID). Settings > Privacy has switches for the optional services.
 >
 > The app is open source under AGPL-3.0-or-later.
+
+Route A and Route B follow Apple's live App Review notes as read from App Store Connect on 2026-10-24 (version 0.341.4, waiting for review), with two deliberate differences. Step 2 keeps "Turn on Developer mode." because builds since xchain-wallet 962b56b1b offer Testnet only in Developer mode, which the live notes do not yet say. The offline-signing sentence of Apple's step 3 is its own step 4 here, so the compose-before-Airplane-Mode order stays checkable; Apple's step 4 is step 5. Paste this block, not the console's copy.
 
 This text is written to keep two things true, and they must stay true on any future edit: it never mentions a private test environment or asks a reviewer to reach anything not publicly reachable, and there is no review-only configuration or review-detection logic anywhere in the build.
 
