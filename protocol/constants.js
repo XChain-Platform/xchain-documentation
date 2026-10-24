@@ -2331,12 +2331,27 @@ const ADMIT_CHAIN_MARGIN_BLOCKS = Object.freeze({
         price_snapshots:        16,
         remote_token_snapshots: 14,
     }),
+    // LTC testnet bursts leave the hub watermark 5 to 12 blocks behind the tip on the
+    // 8-minute round tables, so 12 plus 2 blocks of headroom. price_snapshots waits a
+    // 10-minute window: at the burst cadence that trails 12 blocks in 8 minutes it trails
+    // 15, plus the same 2, so 17. Both stay inside ADMIT_MAX_FUTURE_BLOCKS.LTC (24).
+    LTC: Object.freeze({
+        bridge_transfers:       14,
+        cross_chain_calls:      14,
+        cross_chain_matches:    14,
+        list_snapshots:         14,
+        policy_snapshots:       14,
+        price_snapshots:        17,
+        remote_token_snapshots: 14,
+    }),
 });
 
 const ADMIT_CHAIN_MARGIN_ACTIVATION = Object.freeze({
     mainnet:        null,
     'DOGE:mainnet': null,
     'DOGE:testnet': 67989993,
+    'LTC:mainnet':  null,
+    'LTC:testnet':  9999999999, // UNARMED: the next cut sets it
     regtest:        0,
 });
 
