@@ -21,7 +21,7 @@ const ADJACENT_INDEXER = path.resolve(__dirname, '..', '..', 'xchain-indexer');
 const INDEXER_ROOT = fs.existsSync(path.join(ADJACENT_INDEXER, 'package.json'))
     ? ADJACENT_INDEXER : path.resolve(GIT_COMMON_DIR, '..', '..', 'xchain-indexer');
 // Full sha of the indexer commit the vendored copies are compared against.
-const XCHAIN_TWIN_COMMIT = 'e49fc3e32675457d84d8856f9a35283ae308cd13';
+const XCHAIN_TWIN_COMMIT = '951a1f844461aab4c31b57832d6d7b7c75261f45';
 const indexer = sibling('xchain-indexer', [], { platformRoot: path.dirname(INDEXER_ROOT) });
 const CANONICAL = 'src/protocol_changes/regtest_env.js';
 const VENDORED_SHARED_ROWS = path.join(

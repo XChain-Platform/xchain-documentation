@@ -146,6 +146,9 @@ flowchart TD
 ### Matching Origin
 - At or above the `MATCH_ORIGIN_OPEN_ACTIVATION` height, ORDER matching starts only from an order whose latest status is `open`. A match dispatched from an order that is already `complete`, `cancelling`, `cancelled`, `expiring` or `expired` (a LIST rematch plan that reaches an order its earlier step completed, or the match an ORDER cancel dispatches from the order it has just cancelled) stops at the gate before any candidate is looked up, so escrow already settled or refunded is not settled again. Below the height the match runs as before. The height is unarmed on mainnet and testnet, and a regtest venue arms it with `XC_MATCH_ORIGIN_OPEN_REGTEST_ACTIVATION`.
 
+### Equal-Price Priority
+- Candidate orders are ranked best price first. At or above the `MATCH_EQUAL_PRICE_OLDEST_FIRST` height, orders at an equal price are taken oldest first (lowest `ACTION_INDEX` first), the price-time priority rule in which the earlier offer is the maker (see [Cross-Chain DEX](../cross-chain-dex.md#order-offers-partial-fills)). Below the height orders at an equal price are taken newest first (highest `ACTION_INDEX` first). The height is unarmed on mainnet and testnet, and a regtest venue arms it with `XC_MATCH_EQUAL_PRICE_OLDEST_FIRST_REGTEST_ACTIVATION`.
+
 ### Sweep Closure
 - When `SWEEP` is broadcast from this order's SOURCE with `ORDERS=1`, the order is cancelled and the escrowed `GIVE_TICK` balance (or `GIVE_OWNERSHIP` ownership record) is credited to the SWEEP `DESTINATION` rather than returned to SOURCE (see [`SWEEP`](./sweep.md))
 

@@ -26,6 +26,7 @@ same chain or field.
 | `active_stake_collation_activation` | `ACTIVE_STAKE_COLLATION_ACTIVATION` | height |
 | `airdrop_native_fee_tally_activation` | `AIRDROP_NATIVE_FEE_TALLY_ACTIVATION` | height |
 | `airdrop_native_fee_tally_rollback_activation` | `AIRDROP_NATIVE_FEE_TALLY_ROLLBACK_ACTIVATION` | height |
+| `airdrop_zero_legs_omitted_activation` | `AIRDROP_ZERO_LEGS_OMITTED_ACTIVATION` | height |
 | `amount_representability_activation` | `AMOUNT_REPRESENTABILITY_ACTIVATION` | time |
 | `anchor_activation` | `ANCHOR_ACTIVATION` | height |
 | `anchor_archive_fold_term_activation` | `ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION` | height |
@@ -82,6 +83,7 @@ same chain or field.
 | `dispenser_refill_policy_activation` | `DISPENSER_REFILL_POLICY_ACTIVATION` | height |
 | `dispenser_send_amount_compare_activation` | `DISPENSER_SEND_AMOUNT_COMPARE_ACTIVATION` | height |
 | `dispenser_settlement_price_activation` | `DISPENSER_SETTLEMENT_PRICE_ACTIVATION` | time |
+| `dividend_empty_allow_list_denies_activation` | `DIVIDEND_EMPTY_ALLOW_LIST_DENIES_ACTIVATION` | height |
 | `empty_allow_list_denies_activation` | `EMPTY_ALLOW_LIST_DENIES` | height |
 | `execute_fee_cap_activation` | `EXECUTE_FEE_CAP_ACTIVATION` | height |
 
@@ -110,6 +112,7 @@ same chain or field.
 | `list_union_activation` | `LIST_UNION_ACTIVATION` | height |
 | `mainnet_launch_activation` | `MAINNET_LAUNCH_ACTIVATION` | time |
 | `market_list_source_activation` | `MARKET_LIST_SOURCE_ACTIVATION` | height |
+| `match_equal_price_oldest_first_activation` | `MATCH_EQUAL_PRICE_OLDEST_FIRST` | height |
 | `match_origin_open_activation` | `MATCH_ORIGIN_OPEN_ACTIVATION` | height |
 | `mirror_admission_activation` | `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION` | height |
 | `mirror_admission_margin_activation` | `ADMIT_CHAIN_MARGIN_ACTIVATION` | height |
