@@ -162,6 +162,7 @@ same chain or field.
 | `swq_source_cap_activation` | `SWQ_SOURCE_CAP_ACTIVATION` | height |
 | `tick_cache_null_prototype_activation` | `TICK_CACHE_NULL_PROTOTYPE_ACTIVATION` | height |
 | `tick_namespace_activation` | `TICK_NAMESPACE_ACTIVATION` | height |
+| `tick_normalize_activation` | `TICK_NORMALIZE_ACTIVATION` | height |
 | `token_bridge_activation` | `TOKEN_BRIDGE_ACTIVATION` | height |
 | `token_policy_activation` | `TOKEN_POLICY_INHERITANCE_ACTIVATION` | height |
 | `token_supply_representation_activation` | `TOKEN_SUPPLY_REPRESENTATION_ACTIVATION` | height |
