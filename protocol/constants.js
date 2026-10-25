@@ -467,6 +467,27 @@ const CHECKPOINT_COMMITMENT_ACTIVATION = {
     testnet: 146000,      // ARMED 2026-07-22 (commit 0e418c8c): first BTC-testnet anchor past all three STATE_COMMITMENT testnet thresholds; was 0, which forced the SPV root suffix from testnet genesis before the indexer computes roots, so the hub refused to sign every testnet checkpoint
     regtest: 0,
 };
+// CHECKPOINT_SUPERSEDE_ACTIVATION: the BTC snapshot_block height at/above which a state checkpoint
+// may carry `supersedes_from` (H, the lowest block a retroactive gate move changed) and `rules_digest`
+// (the applied-rules digest the replaying indexer reports). A hub sets both on the first checkpoint it
+// finalizes after its indexer replays from H; every later checkpoint leaves them null. When both are
+// present the checkpoint canonical gains `'|SUPERSEDE|' + supersedes_from + '|' + rules_digest` after
+// the root suffix and before the EQUIV wrap, and readers report every earlier checkpoint on the same
+// (chain, network) at or above supersedes_from as superseded (a reader rule, never an UPDATE). Below
+// the height a checkpoint carrying the fields is refused at propose, co-sign and persist.
+//
+// Read with coin BTC at the snapshot_block on every side. Consensus-relevant for signature
+// verification (the signed preimage changes), so hubs and every verifier (indexers, SDK, explorer,
+// sync) must run the new code before the armed height.
+//
+// Mainnet is unpinned (null). Testnet ships on the UNARMED sentinel until the cut after the fleet
+// roll arms one BTC height. Regtest is 0 so the rail drill exercises it.
+const CHECKPOINT_SUPERSEDE_ACTIVATION = {
+    mainnet: null,
+    'BTC:testnet': 9999999999, // UNARMED: the next cut sets it
+    testnet: 9999999999,       // UNARMED: the next cut sets it
+    regtest: 0,
+};
 
 // ANCHOR_REWARD_ACTIVATION (anchor-reward re-derivation): the flag-day at/above which the validator
 // anchor reward stops being TRUSTED from the hub over a key-authenticated JSON-RPC (since retired)
@@ -2474,6 +2495,7 @@ module.exports = {
     SNAPSHOT_BURIAL_ACTIVATION,
     STATE_COMMITMENT_ACTIVATION,
     CHECKPOINT_COMMITMENT_ACTIVATION,
+    CHECKPOINT_SUPERSEDE_ACTIVATION,
     ANCHOR_REWARD_ACTIVATION,
     ANCHOR_REWARD_AMOUNT,
     ARCHIVE_REWARD_ACTIVATION,

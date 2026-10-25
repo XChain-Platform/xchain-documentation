@@ -67,6 +67,7 @@ same chain or field.
 | `capability_snapshot_proof_activation` | `CAPABILITY_SNAPSHOT_PROOF_ACTIVATION` | height |
 | `caret_ref_strict_activation` | `CARET_REF_STRICT_ACTIVATION` | height |
 | `checkpoint_commitment_activation` | `CHECKPOINT_COMMITMENT_ACTIVATION` | height |
+| `checkpoint_supersede_activation` | `CHECKPOINT_SUPERSEDE_ACTIVATION`, the superseding checkpoint marker: `supersedes_from` and `rules_digest` signed into the checkpoint canonical | height |
 | `contract_slash_active_first_activation` | `CONTRACT_SLASH_ACTIVE_FIRST_ACTIVATION` | height |
 | `cooldown_maturity_escrow_reversal_activation` | `COOLDOWN_MATURITY_ESCROW_REVERSAL_ACTIVATION` | height |
 | `cross_chain_offer_list_export_activation` | `CROSS_CHAIN_OFFER_LIST_EXPORT` | height |
