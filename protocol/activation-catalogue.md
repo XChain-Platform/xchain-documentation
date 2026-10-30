@@ -148,6 +148,7 @@ same chain or field.
 | `retraction_signing_activation` | `RETRACTION_SIGNING_ACTIVATION` | height |
 | `rollcall_activation` | `ROLLCALL_ACTIVATION` | epoch |
 | `rollcall_gates_activation` | `ROLLCALL_GATES_ACTIVATION` | epoch |
+| `same_token_offer_refusal_activation` | `SAME_TOKEN_OFFER_REFUSAL_ACTIVATION` | height |
 | `send_caret_pack_key_activation` | `SEND_CARET_PACK_KEY_ACTIVATION` | time |
 | `send_gated_total_tick_id_activation` | `SEND_GATED_TOTAL_TICK_ID_ACTIVATION` | time |
 | `settlement_bounds_activation` | `SETTLEMENT_BOUNDS_ACTIVATION` | height |
