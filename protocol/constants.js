@@ -484,9 +484,9 @@ const CHECKPOINT_COMMITMENT_ACTIVATION = {
 // roll arms one BTC height. Regtest is 0 so the rail drill exercises it.
 const CHECKPOINT_SUPERSEDE_ACTIVATION = {
     mainnet: null,
-    'BTC:testnet': 9999999999, // UNARMED: the next cut sets it
-    'LTC:testnet': 9999999999, // UNARMED: the next cut sets it
-    'DOGE:testnet': 9999999999, // UNARMED: the next cut sets it
+    'BTC:testnet': 158396, // UNARMED: the next cut sets it
+    'LTC:testnet': 4946814, // UNARMED: the next cut sets it
+    'DOGE:testnet': 68033131, // UNARMED: the next cut sets it
     testnet: 9999999999,       // UNARMED: the next cut sets it
     regtest: 0,
 };
@@ -705,9 +705,9 @@ const ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION = {
 // fleet roll arms one BTC height. Regtest is 0: with no rolled epoch the set equals oracle_publish.
 const ARCHIVE_ROLLCALL_PRESENCE_ACTIVATION = {
     mainnet: null,
-    'BTC:testnet': 9999999999, // UNARMED: the next cut sets it
-    'LTC:testnet': 9999999999, // UNARMED: the next cut sets it
-    'DOGE:testnet': 9999999999, // UNARMED: the next cut sets it
+    'BTC:testnet': 158396, // UNARMED: the next cut sets it
+    'LTC:testnet': 4946814, // UNARMED: the next cut sets it
+    'DOGE:testnet': 68033131, // UNARMED: the next cut sets it
     testnet: 9999999999,       // UNARMED: the next cut sets it
     regtest: 0,
 };
@@ -2398,7 +2398,7 @@ const ADMIT_CHAIN_MARGIN_ACTIVATION = Object.freeze({
     'DOGE:mainnet': null,
     'DOGE:testnet': 67989993,
     'LTC:mainnet':  null,
-    'LTC:testnet':  9999999999, // UNARMED: the next cut sets it
+    'LTC:testnet':  4946814, // UNARMED: the next cut sets it
     regtest:        0,
 });
 
