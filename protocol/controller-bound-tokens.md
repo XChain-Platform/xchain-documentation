@@ -186,7 +186,7 @@ and owner rows are checked before any `CONTROLLER` or `ACTION_CLASS` row.
 | `invalid: ACTION_CLASS (unknown)` | both | both | `ACTION_CLASS` (case-insensitive) is not one of `transfer`, `trade`, `burn`, `mint`, `stake`, `ownership`, `all`. |
 | `invalid: CONTROLLER (null)` | bind | both | `UNBIND=0` with an empty `CONTROLLER`. |
 | `invalid: ACTION_CLASS (already bound)` | bind | both | Something still gates this exact class: a live bind, **or an unbind still inside its cooldown**. |
-| `invalid: COOLDOWN_BLOCKS (format)` | bind | both | `COOLDOWN_BLOCKS` is set but is not a non-negative integer. |
+| `invalid: COOLDOWN_BLOCKS (format)` | bind | both | `COOLDOWN_BLOCKS` is set but is not plain decimal digits (no sign, no decimal point) or is above `4294967295`, the stored column's `INT UNSIGNED` limit. |
 | `invalid: ACTION_CLASS (not bound)` | unbind | both | Nothing gates this exact class (never bound, or an earlier unbind's cooldown has elapsed). |
 | `invalid: ACTION_CLASS (already unbinding)` | unbind | both | The class already has an unbind still inside its cooldown. |
 | `invalid: TICK (bridged tokens cannot be policy-bound yet)` | both | `ISSUE` v6 | The token is bridgeable or has bridged (see the bridging rule above). |

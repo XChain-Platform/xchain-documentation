@@ -117,7 +117,7 @@ These values are defined in `src/XChainUtxoTracker.js` and are not configurable 
 | Constant | Value | Description |
 |---|---|---|
 | `CHECK_BLOCK_DELAY_MS` | `1000` | Milliseconds between block polling cycles |
-| `MIN_VERIFICATION_PROGRESS_TO_PARSE` | `0.99` | Minimum node sync progress before tracker starts indexing |
+| `MIN_VERIFICATION_PROGRESS_TO_PARSE` | `0.99` | Minimum node sync progress before tracker starts indexing. Not applied on regtest. |
 | `SYNCED_THRESHOLD` | `3` | Number of blocks behind tip to consider "synced" |
 | `MEMPOOL_INTERVAL` | `60000` | Milliseconds between mempool updates (60 seconds) |
 | `MEMPOOL_BATCH_SIZE` | `1000` | Maximum transactions fetched per mempool batch |

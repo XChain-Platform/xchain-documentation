@@ -2328,8 +2328,8 @@ function resolveMirrorAdmissionRegtest(env){
 // v0.20.0 sizing was overrun on LTC by a cadence that nearly halved while BTC's slowed. Before
 // the carrying train rolls, re-measure all three tips and project each producer height forward
 // at its own window cadence. Re-cut when EITHER holds:
-//   1. The fleet has not rolled by TBTC 153,211 (this producer height less the 11 blocks a
-//      90-minute roll takes at the measured cadence). Re-cut every testnet key here and in both
+//   1. The fleet has not rolled by the BTC:testnet producer height below, less the blocks a
+//      90-minute roll takes at the measured cadence. Re-cut every testnet key here and in both
 //      registry twins from the NEXT epoch close, rather than shipping a height the chain passed.
 //   2. Any chain's projected crossing sits more than 6 h from the BTC producer's. Re-cut that
 //      chain onto the BTC instant. Six hours is the consumer gap below and so the entire

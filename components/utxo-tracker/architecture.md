@@ -102,7 +102,7 @@ The main loop runs continuously in `XChainUtxoTracker.start()`:
 flowchart TD
     TOP(("while (keepParsing)"))
     S1["1. Poll getblockchaininfo()<br>every 1 second"]
-    S2["2. Wait for node sync<br>(verificationprogress >= 0.99)"]
+    S2["2. Wait for a usable node tip<br>(verificationprogress >= 0.99,<br>skipped on regtest)"]
     Q3{"3. Caught up with tip?"}
     MEMPOOL["Trigger mempool updates<br>every 60 seconds"]
     Q4{"4. New blocks available?"}

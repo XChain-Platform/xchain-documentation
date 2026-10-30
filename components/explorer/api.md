@@ -2261,6 +2261,8 @@ Content-Type: application/json
 
 > **Note:** The JSON-RPC interface currently exposes only the `ping` method. The REST API is the primary interface for data queries.
 
+A rate-limit or load-shed refusal on this endpoint is an HTTP `429` REST body (`RATE_LIMITED` or `SERVER_BUSY`), not a JSON-RPC error object; see [Explorer JSON-RPC endpoint](../../protocol/error-codes.md#explorer-json-rpc-endpoint).
+
 ---
 
 ## Complete Endpoint Quick Reference

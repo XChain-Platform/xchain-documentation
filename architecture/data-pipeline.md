@@ -40,9 +40,12 @@ The SDK calls the encoder's JSON-RPC API, passing the ACTION string, the sender'
    - `P2WSH`: the same 476-byte chunking up to the 8,192-byte compiled-payload ceiling, two-transaction pattern
    - `TAPROOT`: the envelope, up to 390,000 payload bytes in one tapscript witness, commit/reveal pair returned together; segwit chains only, and requested explicitly or via `encoding: AUTO` rather than reached by the size fallback
 
-2. **Prepends the magic prefix** `XCHN` (4 bytes) to the ACTION string, so the decoder can identify an XChain payload once it has deobfuscated the output. The marker sits inside the obfuscated bytes, never ahead of them.
+2. **Marks the payload with the magic** `XCHN` (4 bytes), in a way that depends on the lane ([Encoding](../concepts/encoding.md) is the canonical rule):
+   - `OP_RETURN` and `multisig`: `XCHN` is prepended to the ACTION string, so the decoder identifies the payload once it has deobfuscated the output. The marker sits inside the obfuscated bytes, never ahead of them.
+   - `P2SH` and `P2WSH`: the ACTION chunks go **raw** into the redeem or witness scripts, and the spend transaction carries one separate marker `OP_RETURN` output holding `XCHN` plus a `p2sh` or `p2wsh` tag.
+   - `TAPROOT`: the payload goes **raw** into the envelope behind a **cleartext** `XCHN` magic and format byte, with no marker output ([Taproot envelope](../protocol/taproot-envelope.md)).
 
-3. **Obfuscates the prefixed payload** using AES-128-CTR. The key is the first 16 hex characters of the first input's txid; the IV is the next 16. This is deterministic (any observer with the txid can reverse it) but it filters casual blockchain scanners.
+3. **Obfuscates with AES-128-CTR** only the `OP_RETURN` and `multisig` payloads and the `P2SH`/`P2WSH` marker output; script chunks and the envelope payload stay raw. The key is the first 16 hex characters of the first input's txid; the IV is the next 16. This is deterministic (any observer with the txid can reverse it) but it filters casual blockchain scanners.
 
 4. **Returns an unsigned PSBT** (Partially Signed Bitcoin Transaction). For two-transaction formats, the encoder returns both PSBTs in sequence: a funding transaction and a reveal transaction.
 
@@ -70,7 +73,7 @@ The decoder polls the coin node every few seconds via JSON-RPC (`getblockcount`,
    - Litecoin: strip the MWEB/HogEx marker and flag from each raw transaction before parsing
    - Dogecoin: strip AuxPoW merge-mining headers before parsing
 
-2. **Scans outputs** for the `XCHN` magic prefix after deobfuscation. Deobfuscation uses the first input's txid, so the decoder must retrieve the full transaction (including inputs) to reconstruct the key and IV.
+2. **Recognizes XChain payloads** lane by lane. It deobfuscates an `OP_RETURN` or `multisig` output and checks for the `XCHN` prefix; for `P2SH`/`P2WSH` it deobfuscates the marker `OP_RETURN` and reassembles the raw chunks from the scripts the inputs reveal; for `TAPROOT` it pattern-matches the cleartext `XCHN` envelope in input 0's witness. Deobfuscation uses the first input's txid, so the decoder must retrieve the full transaction (including inputs) to reconstruct the key and IV.
 
 3. **Writes raw data** to the Decoder MariaDB (`XChain_{CHAIN}_{NETWORK}_Decoder`). The decoder stores the block, the transaction metadata, and the raw decoded ACTION string. It does not interpret or validate the ACTION content; that is the indexer's job.
 
@@ -162,7 +165,7 @@ flowchart TD
     SDK["xchain-sdk"]
     HUB["xchain-hub<br>(validator network)"]
     UTXO["xchain-utxo-tracker<br>(LevelDB)"]
-    ENC["xchain-encoder<br>(stateless; AES-128-CTR obfuscation)"]
+    ENC["xchain-encoder<br>(stateless; per-lane embedding)"]
     SIGN["Developer signs + broadcasts"]
     NODE["Coin node (bitcoind / litecoind / dogecoind)<br>mempool → block"]
     DECODER["xchain-decoder"]

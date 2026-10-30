@@ -86,7 +86,7 @@ Paginated responses can also carry `nextCursor`. The encoder compares `tracker_h
 | `halted` | `true` after an unrecoverable reorg stops tracker polling. It always refuses service. |
 | `halt_reason` | Sanitized operator-facing reason for a halt. It does not change the verdict. |
 | `reorg_count` | Lifetime rollback counter used with `tracker_height` to keep multi-page reads on one snapshot. |
-| `committed_hash` | Hash of the committed tip block, read with the page's rows. It names the chain a page was read on, so it catches a same-height reorg after a restart has reset `reorg_count`. Sent only on `get_utxos`; an absent field is tolerated for compatibility with an older tracker. |
+| `committed_hash` | Hash of the committed tip block, read with the page's rows. It names the chain a page was read on, so it catches a same-height reorg after a restart has reset `reorg_count`. Sent on `get_utxos`, `get_balance`, `get_info` and `get_first_seen_status`, each read with its own rows; an absent field is tolerated for compatibility with an older tracker. |
 
 The refusal order is significant: halted, stale, then mempool not ready. A halted tracker whose lag is also excessive is reported as halted, while a lagging tracker whose `mempool_ready` has consequently fallen false is reported as stale.
 

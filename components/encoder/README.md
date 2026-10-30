@@ -14,7 +14,7 @@ The encoder's sole responsibility is to embed XChain protocol data into a transa
 - **Stateless**: no database, no persistent connections; every call is independent
 - **Five encoding formats**: four script-output lanes, OP_RETURN (80B total, 76B user data), P2SH (476B chunks up to 8,192B), P2WSH (the same 476B chunks up to 8,192B) and multisig (~61B/key), plus the [Taproot envelope](../../protocol/taproot-envelope.md) (up to 390,000B of payload in one tapscript witness; Bitcoin and Litecoin only, since Dogecoin has no SegWit). Auto-selection by payload size picks OP_RETURN or P2SH; P2WSH, multisig and the envelope are requested through the `encoding` argument
 - **Two-transaction orchestration**: automatic tx1 (fund) → tx2 (spend/reveal) pattern for P2SH and P2WSH with OP_RETURN marker
-- **AES-128-CTR obfuscation**: derives key and IV from the first input's txid; `XCHN` magic prefix on all payloads
+- **AES-128-CTR obfuscation**: derives key and IV from the first input's txid; applies to OP_RETURN and multisig payloads (behind the `XCHN` magic prefix) and to the P2SH/P2WSH marker output, while script chunks and the Taproot envelope payload stay raw
 - **UTXO selection**: largest-first selection, duplicate removal, optional unconfirmed filtering, automatic change output
 - **Fee estimation**: byte-accurate transaction size estimation per format via `TxSizeEstimator`; dust floor enforcement
 - **Fee rate cap**: configurable maximum fee rate prevents runaway estimates (e.g., regtest feedback loops)

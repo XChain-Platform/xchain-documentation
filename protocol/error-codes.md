@@ -67,6 +67,8 @@ Errors are JSON objects:
 | `CONTRACT_STATE_NOT_COMMITTED` | 409 | `contract_state_root` is not committed at this height, so absence cannot be proven | No: choose a later height |
 | `ESCROW_LEAF_NOT_COMMITTED` | 409 | The locked-balance leaf is not committed at this height, so absence cannot be proven | No: choose a later height |
 | `STATE_TOO_LARGE` | 413 | Contract simulation: the contract's state exceeds the simulation limits | No |
+| `INVALID_JSON_BODY` | 400 | A `POST` body sent as `application/json` is not valid JSON. The status is 415 when the body uses a charset or content encoding the parser does not accept | No: fix the request |
+| `BODY_TOO_LARGE` | 413 | A `POST` body exceeds the explorer's ceiling: 10 KB on every route except `POST /{COIN}/api/preflight` and `POST /{COIN}/api/feequote`, which allow 1 MB. Unrelated to `STATE_TOO_LARGE` | No: send a smaller body |
 | `SERVER_BUSY` | 429 | The explorer's global in-flight request cap is reached and the request was shed; a second 429 distinct from the per-IP `RATE_LIMITED`, with a `Retry-After` header | Yes: back off; honor `Retry-After` |
 | `VM_BUSY` | 429 | Contract simulation: too many concurrent simulations, globally or from this client | Yes: back off |
 | `INTERNAL_ERROR` | 500 | An unhandled failure while serving a data request | Yes: with backoff |
@@ -106,7 +108,7 @@ Errors are JSON objects:
 | `INVALID_ADDRESS` | 400 | Batch address routes: one entry is not a well-formed address; the offending entry is echoed (truncated) in the `error` text. Unrelated to the SDK library's own `INVALID_ADDRESS` typed error, which is a separate surface (see [SDK errors](../components/sdk/errors.md)) | No |
 | `READ_FAILED` | 200 (per-address) | Batch address routes only: the fallback code inside a per-address `error` object when the inner read failed without supplying a code of its own. The whole-request status is still 200; branch on the entry's own `status` field | Depends on the entry's `status` |
 
-The batch address routes fail at two layers, and a client has to read both. A whole-request refusal carries an HTTP 400 with one of the three codes above, or the coin gate's 503 (`COIN_NOT_AVAILABLE` / `COIN_DATA_STALE`), which answers the entire batch rather than being buried per address. Otherwise the response is HTTP 200 and each address may carry an `error` object of `{ code, error, status }`, where `code` is whatever the inner read returned, or `READ_FAILED` when it returned none. A 200 therefore does not mean every address succeeded.
+The batch address routes fail at two layers, and a client has to read both. A whole-request refusal carries an HTTP 400 with one of the three codes above, or the coin gate's 503 (`COIN_NOT_AVAILABLE` / `COIN_DATA_STALE`), which answers the entire batch rather than being buried per address. A body that is not valid JSON, or is over the 10 KB ceiling, is refused before the route reads it, with `INVALID_JSON_BODY` or `BODY_TOO_LARGE`. Otherwise the response is HTTP 200 and each address may carry an `error` object of `{ code, error, status }`, where `code` is whatever the inner read returned, or `READ_FAILED` when it returned none. A 200 therefore does not mean every address succeeded.
 
 The bridge-invariant route (`GET /{COIN}/api/bridge-invariant/{tick}`) answers HTTP 200 with `{ "available": false, "reason": "<reason>" }` in place of an invariant map when the explorer cannot ask the hub at all. That body means "could not ask", never "no copies exist", so check `available` before reading the body as a map. `reason` is a stable string, append-only like the codes above and scoped to this route:
 
@@ -140,7 +142,21 @@ The SDK treats every JSON-RPC body error as final: it does not automatically ret
 
 Rate limiting is the one condition with two codes. A client that talks to more than one of
 these services must treat `-32029` and `-32005` as the same condition, or key retry on the
-HTTP `429` and the `Retry-After` header, which every one of them sets.
+HTTP `429` and the `Retry-After` header, which every one of them sets. The explorer's
+JSON-RPC endpoint (below) sets the same status and header but sends neither code, so a client
+that also calls the explorer keys retry on the status.
+
+### Explorer JSON-RPC endpoint
+
+The explorer serves a JSON-RPC 2.0 dispatcher at `POST /` and at `POST /{COIN}/api/` (the
+federation reads), behind the same per-IP rate limiter and in-flight request cap as its REST
+routes. Those two guards refuse a JSON-RPC call with their REST body, not a JSON-RPC error
+object: HTTP `429` carrying `RATE_LIMITED` or `SERVER_BUSY` from the
+[Explorer REST API](#explorer-rest-api) table, with a `Retry-After` header. Check the HTTP
+status before requiring a `jsonrpc` envelope in the body. A body on either path that is not
+valid JSON is answered with `-32700` (HTTP `400`), and one over the 10 KB body ceiling with
+`-32600` (HTTP `413`). The explorer's own errors are the standard codes; it never sends
+`-32001`, `-32010`, `-32029` or `-32005`.
 
 ### Encoder operational reasons
 

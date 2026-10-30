@@ -14,12 +14,12 @@ const sdk = new XChainSDK(options);
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `network` | string | `NETWORK` env var | Target blockchain and network. See [Network Strings](#network-strings) for valid values. |
-| `explorerUrl` | string | `EXPLORER_URL` env var, then the public XChain host for mainnet/testnet, then `'localhost'` for regtest | Hostname or IP of the xchain-explorer API server. See [Public Endpoint Defaults](#public-endpoint-defaults). |
-| `explorerPort` | number | `EXPLORER_PORT` env var or `8080` | Port of the xchain-explorer API server. Unused when `explorerUrl` resolves to a full `https://` URL (the public default). |
-| `encoderUrl` | string | `ENCODER_URL` env var, then the public XChain host for mainnet/testnet. Regtest has no default: the encoder client is built only once `encoderUrl`/`encoderPort` (or `ENCODER_URL`/`ENCODER_PORT`) is supplied, and then on `localhost` when only a port is given | Hostname or IP of the xchain-encoder JSON-RPC server. See [Public Endpoint Defaults](#public-endpoint-defaults). |
-| `encoderPort` | number | `ENCODER_PORT` env var or `3003` | Port of the xchain-encoder JSON-RPC server. Unused when `encoderUrl` resolves to a full `https://` URL (the public default). |
-| `hubUrl` | string | `HUB_API_HOST` env var, then the public XChain host for mainnet/testnet. Regtest gets no hub unless `hubUrl` (or `HUB_API_HOST`, or `hubValidators`) is supplied | Hostname or IP of the xchain-hub config oracle. Required for hub discovery. See [Public Endpoint Defaults](#public-endpoint-defaults). |
-| `hubPort` | number | `HUB_PORT` env var or `10000` | Port of the xchain-hub config oracle. |
+| `explorerUrl` | string | `EXPLORER_URL` env var, then the public XChain host for mainnet/testnet unless an `explorerPort` option is given, then `'localhost'` | Hostname or IP of the xchain-explorer API server. See [Public Endpoint Defaults](#public-endpoint-defaults). |
+| `explorerPort` | number | `EXPLORER_PORT` env var or `8080` | Port of the xchain-explorer API server. As an option given without a URL, it points the explorer at `localhost` on every network and pins it against hub discovery. Unused when the URL resolves to a full `http://` or `https://` URL, which is what `EXPLORER_PORT` alone gets on mainnet/testnet (the public default). |
+| `encoderUrl` | string | `ENCODER_URL` env var, then the public XChain host for mainnet/testnet unless an `encoderPort` option is given, which means `localhost`. Regtest has no default: the encoder client is built only once `encoderUrl`/`encoderPort` (or `ENCODER_URL`/`ENCODER_PORT`) is supplied, and then on `localhost` when only a port is given | Hostname or IP of the xchain-encoder JSON-RPC server. See [Public Endpoint Defaults](#public-endpoint-defaults). |
+| `encoderPort` | number | `ENCODER_PORT` env var or `3003` | Port of the xchain-encoder JSON-RPC server. As an option given without a URL, it points the encoder at `localhost` on every network and pins it against hub discovery. Unused when the URL resolves to a full `http://` or `https://` URL, which is what `ENCODER_PORT` alone gets on mainnet/testnet (the public default). |
+| `hubUrl` | string | `HUB_API_HOST` env var, then the public XChain host for mainnet/testnet unless a `hubPort` option is given, which means a hub on `localhost`. Regtest gets no hub unless `hubUrl` (or `HUB_API_HOST`, or `hubValidators`) is supplied | Hostname or IP of the xchain-hub config oracle. Required for hub discovery. See [Public Endpoint Defaults](#public-endpoint-defaults). |
+| `hubPort` | number | `HUB_PORT` env var or `10000` | Port of the xchain-hub config oracle. Unused when the hub URL is a full `http://` or `https://` URL, which is what `HUB_PORT` alone gets on mainnet/testnet (the public default). |
 | `hubPollInterval` | number | `60000` | How often (ms) to re-fetch config from hub after `init()`. |
 | `timeout` | number | `30000` | Request timeout in milliseconds applied to all HTTP requests. |
 | `retry` | RetryConfig or `false` | See [Retry Configuration](#retry-configuration) | Retry policy for transient errors. Pass `false` to disable retries entirely. |
@@ -64,12 +64,12 @@ const sdk = new XChainSDK(options);
 When the same setting can be specified in multiple places, the SDK resolves it in this order (highest priority first):
 
 1. **Constructor options**: values passed directly to `new XChainSDK(options)`.
-2. **Hub-discovered endpoints**: endpoint URLs and ports fetched from xchain-hub during `init()`. Only applies to `explorerUrl`, `explorerPort`, `encoderUrl`, and `encoderPort`, and only overlays a field that was not pinned via constructor options.
+2. **Hub-discovered endpoints**: endpoint URLs and ports fetched from xchain-hub during `init()`. Only applies to `explorerUrl`, `explorerPort`, `encoderUrl`, and `encoderPort`, and skips a service the caller pinned with a constructor option: `explorerUrl` or `explorerPort` pins the explorer and the WebSocket that follows it, `encoderUrl` or `encoderPort` pins the encoder, and `websocketUrl` pins the WebSocket. Environment variables do not pin.
 3. **Environment variables**: values read from process environment or a `.env` file.
 4. **Public endpoint defaults**: for mainnet/testnet networks only, the public XChain Platform hosts (`https://hub.xchain.io/{COIN}`, `https://explorer.xchain.io`, `https://encoder.xchain.io/{COIN}`; the explorer client adds the coin path itself). See [Public Endpoint Defaults](#public-endpoint-defaults).
 5. **Localhost fallback**: the last resort host, used when nothing above supplied a URL. On a regtest network (inherently local) with nothing configured, only the explorer client is built from it (`localhost:8080`); the encoder and WebSocket clients are built only once a URL or port for them is supplied.
 
-Constructor options always win. Hub discovery fills gaps that explicit options did not cover. Environment variables fill gaps that hub discovery did not cover. For mainnet/testnet, public endpoint defaults fill gaps environment variables did not cover, so a network-only construction (`new XChainSDK({ network: 'bitcoin-mainnet' })`) already has working explorer, encoder, and hub clients with no other configuration. The localhost fallback only applies when no URL was resolved, which on a zero-config construction means the regtest explorer.
+Constructor options always win. Hub discovery fills gaps that explicit options did not cover. Environment variables fill gaps that hub discovery did not cover. For mainnet/testnet, public endpoint defaults fill gaps environment variables did not cover, so a network-only construction (`new XChainSDK({ network: 'bitcoin-mainnet' })`) already has working explorer, encoder, and hub clients with no other configuration. The localhost fallback only applies when no URL was resolved, which on a zero-config construction means the regtest explorer, and on any network means a service given a port option and no URL.
 
 ## Environment Variables
 
@@ -88,7 +88,7 @@ The SDK reads these environment variables at construction time. A `.env` file in
 | `EXPLORER_PORT` | Port of the xchain-explorer server. | Explorer client |
 | `ENCODER_URL` | Hostname or IP of the xchain-encoder server. | Encoder client |
 | `ENCODER_PORT` | Port of the xchain-encoder server. | Encoder client |
-| `ENCODER_API_KEY` | API key sent as a header to the xchain-encoder service; also usable as the `encoderApiKey` client option. With no pinned `encoderUrl`, a hub overlay can repoint the client, and the key then goes to whatever encoder host the hub named. Treat as a credential. | Encoder client |
+| `ENCODER_API_KEY` | API key sent as a header to the xchain-encoder service; also usable as the `encoderApiKey` client option. With no `encoderUrl` or `encoderPort` constructor option to pin it, a hub overlay can repoint the client, and the key then goes to whatever encoder host the hub named. Treat as a credential. | Encoder client |
 | `HUB_API_HOST` | Hostname or IP of the xchain-hub server. | Hub connector |
 | `HUB_PORT` | Port of the xchain-hub server. | Hub connector |
 | `HUB_URL` | Full hub base URL used by the interactive REPL (`npm run repl`), as an alternative to `HUB_API_HOST` + `HUB_PORT`. | REPL |

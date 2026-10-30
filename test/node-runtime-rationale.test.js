@@ -14,13 +14,17 @@
  *
  * WHY. isolated-vm 6.2.0 ships prebuilt bindings per Node ABI, so Node 24
  * installs it without a compiler. What holds the platform on Node 22 is the
- * consensus runtime: xchain-vm's src/consensus_runtime.js pins the Node ABI to
+ * consensus runtime: xchain-vm's src/consensus-runtime.js pins the Node ABI to
  * 127 and checkConsensusRuntime() rejects any other. Pages that blame a
  * compile failure send operators after a toolchain the install does not need
- * and hide the check that actually fails them.
+ * and hide the check that actually fails them. isolated-vm also ships musl
+ * prebuilds, so "musl breaks native builds" is the same wrong reason for
+ * avoiding alpine; the real one is that consensus parity is confirmed only on
+ * glibc.
  *
- * WHAT IT CHECKS. No living page restates the compile rationale. CHANGELOG.md
- * and operations/releases.md are history and are skipped.
+ * WHAT IT CHECKS. No living page restates the compile or musl-build rationale,
+ * on one line or split across two adjacent lines (a Dockerfile comment wraps).
+ * CHANGELOG.md and operations/releases.md are history and are skipped.
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -29,7 +33,22 @@ const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..');
 const HISTORY = new Set(['CHANGELOG.md', path.join('operations', 'releases.md')]);
-const STALE = /cannot build (the (native )?)?`isolated-vm`|breaks native compilation|`isolated-vm` does not build on Node|`isolated-vm` requires native C\+\+ compilation/;
+const STALE = /cannot build (the (native )?)?`isolated-vm`|breaks native compilation|`isolated-vm` does not build on Node|`isolated-vm` requires native C\+\+ compilation|(can'?t|cannot|can not|fails? to) build (the )?(native )?`?isolated-vm`?|musl('s)? breaks native/i;
+const COMMENT_LEAD = /^\s*(#|\/\/|\*|>)*\s*/;
+
+// Return the line numbers (1-based) whose text, alone or joined to the line before, is stale.
+function staleLines(text) {
+  const lines = text.split('\n');
+  const hits = new Set();
+  lines.forEach((line, i) => {
+    if (STALE.test(line)) hits.add(i + 1);
+    else if (i > 0) {
+      const joined = lines[i - 1].replace(COMMENT_LEAD, '') + ' ' + line.replace(COMMENT_LEAD, '');
+      if (STALE.test(joined) && !hits.has(i)) hits.add(i + 1);
+    }
+  });
+  return [...hits];
+}
 
 function markdownFiles() {
   const out = [];
@@ -51,11 +70,18 @@ test('no living page blames the Node 22 pin on an isolated-vm build failure', ()
   for (const file of files) {
     const rel = path.relative(ROOT, file);
     if (HISTORY.has(rel)) continue;
-    fs.readFileSync(file, 'utf8').split('\n').forEach((line, i) => {
-      if (STALE.test(line)) bad.push(`${rel}:${i + 1}`);
-    });
+    for (const n of staleLines(fs.readFileSync(file, 'utf8'))) bad.push(`${rel}:${n}`);
   }
   assert.deepEqual(bad, [],
     'isolated-vm installs from a prebuilt binding on Node 22 and 24; the pin is the Node ABI 127 '
     + 'consensus-runtime check in xchain-vm (checkConsensusRuntime()). Say that instead:\n' + bad.join('\n'));
+});
+
+test('the stale-rationale scan catches the wording when a comment wraps it across two lines', () => {
+  const wrapped = '# Node 22 exactly (bookworm, not alpine): node:latest = Node 24+ can\'t build\n'
+    + '# isolated-vm, and alpine\'s musl breaks native addon builds.\n';
+  assert.deepEqual(staleLines(wrapped), [2]);
+  const correct = '# Node 24 fails checkConsensusRuntime() (Node ABI 127); isolated-vm\n'
+    + '# installs there from a prebuilt binding. Consensus parity is confirmed on glibc only.\n';
+  assert.deepEqual(staleLines(correct), []);
 });

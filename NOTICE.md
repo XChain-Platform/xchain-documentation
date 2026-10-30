@@ -20,8 +20,8 @@ XChain Platform is dual-licensed:
 One first-party component is carved out of that dual license: the
 `xchain-contracts` template library is licensed under the **MIT License**,
 because it exists to be copied into user contracts. Its terms are in that
-repository's own `LICENSE` file and are not affected by the AGPL's
-source-disclosure requirements.
+repository's own `xchain-contracts/LICENSE.md` file and are not affected by
+the AGPL's source-disclosure requirements.
 
 For commercial licensing, contact **legal@dankest.llc**.
 

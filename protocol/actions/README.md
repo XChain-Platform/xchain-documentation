@@ -168,11 +168,13 @@ An optional text field (250 characters max) that can be attached to transfer act
 
 ## Encoding
 
-ACTION data is embedded in blockchain transactions as AES-128-CTR obfuscated payloads:
+`OP_RETURN` and `MULTISIGN` payloads, and the marker `OP_RETURN` output of a `P2SH` or `P2WSH` spend, are AES-128-CTR obfuscated:
 
 - **Key**: First 16 hex characters of the first input's txid
 - **IV**: Next 16 hex characters of the first input's txid
 - **Magic prefix**: `XCHN` (4 bytes) after deobfuscation
+
+`P2SH` and `P2WSH` data chunks travel raw in the revealed scripts, and the `TAPROOT` envelope carries its payload raw behind a cleartext `XCHN` magic. See [Encoding](../../concepts/encoding.md) and [Taproot envelope](../taproot-envelope.md).
 
 Supported encoding types: `OP_RETURN` (up to 80 bytes total per output, 76 bytes user data + 4-byte XCHN prefix), `P2SH`, `P2WSH`, `MULTISIGN`, `TAPROOT`, and `AUTO`. Larger payloads use P2SH or P2WSH with a two-transaction pattern (fund then spend to reveal data), up to the 8,192-byte compiled ceiling every script-output lane shares. Payloads above that ceiling use the `TAPROOT` envelope, which carries up to 390,000 bytes in a single tapscript witness on chains that have Taproot. `AUTO` is not a carrier: it asks the encoder to pick the cheapest lane the network and signer support. See [Format Selection](../../components/encoder/format-selection.md).
 

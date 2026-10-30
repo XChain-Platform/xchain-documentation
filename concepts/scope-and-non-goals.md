@@ -137,10 +137,12 @@ root), served as Merkle proofs by the explorer, with cold-start trust optionally
 DOGE-anchored checkpoint (see [Block Hashes](./block-hashes.md)). This is a federated trust
 model: the root of trust is the stake-weighted validator quorum, plus DOGE proof-of-work for
 the cold-start anchor, not host-chain-PoW SPV of XChain itself. The path is active on testnet
-and regtest, gated off on mainnet pending a flag-day; the reference wallet is already wired in
-as its first consumer, verifying balances and action history against the checkpoint locally;
-locked-balance and contract-state proofs ship with the same path, armed on regtest and the three
-testnets and unarmed on mainnet with the rest of it. Until you run a node or verify a checkpoint, a lightweight
+and regtest, and its mainnet activation heights have passed
+([Protocol Activation](../protocol/protocol-activation.md#the-three-cohorts)); mainnet
+availability follows the network launch. The reference wallet is already wired in as its first
+consumer, verifying balances and action history against the checkpoint locally. Locked-balance
+and contract-state proofs ship with the same path but are a separately staged commitment: armed
+on regtest and the three testnets, and unarmed on mainnet until their own activation. Until you run a node or verify a checkpoint, a lightweight
 wallet trusts the explorer it queries, so treat third-party API data as trusted-source unless
 you verify it against your own node.
 
@@ -152,7 +154,9 @@ security budget, including its greater exposure to deep reorganizations. Choose 
 thresholds appropriate to the chain (higher on lower-hashpower chains) for high-value
 settlement. The platform's default guidance reflects this: roughly **BTC 6 / LTC 12 / DOGE 60**
 confirmations (the cross-chain settlement gate is per-chain and tunable via
-`XCHAIN_CONFIRMATIONS_<COIN>`; the utxo-tracker's reorg recovery window scales with it).
+`XCHAIN_CONFIRMATIONS_<COIN>`; the utxo-tracker's reorg recovery window is a separate setting,
+sized per coin and per network and overridden with `XCHAIN_UNDO_BLOCKS_<COIN>`, see
+[UTXO Tracker configuration](../components/utxo-tracker/configuration.md#optional-variables)).
 
 ### NFTs are a composition, not a separate primitive
 

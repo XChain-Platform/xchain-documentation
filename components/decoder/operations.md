@@ -229,11 +229,11 @@ The indexer monitors the decoder's `blocks` table and independently handles reor
 Two cases are deliberately not treated as a reorg:
 
 - **The node is still catching up.** While `getblockchaininfo` reports `initialblockdownload: true` and the node's tip sits below the decoder's stored tip, the decoder waits (one warning, then a poll every 5 seconds) instead of rolling back. A node that has not yet validated blocks the decoder already holds is not a rolled-back node; once it passes the stored tip, the normal hash compare decides.
-- **The gap is deeper than the safe-depth window.** When the node's tip sits more than `DISPENSER_EXPIRE_SAFE_DEPTH` (126) blocks below the stored tip, the decoder refuses before deleting anything and keeps polling. Nothing is rolled back and no halt marker is written, so no resync is owed; either the node catches up on its own or the operator acts on a real rollback.
+- **The gap is deeper than the safe-depth window.** When the node's tip sits more than the safe depth (`DISPENSER_EXPIRE_SAFE_DEPTH`, 126 blocks, or 5006 on litecoin testnet) below the stored tip, the decoder refuses before deleting anything and keeps polling. Nothing is rolled back and no halt marker is written, so no resync is owed; either the node catches up on its own or the operator acts on a real rollback.
 
 ### Deep reorg halt (REORG_HALT)
 
-Soft-expired dispensers are hard-purged once they are `DISPENSER_EXPIRE_SAFE_DEPTH` blocks deep. A rollback that crosses that window could not resurrect them, so the decoder stops the rollback at the ceiling and writes a durable marker: a row in the `events` table with `code = 'REORG_HALT'`. The decoder keeps parsing forward and reports `reorg_halted: true` on `health`, `GET /status` and `GET /live`; the next reorg refuses to roll back and stops the process. The marker survives restarts and is only ever superseded, never deleted. See [Troubleshooting](#decoder-halted-after-a-deep-reorg-reorg_halt) for recovery.
+Soft-expired dispensers are hard-purged once they are the safe depth deep (126 blocks, or 5006 on litecoin testnet; see [Database: dispensers](database.md#dispensers)). A rollback that crosses that window could not resurrect them, so the decoder stops the rollback at the ceiling and writes a durable marker: a row in the `events` table with `code = 'REORG_HALT'`. The decoder keeps parsing forward and reports `reorg_halted: true` on `health`, `GET /status` and `GET /live`; the next reorg refuses to roll back and stops the process. The marker survives restarts and is only ever superseded, never deleted. See [Troubleshooting](#decoder-halted-after-a-deep-reorg-reorg_halt) for recovery.
 
 ## Mempool Tracking
 

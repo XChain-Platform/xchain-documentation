@@ -17,6 +17,20 @@ brand-new value being defined for the first time (an `ISSUE` defining `TICK`, or
 that introduces an address the network has not seen). A new value has no id yet, so it must
 be written in full.
 
+A ticker name can hold an id without a token behind it: a rejected `ISSUE` still interns the
+`TICK` it attempted, which gives that name a block-stamped ticker id but no token row. Whether
+an `ISSUE` may then create the token through that id depends on `ISSUE_CARET_TICK_NO_CREATE`
+(see [Flag-Day Values](./flag-days.md) for its status on each network):
+
+- **At or above the gate**, an `ISSUE` whose `^<id>` `TICK` resolves to a name with no token
+  row is `invalid: TICK (unknown)`, so a caret `TICK` can only edit a token that exists.
+- **Below the gate**, the same `ISSUE` resolves the name and is judged as a new issuance of it,
+  so it can settle valid and create the token through the id form. An implementation that
+  replays history applies this verdict to every block before the gate on that network.
+
+The gate never touches a caret `TICK` that names an existing token, and an `ISSUE` in the
+genesis load is exempt from it.
+
 ## Canonical form
 
 A `^<id>` reference has exactly ONE valid byte-form: a caret followed by the id in plain
