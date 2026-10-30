@@ -485,6 +485,8 @@ const CHECKPOINT_COMMITMENT_ACTIVATION = {
 const CHECKPOINT_SUPERSEDE_ACTIVATION = {
     mainnet: null,
     'BTC:testnet': 9999999999, // UNARMED: the next cut sets it
+    'LTC:testnet': 9999999999, // UNARMED: the next cut sets it
+    'DOGE:testnet': 9999999999, // UNARMED: the next cut sets it
     testnet: 9999999999,       // UNARMED: the next cut sets it
     regtest: 0,
 };
@@ -704,6 +706,8 @@ const ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION = {
 const ARCHIVE_ROLLCALL_PRESENCE_ACTIVATION = {
     mainnet: null,
     'BTC:testnet': 9999999999, // UNARMED: the next cut sets it
+    'LTC:testnet': 9999999999, // UNARMED: the next cut sets it
+    'DOGE:testnet': 9999999999, // UNARMED: the next cut sets it
     testnet: 9999999999,       // UNARMED: the next cut sets it
     regtest: 0,
 };
