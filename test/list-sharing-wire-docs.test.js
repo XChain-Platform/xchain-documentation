@@ -102,6 +102,31 @@ test('index ID references document both resolved LIST address fields and their g
     }
 });
 
+test('index ID references document strict-gate address verdicts and legacy fail-open paths', () => {
+    const required = [
+        '`CARET_REF_STRICT_ACTIVATION`',
+        '`invalid: DESTINATION (unresolvable ^id)`',
+        '`invalid: TRANSFER (unresolvable ^id)`',
+        '`invalid: TRANSFER_SUPPLY (unresolvable ^id)`',
+        '`invalid: GET_ADDRESS (unresolvable ^id)`',
+        '`invalid: ORACLE_ADDRESS (unresolvable ^id)`',
+        '`invalid: SLASH_DESTINATION (unresolvable ^id)`',
+        '`DISPENSER.ORACLE_ADDRESS`',
+        '`DEPLOY.SLASH_DESTINATION`',
+        '`ISSUE.TRANSFER`',
+        '`ISSUE.TRANSFER_SUPPLY`',
+        'genesis issuance path',
+        'uses the unchecked resolver',
+    ];
+    for (const text of required) {
+        assert.ok(INDEX_REFS.includes(text), `protocol/index-id-references.md must include ${text}`);
+    }
+    assert.ok(
+        !INDEX_REFS.includes('is then judged by its full-value format check and rejected'),
+        'address references must not be documented as unconditionally format-rejected',
+    );
+});
+
 test('new LIST examples parse at their declared arity', () => {
     const formats = declaredFormats(LIST);
     assert.deepEqual(formats.get('0'), ['VERSION', 'TYPE', 'MEMO', '...ITEM']);

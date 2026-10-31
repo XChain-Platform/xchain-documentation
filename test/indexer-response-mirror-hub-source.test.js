@@ -17,7 +17,8 @@ const REQUIRED_DOC_MARKERS = [
     'attestation_responses',
     'AnchorRecovery cannot reconstruct it',
     'INDEXER_ALLOW_LOCAL_PRICE_SOURCE',
-    'BTC testnet and regtest',
+    'BTC testnet refuses to boot',
+    'BTC regtest warns and continues',
 ];
 
 function missingMarkers(text) {
@@ -31,6 +32,8 @@ test('the indexer pages state the armed BTC response-mirror hub database require
             `${name} does not name both required hub database variables together`);
         assert.match(text, /INDEXER_ALLOW_LOCAL_PRICE_SOURCE[\s\S]{0,240}(?:does not|cannot) bypass/,
             `${name} presents the local-price escape hatch as bypassing the response-mirror guard`);
+        assert.doesNotMatch(text, /BTC regtest (?:indexer )?refuses to boot/i,
+            `${name} incorrectly claims that BTC regtest refuses startup`);
     }
 });
 
@@ -48,4 +51,9 @@ test('the indexer still enforces the documented startup refusal', { skip: indexe
     assert.match(startup, /HUB_DB_HOST\s*\/\s*HUB_DB_NAME/);
     assert.match(startup, /attestation_responses/);
     assert.match(startup, /AnchorRecovery cannot rebuild it/);
+    assert.match(startup,
+        /if\s*\(\s*network\s*===\s*['"]mainnet['"]\s*\|\|\s*network\s*===\s*['"]testnet['"]\s*\)\s*\{[\s\S]{0,240}this\.util\.throwError\s*\(/);
+    assert.match(startup,
+        /else if\s*\(\s*network\s*===\s*['"]regtest['"]\s*\)\s*\{[\s\S]{0,240}getLogger\(\)\.warn\s*\(/);
+    assert.match(startup, /Continuing on regtest without a hub database source/);
 });

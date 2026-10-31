@@ -45,10 +45,11 @@ A reference is accepted only when both hold:
 2. The id already exists in the deterministic, block-stamped id set.
 
 Any other caret form (`^007`, `^1.5`, `^-1`, `^0x10`, `^1e3`, `^ 1`, `^`) and any id that
-does not yet exist (a dangling or out-of-range reference) is left unresolved, so the field
-is then judged by its full-value format check and rejected. The id digits are matched as a
-string, never coerced to a fixed-width integer, so an arbitrarily large id keeps full
-precision.
+does not yet exist (a dangling or out-of-range reference) is left unresolved. Ticker fields
+then follow their existing full-value validation. Address fields follow the activation-gated
+verdicts in [Unresolved address references](#unresolved-address-references-and-caret_ref_strict_activation).
+The id digits are matched as a string, never coerced to a fixed-width integer, so an
+arbitrarily large id keeps full precision.
 
 ## Where it applies
 
@@ -150,14 +151,46 @@ same order.
 `DISPENSER.GET_ADDRESS`, `DISPENSER.ORACLE_ADDRESS`, `ORDER.GET_ADDRESS`,
 `SWAP.GET_ADDRESS`, `DEPLOY.SLASH_DESTINATION`, `LIST.DESTINATION` for a format 3
 `TRANSFER` at or above `LIST_TRANSFER_ACTIVATION`, and `LIST.ITEM` when the list `TYPE`
-is address at or above `LIST_ADDRESS_REF_ACTIVATION`. Each of these handlers resolves
-the reference before its address format check.
+is address at or above `LIST_ADDRESS_REF_ACTIVATION`. Their validation order and verdicts
+are not uniform; unresolved references follow the gate-specific rules below.
 
 For a format 3 `TRANSFER`, `LIST.DESTINATION` is resolved before its address check. A
 reference that names no block-stamped address is
 `invalid: DESTINATION (unresolvable ^id)` at or above `CARET_REF_STRICT_ACTIVATION`;
 below that strict gate, the unresolved text instead falls through to
 `invalid: DESTINATION (format)`.
+
+### Unresolved address references and `CARET_REF_STRICT_ACTIVATION`
+
+`CARET_REF_STRICT_ACTIVATION` is keyed to each chain's local block height. It activates at
+963000 on BTC mainnet, 3162000 on LTC mainnet and 6338000 on DOGE mainnet, and at genesis
+on testnet and regtest. See [Protocol Activation](./protocol-activation.md) and the
+[Activation Module Catalogue](./activation-catalogue.md).
+
+Below the gate, `resolveAddressRefChecked` returns an unresolved caret string without a
+rejection, so the handler's legacy checks decide the result. Most fields then fail their own
+address check. Three paths fail open when no earlier check has already rejected the action:
+
+- `DISPENSER.ORACLE_ADDRESS` is accepted unchanged when the dispenser is not using an oracle.
+- `DEPLOY.SLASH_DESTINATION` is accepted unchanged while `DEPLOY_SLASH_DEST_ADDRESS_VALID`
+  is not in force.
+- `ISSUE.TRANSFER` and `ISSUE.TRANSFER_SUPPLY` are accepted unchanged on the indexer's
+  genesis issuance path, which is not reachable from a wire transaction.
+
+At or above the gate, resolution supplies these field-specific verdicts before the later
+address checks:
+
+| Field | Verdict and ordering |
+|---|---|
+| `MINT.DESTINATION`, `MESSAGE.DESTINATION`, `SWEEP.DESTINATION`, `LIST.DESTINATION` | `invalid: DESTINATION (unresolvable ^id)` |
+| `ISSUE.TRANSFER`, `ISSUE.TRANSFER_SUPPLY` | `invalid: TRANSFER (unresolvable ^id)` is checked before `invalid: TRANSFER_SUPPLY (unresolvable ^id)` |
+| `DISPENSER.GET_ADDRESS`, `DISPENSER.ORACLE_ADDRESS` | `invalid: GET_ADDRESS (unresolvable ^id)` is checked before `invalid: ORACLE_ADDRESS (unresolvable ^id)`; the oracle-address verdict also applies when no oracle is used |
+| `ORDER.GET_ADDRESS`, `SWAP.GET_ADDRESS` | `invalid: GET_ADDRESS (unresolvable ^id)` |
+| `DEPLOY.SLASH_DESTINATION` | `invalid: SLASH_DESTINATION (unresolvable ^id)`, unless an earlier staking check wins. Where `DEPLOY_SLASH_DEST_ADDRESS_VALID` is in force, its earlier `invalid: SLASH_DESTINATION (invalid address)` verdict wins |
+
+Address-typed `LIST.ITEM` is the exception: it uses the unchecked resolver, so
+`CARET_REF_STRICT_ACTIVATION` does not change its `invalid: ADDRESS (format)` verdict.
+Ticker references are not governed by this gate.
 
 At or above `LIST_ADDRESS_REF_ACTIVATION`, a type-2 `LIST.ITEM` written `^<id>` in the
 canonical form is resolved against the deterministic, block-stamped address set before
