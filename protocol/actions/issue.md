@@ -121,6 +121,7 @@ This example issues a TEST token with a max supply of 100, and a maximum mint of
    - slash `/` (used as directory indicator)
    - `^` (caret) cannot be used as first character in a `TICK` name (used as ticker id indicator)
 - Period `.` is allowed inside a `TICK` name as the parent/child separator (e.g. `JDOG.SUB1`), but a `TICK` may not begin or end with a period
+- Creating a new child requires the parent's current owner and is refused with `invalid: TICK (parent issued by another address)` from another source or `invalid: TICK (parent ownership escrowed)` while the parent is in ownership escrow. For an edit using the full period-separated `TICK`, `CHILD_TOKEN_INDEPENDENT_EDITS_ACTIVATION` skips those two parent checks at or above the gate; below the gate it repeats them. A compact `^id` reference has no parent name and skips the parent checks at every height. The child's own owner and ownership-escrow checks still apply in either form. The gate is currently unarmed on mainnet, so full-name mainnet child edits remain below it whenever mainnet user actions are admitted. See [Flag-Day Values](../flag-days.md) and [NFT Standard collections](../nft-standard.md#collections)
 - First `ISSUE` with `valid` status will be the owner of the `TICK`
 - Additional `ISSUE` transactions after first valid `ISSUE`, will be considered invalid and ignored, unless broadcast from `TICK` owners address
 - `DECIMALS` can not be changed after `TICK` supply is issued and/or minted

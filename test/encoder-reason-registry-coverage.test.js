@@ -10,7 +10,7 @@
  *
  **********************************************************************
  *
- * Encoder operational-reason registry coverage gate.
+ * Encoder operational-reason and method registry coverage gate.
  *
  * protocol/error-codes.md promises every `-32010` `error.data.reason` is a
  * stable, append-only string with a registry row, and wallets branch on it.
@@ -29,6 +29,7 @@ const { sibling } = require('./helpers/sibling_checkout.js');
 
 const ROOT          = path.resolve(__dirname, '..');
 const ENCODER_SRC   = path.resolve(ROOT, '../xchain-encoder/src');
+const ENCODER_API   = path.join(ENCODER_SRC, 'api/json_rpc_methods.js');
 const REGISTRY_PAGE = path.join(ROOT, 'protocol/error-codes.md');
 
 // Emit shapes: an OperationalError constructor, an xchainCode or verdict code
@@ -45,6 +46,12 @@ const EMIT_SHAPES = [
 const NO_ROW_NEEDED = {
     // The encoder constructor raises it at startup, before the API listens.
     UTXO_TRACKER_NOT_CONFIGURED: 'startup configuration check',
+};
+
+// A public method whose body uses the shared mapper but whose reachable errors
+// are validation-only. Keep the reason beside the exclusion so additions are reviewed.
+const NO_OPERATIONAL_CODE = {
+    release_inputs: 'releaseReservation raises only validation errors or returns found:false',
 };
 
 const noEncoder = sibling('xchain-encoder').skip;
@@ -77,6 +84,34 @@ function raisedReasons() {
     return found;
 }
 
+// Split the controller source at public async method starts and top-level function
+// boundaries. The sanity floor below makes a source-layout change fail closed.
+function publicMethodBodies(source) {
+    const starts = [...source.matchAll(/^\s{4}async ([a-z_]+)\([^)]*\) \{/gm)];
+    const boundaries = [...source.matchAll(/^(?:async )?function /gm)].map((m) => m.index);
+    return new Map(starts.map((match, index) => {
+        const candidates = [source.length];
+        if (starts[index + 1]) candidates.push(starts[index + 1].index);
+        const boundary = boundaries.find((at) => at > match.index);
+        if (boundary !== undefined) candidates.push(boundary);
+        return [match[1], source.slice(match.index, Math.min(...candidates))];
+    }));
+}
+
+function operationalMethods(source) {
+    const methods = new Set();
+    for (const [name, body] of publicMethodBodies(source)) {
+        if (/toRpcError\(|assertNodeTierOrRpcError\(|code\s*=\s*-32010/.test(body) &&
+            !(name in NO_OPERATIONAL_CODE)) methods.add(name);
+    }
+    return methods;
+}
+
+function missingOperationalMethods(registry, source) {
+    const row = registry.split('\n').find((line) => line.startsWith('| `-32010` |')) || '';
+    return [...operationalMethods(source)].filter((name) => !row.includes('`' + name + '`')).sort();
+}
+
 test('every encoder operational reason has a registry row', { skip: noEncoder }, () => {
     const registry = fs.readFileSync(REGISTRY_PAGE, 'utf8');
     const raised   = raisedReasons();
@@ -88,4 +123,21 @@ test('every encoder operational reason has a registry row', { skip: noEncoder },
     assert.deepEqual(missing, [],
         'protocol/error-codes.md is the append-only reason registry, so every reason '
         + 'the encoder raises needs a row there. Missing:\n  ' + missing.join('\n  '));
+});
+
+test('every encoder method that can return -32010 is named in its registry row', { skip: noEncoder }, () => {
+    const registry = fs.readFileSync(REGISTRY_PAGE, 'utf8');
+    const source = fs.readFileSync(ENCODER_API, 'utf8');
+    const methods = operationalMethods(source);
+    assert.ok(methods.size >= 5,
+        `collected only ${methods.size} operational methods; the controller parse shape changed`);
+    assert.deepEqual(missingOperationalMethods(registry, source), [],
+        'the -32010 registry row omits public encoder methods');
+});
+
+test('the -32010 method guard detects an omitted method', { skip: noEncoder }, () => {
+    const registry = fs.readFileSync(REGISTRY_PAGE, 'utf8');
+    const source = fs.readFileSync(ENCODER_API, 'utf8');
+    const withoutGetUtxos = registry.replace('`get_utxos`', 'get_utxos');
+    assert.deepEqual(missingOperationalMethods(withoutGetUtxos, source), ['get_utxos']);
 });

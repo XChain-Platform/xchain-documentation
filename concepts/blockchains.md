@@ -9,15 +9,15 @@ The XChain Platform is designed to run on any number of blockchains. Adding supp
 
 | Chain | Networks | Coin Node | Native Ticker | Status |
 |---|---|---|---|---|
-| **Bitcoin** | mainnet, testnet, regtest | `bitcoind` | `BTC` | Active |
-| **Litecoin** | mainnet, testnet, regtest | `litecoind` | `LTC` | Active |
-| **Dogecoin** | mainnet, testnet, regtest | `dogecoind` | `DOGE` | Active |
+| **Bitcoin** | mainnet, testnet, regtest | `bitcoind` | `BTC` | Testnet/regtest active; mainnet pre-launch |
+| **Litecoin** | mainnet, testnet, regtest | `litecoind` | `LTC` | Testnet/regtest active; mainnet pre-launch |
+| **Dogecoin** | mainnet, testnet, regtest | `dogecoind` | `DOGE` | Testnet/regtest active; mainnet pre-launch |
 
 Each chain supports three network types:
 
 | Network | Purpose |
 |---|---|
-| **Mainnet** | Production network: real value, permanent transactions |
+| **Mainnet** | Production network: real value and permanent transactions; user actions begin at the [launch instant](../protocol/flag-days.md) |
 | **Testnet** | Public test network: free test coins, mirrors mainnet behavior |
 | **Regtest** | Local regression testing network: instant block generation, fully controlled environment |
 

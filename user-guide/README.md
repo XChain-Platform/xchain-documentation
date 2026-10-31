@@ -5,6 +5,8 @@
 
 This section is for people who want to use XChain: creating tokens, trading, and exploring what the platform makes possible. No coding required. These guides focus on what you can do, not how the technology works under the hood.
 
+These workflows are available on testnet and regtest today. Mainnet does not index ordinary user actions until the launch instant in [Flag-Day Values](../protocol/flag-days.md); see the [mainnet launch FAQ](./faq.md#can-i-use-xchain-on-mainnet-before-launch).
+
 | Document | Description |
 |---|---|
 | [Creating Tokens](./creating-tokens.md) | How to create your own token on Bitcoin, Litecoin, or Dogecoin |

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Documented activation-gated edit rights for existing child tokens.
+
 ## [0.26.2] - 2026-10-21
 
 ### Changed

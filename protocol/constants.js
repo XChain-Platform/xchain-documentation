@@ -2106,6 +2106,20 @@ const LIST_TICK_COIN_ACTIVATION = {
     regtest: 0,
 };
 
+// Existing-child edit flag day, keyed on the block_index of the chain being parsed.
+// Canonical authority for the registry row
+// child_token_independent_edits_activation.CHILD_TOKEN_INDEPENDENT_EDITS_ACTIVATION.
+// At and above the height, ISSUE edits of an existing child use the child's owner and
+// escrow state without repeating the parent-owner and parent-escrow checks.
+const CHILD_TOKEN_INDEPENDENT_EDITS_ACTIVATION = {
+    mainnet: 9999999999,
+    'BTC:testnet': 157235,
+    'LTC:testnet': 4930600,
+    'DOGE:testnet': 68012800,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
 // Tick-namespace flag day (R8), keyed on the block_index of the chain being
 // parsed. Canonical authority for the registry row tick_namespace_activation.TICK_NAMESPACE_ACTIVATION, which
 // carries the full rationale.
@@ -2593,6 +2607,7 @@ module.exports = {
     LIST_TRANSFER_ACTIVATION,
     LIST_ADDRESS_REF_ACTIVATION,
     LIST_TICK_COIN_ACTIVATION,
+    CHILD_TOKEN_INDEPENDENT_EDITS_ACTIVATION,
     TICK_NAMESPACE_ACTIVATION,
     RESERVED_FUTURE_ROOTS,
     MAINNET_LAUNCH_ACTIVATION,

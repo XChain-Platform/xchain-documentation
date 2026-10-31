@@ -83,11 +83,15 @@ const result = await sdk.createOrder(wif, {
     expiration: 1893456000 // Unix seconds (2030-01-01); must be in the future
 }, { waitForIndexer: true });
 
-// Cancel the order (using the order action's action_index)
-await sdk.cancelOrder(wif, result.indexed.actions[0].action_index);
+// Confirmation may return one action or a transaction containing actions.
+const orderActionIndex = sdk.workflows.actionIndexOf(result.indexed);
+if (orderActionIndex === undefined || orderActionIndex === null) {
+    throw new Error('ORDER action_index unavailable; submit with waitForIndexer enabled');
+}
+await sdk.cancelOrder(wif, orderActionIndex);
 ```
 
-**Note:** `result.indexed` is the explorer transaction record for the broadcast (`tx_index`, `tx_hash`, `block_index` and an `actions` array), so the order's index is `result.indexed.actions[0].action_index`. The record has no top-level `action_index`; reading `result.indexed.action_index` gives `undefined`. `waitForIndexer` defaults to `true`; passing `waitForIndexer: false` leaves `result.indexed` as `null`, and reading through it then throws.
+**Note:** `result.indexed` is a single action on the WebSocket path and the explorer transaction record on the polling path. `waitForIndexer` defaults to `true`; passing `waitForIndexer: false` leaves `result.indexed` as `null`.
 
 ---
 
@@ -240,6 +244,18 @@ const contractActionIndex = await sdk.workflows.resolveDeployedContract(
 
 ---
 
+## actionIndexOf
+
+Extract an action index from either confirmation result shape:
+
+```js
+const actionIndex = sdk.workflows.actionIndexOf(result.indexed);
+```
+
+`sdk.workflows.actionIndexOf(indexed)` accepts a single indexed action with `action_index` or an indexed transaction with `actions[0].action_index`. It returns `undefined` when neither shape contains an action index.
+
+---
+
 ## deployAndFund
 
 Deploy a smart contract and optionally deposit initial tokens:
@@ -258,11 +274,15 @@ const result = await sdk.deployAndFund(
 );
 
 console.log(result.deploy.txid);
-console.log(result.deploy.indexed.actions[0].action_index);  // contract ACTION_INDEX
+const contractActionIndex = sdk.workflows.actionIndexOf(result.deploy.indexed);
+if (contractActionIndex === undefined || contractActionIndex === null) {
+    throw new Error('DEPLOY action_index unavailable; submit with waitForIndexer enabled');
+}
+console.log(contractActionIndex);
 console.log(result.deposits.length);               // 2
 ```
 
-The contract `action_index` from the deploy result is automatically used for the deposit operations.
+The contract `action_index` from the deploy result is automatically used for the deposit operations. The explicit read above handles both confirmation result shapes.
 
 ---
 

@@ -48,7 +48,7 @@ Errors follow JSON-RPC 2.0, returning an `error` object with a numeric `code` an
 |---|---|
 | `-32602` | Invalid params: a parameter failed validation (TypeError or RangeError) |
 | `-32603` | Internal error: an unexpected encoder or node failure (for example an unsupported network, a node RPC failure, or a UTXO tracker failure on `get_utxos`) |
-| `-32010` | Operational error on `create_tx` and `create_envelope_cancel_tx`: an expected, caller-actionable condition such as insufficient funds, no UTXOs, a missing change address, or an unavailable UTXO tracker. `error.data.reason` carries a stable code; the reason set is in [Error Codes](../../protocol/error-codes.md#encoder-operational-reasons) |
+| `-32010` | Operational error on `create_tx`, `create_envelope_cancel_tx`, `broadcast_tx`, `estimate_fee`, and `get_utxos`: an expected, caller-actionable condition. `error.data.reason` carries a stable code; the reason set is in [Error Codes](../../protocol/error-codes.md#encoder-operational-reasons) |
 | `-32001` | Unauthorized: missing or incorrect `x-api-key` header |
 | `-32029` | Rate limited: too many requests |
 
@@ -125,6 +125,8 @@ Suggested fee tiers in base units per vByte (satoshis on Bitcoin, litoshis on Li
 | `low` | integer | 6-block confirmation target |
 | `medium` | integer | 3-block confirmation target |
 | `high` | integer | Next-block confirmation target |
+
+Returns `-32010` with `error.data.reason` `NODE_UNREACHABLE` when the coin node does not answer; retry with backoff. A node on the wrong network returns `-32010` with `NODE_CHAIN_MISMATCH`; that requires operator action and should not be retried. Any other fee-estimation failure returns `-32603`. See [Error Codes](../../protocol/error-codes.md#encoder-operational-reasons).
 
 ### `create_tx`
 
@@ -264,7 +266,7 @@ List the UTXOs for an address. The encoder proxies this to [xchain-utxo-tracker]
 ]
 ```
 
-Returns `-32602` if `address` is missing. Returns `-32603` if the UTXO tracker is unreachable, lagging, or returns a malformed response.
+Returns `-32602` if `address` is missing. An address holding more UTXOs than the encoder's cap returns `-32010` with `error.data.reason` `UTXO_SET_TOO_LARGE` and the cap in `error.data.limit`; the set is never truncated. Consolidate the address, or pass `utxos` explicitly to `create_tx`. Other tracker failures return `-32603`. See [Error Codes](../../protocol/error-codes.md#encoder-operational-reasons).
 
 ---
 
