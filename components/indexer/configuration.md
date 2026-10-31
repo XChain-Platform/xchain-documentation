@@ -318,13 +318,14 @@ Native-coin fee validation and FIAT settlement read the oracle tables (`price_sn
 - **Single-host:** the indexer's own database already holds the synced hub copy, so no separate hub DB
   connection is needed and the oracle tables are read locally.
 
-That price-source choice does not cover the finalized ATTEST response mirror. A **BTC** indexer on a
-network where `ATTEST_RESPONSE_MIRROR_ACTIVATION` is armed must set `HUB_DB_HOST` and `HUB_DB_NAME`.
-The `attestation_responses` table is an off-chain consensus input that settles request fees, and
-AnchorRecovery cannot reconstruct it. The indexer therefore refuses to boot without a hub database
-source on BTC testnet and regtest, where the gate is currently armed. The gate remains unpinned on
-BTC mainnet. `INDEXER_ALLOW_LOCAL_PRICE_SOURCE=true` acknowledges only the local oracle-price
-topology and cannot bypass this response-mirror requirement.
+That price-source choice does not cover the finalized ATTEST response mirror controlled by
+`ATTEST_RESPONSE_MIRROR_ACTIVATION`. The `attestation_responses` table is an off-chain consensus
+input that settles request fees, and
+AnchorRecovery cannot reconstruct it. BTC testnet refuses to boot without a hub database source.
+BTC regtest warns and continues without one, although regtest deployments exercising the response
+mirror should configure the hub database source. The gate remains unpinned on BTC mainnet.
+`INDEXER_ALLOW_LOCAL_PRICE_SOURCE=true` acknowledges only the local oracle-price topology and
+cannot bypass the BTC testnet response-mirror requirement.
 
 The two are indistinguishable from config alone: a node with no hub DB looks the same whether that is
 intentional (single-host) or an operator forgot `HUB_DB_HOST` / `HUB_DB_NAME` on a distributed node. In
@@ -333,8 +334,8 @@ data, which on mainnet can diverge from the canonical fleet and fork the ledger.
 
 To make the intent explicit, a **mainnet** indexer fails closed at startup when no hub DB is configured,
 unless `INDEXER_ALLOW_LOCAL_PRICE_SOURCE=true` is set to confirm an intentional single-host node. On
-testnet and regtest the local-price acknowledgement is ignored. A missing hub DB only logs a warning
-for a chain that is not subject to the armed BTC response-mirror refusal above.
+testnet and regtest the local-price acknowledgement is ignored. The armed response-mirror guard
+refuses BTC testnet startup, while BTC regtest logs its response-mirror warning and continues.
 
 | Variable | Description | Default |
 |---|---|---|
