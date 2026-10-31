@@ -26,7 +26,7 @@
       "type": "external",
       "group": "chain",
       "tech": "bitcoind / litecoind / dogecoind",
-      "description": "Layer-1 full node reached over JSON-RPC. Transactions carry AES-128-CTR obfuscated XCHN ACTION payloads via OP_RETURN, P2SH, P2WSH, multisig or the Taproot envelope (BTC/LTC)."
+      "description": "Layer-1 full node reached over JSON-RPC. Transactions carry XCHN ACTION payloads via OP_RETURN or multisig (AES-128-CTR obfuscated), P2SH/P2WSH (raw script chunks plus an obfuscated XCHN marker output) or the Taproot envelope (BTC/LTC; raw payload behind a cleartext XCHN magic)."
     },
     {
       "id": "utxo",

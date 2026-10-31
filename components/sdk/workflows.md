@@ -74,7 +74,7 @@ console.log(result.txid);
 Place and cancel DEX orders:
 
 ```js
-// Place an order (waitForIndexer: true is required to read result.indexed)
+// Place an order (waitForIndexer defaults to true, which fills result.indexed)
 const result = await sdk.createOrder(wif, {
     giveTick:   'TOKENA',
     giveAmount: '100',
@@ -83,11 +83,11 @@ const result = await sdk.createOrder(wif, {
     expiration: 1893456000 // Unix seconds (2030-01-01); must be in the future
 }, { waitForIndexer: true });
 
-// Cancel the order (using the indexed action_index)
-await sdk.cancelOrder(wif, result.indexed.action_index);
+// Cancel the order (using the order action's action_index)
+await sdk.cancelOrder(wif, result.indexed.actions[0].action_index);
 ```
 
-**Note:** `result.indexed` is only populated when `waitForIndexer: true` is passed in `opts`. Without it, `result.indexed` is `undefined` and reading `result.indexed.action_index` will throw at runtime.
+**Note:** `result.indexed` is the explorer transaction record for the broadcast (`tx_index`, `tx_hash`, `block_index` and an `actions` array), so the order's index is `result.indexed.actions[0].action_index`. The record has no top-level `action_index`; reading `result.indexed.action_index` gives `undefined`. `waitForIndexer` defaults to `true`; passing `waitForIndexer: false` leaves `result.indexed` as `null`, and reading through it then throws.
 
 ---
 
@@ -110,7 +110,7 @@ console.log(result.delegate.txid);   // null if delegateParams was omitted
 
 ## createPoll / castBallot / delegateVote
 
-Governance submit recipes: build the VOTE params (via `sdk.voting.*`) then sign and broadcast in one call. `params` is the same object the matching `sdk.voting` builder takes. Pass `opts.waitForIndexer` on `createPoll` to get back the poll's `action_index` (needed as `pollRef` for later ballots).
+Governance submit recipes: build the VOTE params (via `sdk.voting.*`) then sign and broadcast in one call. `params` is the same object the matching `sdk.voting` builder takes. `createPoll` returns `{ result, pollRef }`, where `pollRef` is the poll's `action_index` (needed as `pollRef` for later ballots); it is filled once the indexer confirms the poll, which `createPoll` waits for unless you pass `waitForIndexer: false`.
 
 ```js
 // Create a poll and wait for its action_index
@@ -119,7 +119,7 @@ const poll = await sdk.createPoll(wif, {
 }, { waitForIndexer: true });
 
 // Cast a ballot in it
-await sdk.castBallot(wif, { pollRef: poll.action_index, ballot: 0 });
+await sdk.castBallot(wif, { pollRef: poll.pollRef, ballot: 0 });
 
 // Stand up (or clear) a delegation of GOVTOKEN voting weight
 await sdk.delegateVote(wif, { tick: 'GOVTOKEN', delegateTo: 'bc1q...' });
@@ -183,7 +183,7 @@ To deploy a stakeable contract (one that accepts STAKE v3 actions), pass `cooldo
 const result = await sdk.deployContract(
     wif,
     {
-        code:              'class Counter { constructor() { this.n = 0; } inc() { this.n++; } }',
+        code:              'module.exports = { meta: { name: "Counter", description: "Counts calls to inc.", version: "1.0.0" }, initialize: function(xchain) { xchain.state.set("n", "0"); }, inc: function(xchain) { xchain.state.set("n", xchain.math.add(xchain.state.get("n") || "0", "1")); } }',
         gasLimit:          100000,
         constructorParams: []       // optional
     },
@@ -210,7 +210,7 @@ const result2 = await sdk.deployContract(
 
 **Returns:** `{ deploy, chunks, deposits, contractActionIndex }` where `deploy` is the final (assembling) DEPLOY submit result, `chunks` is an array of submit results for each DEPLOY v4 carrier (empty for single-shot), `deposits` is an array of DEPOSIT submit results, and `contractActionIndex` is the deployed contract's own action_index.
 
-**Note:** Deposits require the indexer to confirm the assembling DEPLOY first so the `action_index` is available. Pass `waitForIndexer: true` in `opts` when deposits are included.
+**Note:** Deposits require the indexer to confirm the assembling DEPLOY first so the `action_index` is available. `waitForIndexer` defaults to `true`; do not pass `waitForIndexer: false` when deposits are included.
 
 **Resolving the contract after a chunked deploy:** a chunk group deploys at whichever piece completes it, which is not always the assembling DEPLOY itself. If the group's carriers were already on chain when the assembler landed, the assembler completes its own group and `contractActionIndex` is the assembler's index; if the group instead completes later (a reordering reorg, or carriers still in flight when the assembler was submitted), the contract lives at that later carrier's index instead. `deployContract` resolves this automatically after the assembling leg by calling `resolveDeployedContract` and uses the answer for both `contractActionIndex` and any requested deposits, so callers never need to compute it themselves.
 
@@ -248,7 +248,7 @@ Deploy a smart contract and optionally deposit initial tokens:
 const result = await sdk.deployAndFund(
     wif,
     {
-        code: 'class MyContract { constructor() { this.count = 0; } increment() { this.count++; } }',
+        code: 'module.exports = { meta: { name: "MyContract", description: "Counts calls to increment.", version: "1.0.0" }, initialize: function(xchain) { xchain.state.set("count", "0"); }, increment: function(xchain) { xchain.state.set("count", xchain.math.add(xchain.state.get("count") || "0", "1")); } }',
         gasLimit: 100000
     },
     [
@@ -258,7 +258,7 @@ const result = await sdk.deployAndFund(
 );
 
 console.log(result.deploy.txid);
-console.log(result.deploy.indexed.action_index);  // contract ACTION_INDEX
+console.log(result.deploy.indexed.actions[0].action_index);  // contract ACTION_INDEX
 console.log(result.deposits.length);               // 2
 ```
 

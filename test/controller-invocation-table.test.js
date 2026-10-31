@@ -233,6 +233,23 @@ test('the cooldown lockout source facts still hold', { skip: indexerSrc.skip }, 
         'the unbind no longer takes the live bind\'s cooldown, so "C is the bind\'s value" is stale');
 });
 
+test('the COOLDOWN_BLOCKS format row states the digits-only rule and the column bound', () => {
+    const rejections = headedSection(readControllerBoundTokensPage(), '### Bind and unbind rejections');
+    const row = rejections.split(/\r?\n/).find((line) => line.startsWith('| `invalid: COOLDOWN_BLOCKS (format)` |'));
+    assert.ok(row, 'the rejection table lost the COOLDOWN_BLOCKS (format) row');
+    assert.match(row, /plain decimal digits/, 'the COOLDOWN_BLOCKS row no longer states the digits-only rule');
+    assert.match(row, /`4294967295`/, 'the COOLDOWN_BLOCKS row no longer states the INT UNSIGNED bound');
+});
+
+test('both binding handlers refuse COOLDOWN_BLOCKS by digits and the column bound',
+    { skip: indexerSrc.skip }, () => {
+        const check = /!\/\^\\d\+\$\/\.test\(String\((?:issue|data)\['COOLDOWN_BLOCKS'\]\)\) \|\| Number\((?:issue|data)\['COOLDOWN_BLOCKS'\]\) > 4294967295\)\)\s*\n\s*error = 'invalid: COOLDOWN_BLOCKS \(format\)'/;
+        assert.match(readIndexer(BINDING_SRC), check,
+            'the ISSUE v6 bind no longer refuses COOLDOWN_BLOCKS by /^\\d+$/ and 4294967295, so the row is stale');
+        assert.match(readIndexer(ADDRESS_SRC), check,
+            'the ADDRESS v1 bind no longer refuses COOLDOWN_BLOCKS by /^\\d+$/ and 4294967295, so the row is stale');
+    });
+
 test('the guard savepoint name carries the per-invocation ordinal', () => {
     const page = readControllerBoundTokensPage();
     assert.ok(page.includes('`controller_guard_<actionIndex>_<controller>_<seq>_<ordinal>`'),

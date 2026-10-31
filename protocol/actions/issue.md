@@ -35,7 +35,7 @@ This action creates or updates a `TICK`.
 | `MINT_STOP_BLOCK`  | String | Last `BLOCK_INDEX` at which `MINT` transactions are allowed (end mint, inclusive)          |
 | `CONTROLLER`       | String | `ACTION_INDEX` of a deployed contract whose `guard` gates one `ACTION_CLASS` of this token (see [Controller-Bound Tokens](../controller-bound-tokens.md)) |
 | `ACTION_CLASS`     | String | Which class the binding gates: `transfer`, `trade`, `burn`, `mint`, `stake`, `ownership`, or the catch-all `all` (fallback for any class with no specific binding; most-specific-wins) |
-| `COOLDOWN_BLOCKS`  | String | Drop-cooldown committed at bind time: blocks of friction before a later `UNBIND` takes effect |
+| `COOLDOWN_BLOCKS`  | String | Drop-cooldown committed at bind time: blocks of friction before a later `UNBIND` takes effect. An integer in `[0, 4294967295]` written as plain digits; anything else refuses the bind as `invalid: COOLDOWN_BLOCKS (format)` |
 | `UNBIND`           | String | Only `1` drops the live binding for `ACTION_CLASS`; any other value binds                    |
 | `BRIDGE_CHAINS`    | String | Comma list of destination coins this `TICK` may bridge to via [`XBRIDGE`](./xbridge.md), or `-` for none; empty means unchanged |
 | `MIN_DEPTH`        | String | Confirmation depth the federation must honour for this `TICK`'s bridge locks, raise-only over the platform default; empty means unchanged |
@@ -156,7 +156,7 @@ This example issues a TEST token with a max supply of 100, and a maximum mint of
 - `MINT_START_BLOCK` and `MINT_STOP_BLOCK` can be used to determine period(s) when `MINT` transactions are allowed
 - `MINT_START_BLOCK` and `MINT_STOP_BLOCK` must be at or after the block the `ISSUE` confirms in; at/above the `ISSUE_INHERITED_MINT_WINDOW` activation (see [Flag-Day Values](../flag-days.md)) that check applies only when the `ISSUE` explicitly sets the field, so an owner can re-issue to update other parameters (for example `MAX_MINT`) after the mint window has opened without restating or moving the window
 - `MIN_TOKEN_SUPPLY` value is 0.000000000000000001
-- Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` fields (^1234 = `TICK_ID` 1234)
+- Use `^` (caret) as prefix when passing `TICK_ID` for `TICK` fields (^1234 = `TICK_ID` 1234). A caret `TICK` whose id names no token (an id left by a rejected `ISSUE`) creates that token only below `ISSUE_CARET_TICK_NO_CREATE`; at or above it the `ISSUE` is `invalid: TICK (unknown)`. See [Index ID References](../index-id-references.md) and [Flag-Day Values](../flag-days.md)
 - Use `^` (caret) as prefix when passing an `ADDRESS_ID` for address fields (`TRANSFER`, `TRANSFER_SUPPLY`) (^57 = `ADDRESS_ID` 57); see [Index ID References](../index-id-references.md)
 - `ISSUE` with `DECIMALS` `0` and `LOCK_MAX_SUPPLY` `1` is the standard non-fungible token (NFT) pattern: uniques, editions, and parent/child collections are defined in the [NFT Standard](../nft-standard.md)
 
