@@ -125,7 +125,7 @@ stateDiagram-v2
   - New child `ISSUE` using this `TICK` as a parent (period-separated name)
   - Additional `ORDER`/`SWAP`/`DISPENSER` ownership offers for this `TICK` from the original owner
 - Holder-side actions are unaffected: `SEND`, `MINT` (if mint window open), `DIVIDEND` payouts, `DEPOSIT`/`WITHDRAW`, `DESTROY` of held balance
-- Child `TICK`s (e.g. `JDOG.SUB1`) have independent ownership records and are **not** transferred when a parent's ownership is sold, sell each child separately if needed
+- Child `TICK`s (e.g. `JDOG.SUB1`) have independent ownership records and are **not** transferred when a parent's ownership is sold, sell each child separately if needed. Below the independent child-edit gate, a full-name child edit also requires the parent owner, while a compact `^id` edit does not run parent checks. The gate is currently unarmed on mainnet, so that below-gate rule applies there whenever mainnet user actions are admitted; see [NFT Standard collections](../nft-standard.md#collections)
 - On match: ownership transfers atomically to the counterparty's SOURCE
 - On cancel (Version 1) or `EXPIRATION`: ownership returns to the original SOURCE
 - When matched against a native-coin counterparty: ownership remains in escrow as a `pending_coinpay` obligation and is delivered to the buyer once `COINPAY` settles; if the obligation expires or is cancelled, ownership returns to the original SOURCE

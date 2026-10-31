@@ -37,6 +37,8 @@ Think of a parent token like a company, and sub-tokens like individual product l
 
 Each sub-token gets its own ownership record once it exists. Selling `MYTOKEN` does not hand over the sub-tokens already issued under it, and selling `MYTOKEN.SILVER` does not give the buyer any claim on the parent.
 
+On a network below the independent child-edit gate, editing with the full name `MYTOKEN.SILVER` also requires owning `MYTOKEN`, and neither ownership record may be in escrow. Editing through the sub-token's compact `^id` reference checks only the sub-token owner and escrow, even below the gate. At or above the gate, the sub-token owner can edit it in either form without the parent owner. The gate is currently unarmed on mainnet, so the below-gate rules apply there whenever mainnet user actions are admitted. See [NFT Standard collections](../protocol/nft-standard.md#collections).
+
 ---
 
 ## Setting Token Properties
@@ -47,7 +49,7 @@ When you create a token, you configure a set of properties that define how it be
 
 **Max Supply** is the ceiling on how many tokens can be outstanding at one time. Every mint is checked against the current supply plus the amount being minted, so while supply sits at the ceiling, further minting is refused. Destroying tokens lowers the current supply and frees that much headroom again, so a max supply is not a limit on how much can be issued over a token's lifetime. Think of it as a tank with a fixed capacity rather than a mine with a finite amount of ore: draining it makes room to refill. To close issuance for good, lock the minting paths (see Locking below) rather than relying on the ceiling alone.
 
-Setting a max supply of zero is the protocol's "uncapped" sentinel: no ceiling at all, which is appropriate for some use cases (like reward points that grow over time) but not others (like collectibles where scarcity matters). That reading is in force on testnet and regtest today. On mainnet it switches on at the network's launch instant and not before, so a mainnet token created now with a max supply of zero refuses every mint and every positive mint supply, and can never issue anything. Until then, give a mainnet token a positive ceiling; you can raise it later unless you set `LOCK_MAX_SUPPLY`. See [Protocol Activation](../protocol/protocol-activation.md) for how the switch-on works.
+Setting a max supply of zero is the protocol's "uncapped" sentinel: no ceiling at all, which is appropriate for some use cases (like reward points that grow over time) but not others (like collectibles where scarcity matters). That reading is in force on testnet and regtest today. On mainnet it is not active and has no published activation date; it switches on only once a date appears in [Flag-Day Values](../protocol/flag-days.md). Until then, a mainnet token with a max supply of zero refuses every positive mint while its ceiling remains zero, so give it a positive ceiling; you can raise the ceiling later unless you set `LOCK_MAX_SUPPLY`. See [Protocol Activation](../protocol/protocol-activation.md) for how the switch-on works.
 
 ### Decimals
 

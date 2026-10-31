@@ -117,8 +117,8 @@ Each connection's messages are measured as a leaky bucket that holds `limits.max
 | Param | Type | Description |
 |---|---|---|
 | `types` | string[] | Only receive events matching these action types. Omit for all. |
-| `statuses` | string[] | **Not supported. Do not use.** Accepted by the server for backward compatibility but never honored on any channel: no feed populates a per-event status (`getActionsSince` selects `NULL as status`), so the filter can never reject anything. It is absent from WELCOME `features` and from SUBSCRIBED `active_filters`. |
-| `ticks` | string[] | **Not an event filter.** On the global `actions` channel it is accepted, silently ignored, and echoed back under SUBSCRIBED `ignored_filters`: action frames carry no tick column (`getActionsSince` selects none), so the filter can never reject anything. It is absent from WELCOME `features` and from SUBSCRIBED `active_filters`. Its one real use is as the batch (plural) form of the `token` channel's `tick` entity param, in the Entity params table below. |
+| `statuses` | string[] | **Not supported. Do not use.** Accepted for backward compatibility, deliberately not evaluated on any channel, and echoed under SUBSCRIBED `ignored_filters`. It is absent from WELCOME `features` and SUBSCRIBED `active_filters`. |
+| `ticks` | string[] | **Not an event filter.** With the global `actions` channel it is accepted, deliberately not evaluated, and echoed under SUBSCRIBED `ignored_filters`. Its supported use is the batch form of the `token` channel's `tick` entity param; token-only confirmations do not call it ignored. |
 | `fields` | string[] | Only include these keys in the `data` payload. Envelope fields always included. |
 | `snapshot` | boolean | Send current entity state immediately on subscribe. |
 | `once` | boolean | Auto-unsubscribe after the first matching event. |
@@ -608,6 +608,11 @@ Emitted when the decoder detects a new unconfirmed XChain transaction in the mem
 ```
 
 Also broadcast on the `address` channel for the transaction's source address.
+
+The live diff reads a hash-ordered window capped at 500 pending actions. While
+that window is full, an action whose hash sorts above its cutoff can be
+announced late or only as `NEW_ACTION` when confirmed. `MEMPOOL_REMOVED` can
+also be delayed for a hash outside the window until the backlog drains.
 
 #### MEMPOOL_REMOVED
 

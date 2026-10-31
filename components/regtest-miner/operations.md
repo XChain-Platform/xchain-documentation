@@ -100,6 +100,7 @@ Return the current mining loop state for operator diagnostics and CI health chec
         "wallet_funded": true,
         "wallet_balance_at": 1718900003000,
         "mempool_size": 0,
+        "mempool_size_at": 1718900004000,
         "idle_mine_interval_ms": 0,
         "blocks_mined": 42,
         "last_mine_at": 1718900000000,
@@ -120,7 +121,8 @@ Return the current mining loop state for operator diagnostics and CI health chec
 | `wallet_balance_at` | number or null | Unix timestamp in milliseconds of the last balance read attempt, successful or not; `null` before the first read |
 | `mining_paused` | boolean | `true` while the auto-mine loop is paused (`pause_mining`, or a `fill_mempool`/`invalidate_block` that never resumed). If mining seems stalled, check this first. |
 | `mining_started` | boolean | `true` once wallet preparation finished and the auto-mine loop started; a pause never resets it. A miner still starting reads `mining_paused: true` with `mining_started: false`. |
-| `mempool_size` | number | Number of transactions currently in the mempool as of the last polling cycle |
+| `mempool_size` | number | Number of transactions in the mempool read started by this `status` request; use only when `consecutive_errors` is zero |
+| `mempool_size_at` | number or null | Unix timestamp in milliseconds of the successful mempool read started by this `status` request; unchanged when that read fails |
 | `idle_mine_interval_ms` | number | Current mine-empty heartbeat interval in milliseconds; `0` means mining is driven only by the mempool (see `set_idle_mine_interval`) |
 | `blocks_mined` | number | Cumulative count of blocks mined by this miner instance since startup |
 | `last_mine_at` | number or null | Unix timestamp in milliseconds (`Date.now()`) of the most recent successful block mine; `null` if no block has been mined yet in this session |

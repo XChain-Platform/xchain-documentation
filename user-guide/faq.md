@@ -9,7 +9,7 @@
 
 ### What is XChain?
 
-XChain is a token protocol that runs on top of existing blockchains. It is chain-agnostic by design and live today on Bitcoin, Litecoin, and Dogecoin, with more chains to come. It lets anyone create and manage digital tokens, trade them on a built-in decentralized exchange, and store data permanently on-chain, all using standard blockchain transactions. There is no separate XChain blockchain. Instead, XChain embeds its instructions invisibly inside ordinary transactions on its host chain, and a network of indexer nodes reads and executes those instructions. The result is a full-featured token platform with the security and permanence of the world's most established blockchains underneath it.
+XChain is a token protocol that runs on top of existing blockchains. It is chain-agnostic by design and available today on the Bitcoin, Litecoin, and Dogecoin testnets and regtest, with more chains to come. Mainnet user actions open at the launch instant published in [Flag-Day Values](../protocol/flag-days.md). XChain lets anyone create and manage digital tokens, trade them on a built-in decentralized exchange, and store data permanently on-chain, all using standard blockchain transactions. There is no separate XChain blockchain. Instead, XChain embeds its instructions invisibly inside ordinary transactions on its host chain, and a network of indexer nodes reads and executes those instructions. The result is a full-featured token platform with the security and permanence of the world's most established blockchains underneath it.
 
 ### Is XChain its own blockchain?
 
@@ -17,7 +17,11 @@ No. XChain is a protocol layer that sits on top of existing blockchains. It does
 
 ### Which blockchains does XChain support?
 
-XChain currently supports Bitcoin, Litecoin, and Dogecoin, including their respective test networks, with more chains coming. The protocol is designed to work with any Bitcoin-compatible blockchain, so adding a new UTXO chain is a straightforward configuration change rather than a major engineering effort. Account-model ecosystems such as Ethereum and Solana are a longer-term roadmap item (see [Scope and Non-Goals](../concepts/scope-and-non-goals.md)).
+XChain currently supports Bitcoin, Litecoin, and Dogecoin, including their respective test networks, with more chains coming. User transactions are indexed on mainnet only from the published launch instant. The protocol is designed to work with any Bitcoin-compatible blockchain, so adding a new UTXO chain is a straightforward configuration change rather than a major engineering effort. Account-model ecosystems such as Ethereum and Solana are a longer-term roadmap item (see [Scope and Non-Goals](../concepts/scope-and-non-goals.md)).
+
+### Can I use XChain on mainnet before launch?
+
+No. Before the mainnet launch instant in [Flag-Day Values](../protocol/flag-days.md), the indexer skips ordinary user actions and admits only validator actions and any pinned seed sources. A manually broadcast user transaction still pays its miner fee but creates no XChain action or status. The official encoder refuses to build one with `MAINNET_PRELAUNCH`. See [The mainnet launch gate](../protocol/protocol-activation.md#the-mainnet-launch-gate) and [Error Codes](../protocol/error-codes.md).
 
 ### Is XChain decentralized?
 
@@ -65,7 +69,7 @@ Yes. A token has two separate things attached to it: the *balances* (who holds h
 
 ### What are sub-tokens?
 
-Sub-tokens are tokens whose names contain a period, like `BRAND.GOLD` or `PLATFORM.MEMBERSHIP`. The naming link is enforced by the protocol, not left to convention: `BRAND` must already exist and only its current owner can create `BRAND.GOLD`, so nobody else can register a direct child of a name you hold. The check is one level deep: the owner of `BRAND.GOLD` is the one who can create `BRAND.GOLD.COIN`, so names beneath a sub-token follow that sub-token when it is sold. Sub-tokens are cheaper to create than top-level tokens. Once created, each sub-token carries its own ownership record, so a sub-token you have sold or transferred away is no longer yours even though you still own the top-level name.
+Sub-tokens are tokens whose names contain a period, like `BRAND.GOLD` or `PLATFORM.MEMBERSHIP`. The naming link is enforced by the protocol, not left to convention: `BRAND` must already exist and only its current owner can create `BRAND.GOLD`, so nobody else can register a direct child of a name you hold. The check is one level deep: the owner of `BRAND.GOLD` is the one who can create `BRAND.GOLD.COIN`, so names beneath a sub-token follow that sub-token when it is sold. Sub-tokens are cheaper to create than top-level tokens. Once created, each sub-token carries its own ownership record, so a sub-token you have sold or transferred away is no longer yours even though you still own the top-level name. Below the independent child-edit gate, a full-name edit also requires the parent owner, but a compact `^id` edit does not run the parent checks. The gate is currently unarmed on mainnet, so that below-gate rule applies there whenever mainnet user actions are admitted; see [NFT Standard collections](../protocol/nft-standard.md#collections).
 
 ### Can a token be permanently destroyed?
 

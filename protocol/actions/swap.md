@@ -82,7 +82,7 @@ This example swaps ownership of JDOG (BTC chain) for ownership of WOWPEPE (LTC c
   - New child `ISSUE` using this `TICK` as a parent (period-separated name)
   - Additional `ORDER`/`SWAP`/`DISPENSER` ownership offers for this `TICK` from the original owner
 - Holder-side actions are unaffected: `SEND`, `MINT` (if mint window open), `DIVIDEND` payouts, `DEPOSIT`/`WITHDRAW`, `DESTROY` of held balance
-- Child `TICK`s (e.g. `JDOG.SUB1`) have independent ownership records and are **not** transferred when a parent's ownership is sold
+- Child `TICK`s (e.g. `JDOG.SUB1`) have independent ownership records and are **not** transferred when a parent's ownership is sold. Below the independent child-edit gate, a full-name child edit also requires the parent owner, while a compact `^id` edit does not run parent checks. The gate is currently unarmed on mainnet, so that below-gate rule applies there whenever mainnet user actions are admitted; see [NFT Standard collections](../nft-standard.md#collections)
 - On match: ownership transfers to the counterparty's SOURCE. On a cross-chain swap each chain transfers its own leg against the signed match, so the two legs settle separately rather than in one step
 - On cancel (Version 1) or `EXPIRATION`: ownership returns to the original SOURCE
 

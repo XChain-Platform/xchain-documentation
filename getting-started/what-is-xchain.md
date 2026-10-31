@@ -5,7 +5,7 @@
 
 ## The Short Version
 
-XChain is a token protocol that runs on top of existing blockchains. It is chain-agnostic by design and live in production today on Bitcoin, Litecoin, and Dogecoin, with more chains to come; adding another UTXO chain is a configuration change, not a rebuild. It lets you create and manage digital assets (tokens), trade them on a built-in exchange, swap them across chains, run smart contracts that can call out to AI models and the web, publish encrypted files only your token holders can read, stake any token against any contract on any chain, store files, send messages, and much more, all without leaving the security of the underlying blockchain.
+XChain is a token protocol that runs on top of existing blockchains. It is chain-agnostic by design and available today on the Bitcoin, Litecoin, and Dogecoin testnets and regtest, with more chains to come; mainnet user actions open at the launch instant published in [Flag-Day Values](../protocol/flag-days.md). Adding another UTXO chain is a configuration change, not a rebuild. XChain lets you create and manage digital assets (tokens), trade them on a built-in exchange, swap them across chains, run smart contracts that can call out to AI models and the web, publish encrypted files only your token holders can read, stake any token against any contract on any chain, store files, send messages, and much more, all without leaving the security of the underlying blockchain.
 
 If you've heard of other token protocols like Counterparty, Ordinals, or Colored Coins, XChain is in that tradition: it uses an existing blockchain network as its foundation (today Bitcoin, Litecoin, or Dogecoin), and adds a richer layer of functionality on top of it.
 

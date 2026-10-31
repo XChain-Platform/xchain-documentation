@@ -68,6 +68,7 @@ const ROOT          = path.resolve(__dirname, '..');
 const EXPLORER      = path.resolve(ROOT, '../xchain-explorer');
 const EXPLORER_SRC  = path.join(EXPLORER, 'src');
 const REGISTRY_PAGE = path.join(ROOT, 'protocol/error-codes.md');
+const API_PAGE      = path.join(ROOT, 'components/explorer/api.md');
 
 // REST-side emit sites. src/ws/ is deliberately absent (separate surface).
 const SOURCES = ['XChainExplorer.js', 'api.js', 'http/concurrency_gate.js', 'contract/vm_query.js', 'http/bridge_panel_routes.js']
@@ -264,6 +265,30 @@ test('every explorer REST error code has a registry row', { skip: noExplorer }, 
         'protocol/error-codes.md calls itself the complete append-only registry, so every '
         + 'code the explorer emits needs a REST row there, and a REST row nothing emits must '
         + 'carry a **Historical:** marker (or the emit shape that sends it needs a rule here)');
+});
+
+test('INVALID_ADDRESS docs preserve the free-text search exception', () => {
+    const registry = fs.readFileSync(REGISTRY_PAGE, 'utf8');
+    const api      = fs.readFileSync(API_PAGE, 'utf8');
+    const row      = restSection(registry).match(/^\| `INVALID_ADDRESS` \|.*$/m);
+
+    assert.ok(row, 'the Explorer REST registry lost its INVALID_ADDRESS row');
+    assert.match(row[0], /free-text `getSearch` routes are exempt/,
+        'the INVALID_ADDRESS row must not promise address validation on getSearch');
+    assert.match(row[0], /absent, empty, actual `null` and literal `null` path values are no-filter sentinels/,
+        'the INVALID_ADDRESS row must keep every no-filter sentinel outside the refusal contract');
+    assert.match(row[0], /`address`, `source`, `destination`, `oracle`, `delegator` or `delegate` path segments/,
+        'the INVALID_ADDRESS row must name the general address path lanes');
+    assert.match(row[0], /counterparty `\{address\}` on market history and market orders/,
+        'the INVALID_ADDRESS row must name both market counterparty lanes');
+    assert.match(api, /free-text search routes \(`getSearch`\).*are exempt from address-shape refusal/,
+        'the explorer API page must keep the getSearch exception beside INVALID_ADDRESS');
+    assert.match(api, /Absent, empty, actual `null` and literal `null` address path values are no-filter sentinels/,
+        'the explorer API page must keep every no-filter sentinel outside the refusal contract');
+    assert.match(api, /Other API or explorer data routes whose address path segment is malformed.*INVALID_ADDRESS/,
+        'the explorer API page must document the general path refusal');
+    assert.match(api, /counterparty `\{address\}` segment on market history and market orders/,
+        'the explorer API page must document both market counterparty lanes');
 });
 
 test('the REST registry check fails on a dropped row or an unemitted row', { skip: noExplorer }, () => {
