@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-11-01
+
+### Added
+- Documented the checkpoint supersede, archive roll-call presence and LTC admission margin rules, plus the new explorer error codes and operator variables.
+
+### Changed
+- Regenerated the flag-day page and action pages for the eight gates this release arms on testnet, with mainnet left unarmed.
+- Moved the documented Node pin to the pinned Node 22 patch and brought the iOS review notes into Apple's current review layout.
+- Documented the per-chain keying of the roll-call and supersede gates in the protocol constants and the platform map.
+- Armed ARCHIVE_ROLLCALL_PRESENCE_ACTIVATION on BTC:testnet at 158557.
+- Armed ARCHIVE_ROLLCALL_PRESENCE_ACTIVATION on LTC:testnet at 4949697.
+- Armed ARCHIVE_ROLLCALL_PRESENCE_ACTIVATION on DOGE:testnet at 68035864.
+- Armed CHECKPOINT_SUPERSEDE_ACTIVATION on BTC:testnet at 158557.
+- Armed CHECKPOINT_SUPERSEDE_ACTIVATION on LTC:testnet at 4949697.
+- Armed CHECKPOINT_SUPERSEDE_ACTIVATION on DOGE:testnet at 68035864.
+- Armed ADMIT_CHAIN_MARGIN_ACTIVATION on LTC:testnet at 4949697.
+
+### Fixed
+- Corrected the activation prose so the per-chain testnet gate keys read the same as the code.
+
 ### Changed
 - Documented activation-gated edit rights for existing child tokens.
 
