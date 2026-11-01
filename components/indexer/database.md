@@ -179,7 +179,7 @@ Two slashing systems produce distinct table families.
 
 | Table | Purpose |
 |---|---|
-| `capability_slash_events` | One row per SLASH action: `signing_pubkey_id` (the equivocating validator), `capability` engine tag (e.g. XDEX/XCALL/XCHECKPOINT), `equiv_key` (the shared equivocation key), total `amount` burned, `bounty_amount` paid to the submitter, and `treasury_amount` |
+| `capability_slash_events` | One row per SLASH action: `signing_pubkey_id` (the equivocating validator), `capability` membership label (`cross_chain`, `oracle_publish`, `price`, `attestation`, or `config`) derived from the engine tag, `equiv_key` (the shared equivocation key whose first segment is the engine tag), total `amount` burned, `bounty_amount` paid to the submitter, and `treasury_amount` |
 | `capability_slash_debits` | Append-only audit log of in-place `amount` reductions on `stakes`/`unstakes` rows. Stores `prev_amount` for byte-identical reorg restoration. Keyed by `block_index` for rollback |
 
 ### Capability Snapshot Table
