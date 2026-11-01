@@ -139,11 +139,14 @@ const result = await sdk.workflows.deployStakeableContract(
     []   // no initial deposits in this example; pass [{ tick, quantity }, ...] to seed the contract with funds
 );
 
-console.log('contract action_index:', result.deploy.indexed.action_index);
-console.log('contract address:',      result.deploy.indexed.contract_address);
+const contractActionIndex = sdk.workflows.actionIndexOf(result.deploy.indexed);
+if (contractActionIndex === undefined || contractActionIndex === null) {
+    throw new Error('DEPLOY action_index unavailable; submit with waitForIndexer enabled');
+}
+console.log('contract action_index:', contractActionIndex);
 ```
 
-After the DEPLOY v1 confirms, the contract is live and stakeable. Anyone on the same chain (BTC, LTC, or DOGE) can begin staking against it.
+After the DEPLOY v1 confirms, the contract is live and stakeable. Contracts are referenced by their DEPLOY `action_index`. The submit result's `indexed` field is a single action on the WebSocket path and a transaction with an `actions` array on the polling path; `actionIndexOf` handles both shapes. Anyone on the same chain (BTC, LTC, or DOGE) can begin staking against it.
 
 **Key constraints set in stone at deploy time:**
 
@@ -170,7 +173,7 @@ const stakerSession = sdk.session(STAKER_WIF);
 const stakeResult = await stakerSession.stakeToContract({
     amount:              '250',
     signingPubkey:       STAKER_SIGNING_PUBKEY_HEX,   // 64 hex chars (Ed25519)
-    targetContractIndex: result.deploy.indexed.action_index,
+    targetContractIndex: contractActionIndex,
     tick:                'MYTOKEN'
 });
 ```
@@ -182,7 +185,7 @@ This locks 250 MYTOKEN out of the staker's balance and writes a row in the `cont
 Compose the two commands with the SDK's [batch builder](./batch-operations.md#the-batch-builder), then submit the resulting `BATCH` from the staker's session so it is paid for and signed by the staker's key. The builder has no `stakeToContract` shortcut, so add the STAKE with `.add('STAKE', ...)` and set `version: '3'` yourself; that is the version that targets a contract rather than validator capability staking.
 
 ```js
-const targetContractIndex = result.deploy.indexed.action_index;
+const targetContractIndex = contractActionIndex;
 
 const batch = await sdk.batch()
     .add('STAKE', {

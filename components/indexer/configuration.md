@@ -71,8 +71,8 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | `INDEXER_HEALTH_STALL_GRACE_MS` | How long with no committed block before the container reports unhealthy (`503`). Defaults to comfortably more than one barrier cycle so a single legitimate defer never flaps the healthcheck. A roll-call or capability proof wait (`rollcall_proof_unavailable`, `capability_proof_unavailable`) is judged against its own longer window instead: twice `HUB_SYNC_BARRIER_HOLD_CEILING_S`, never less than this grace. It reports `rollcall_proof_wait` or `capability_proof_wait`, then the `_stuck` class past the ceiling (`/ready` answers `503`), and only then `wedged`, which buys one container restart. With the ceiling at `0` it falls back to this grace. Operational only, **not** a consensus parameter. | `max(2 × HUB_PRICE_SYNC_TIMEOUT_MS, 120000)` |
 | `INDEXER_POLL_SILENT_MS` | How long the block-poll loop may go without completing an iteration before the health payload reports it silent and the monitor crits. Deliberately **not** part of the `/status` 503 gate: one block can hold a single iteration across several sequential barrier waits, and restarting the container is the wrong answer to a slow block, so the default doubles the stall grace again. Measures loop **liveness**, never chain progress, so unlike the stall signal it has nothing to do with commits. Operational only, **not** a consensus parameter. | `2 × INDEXER_HEALTH_STALL_GRACE_MS` |
 | `INDEXER_READY_NO_COMMIT_MS` | How long the indexer may sit behind a known tip without committing a block before `GET /ready`, and the `ready` / `notReadyReasons` fields on `/status`, report it not ready (`behind_tip_no_commit`). Readiness only: the `/status` 503 liveness gate never reads it. A value that is not a positive integer keeps the default. Operational only, **not** a consensus parameter. | `600000` (10 min) |
-| `INDEXER_CHAIN_TIP_TTL_MS` | How long the coin node tip read from the utxo tracker is cached for the `chainLag` field on `/status`. Health reporting only. | `15000` |
-| `INDEXER_CHAIN_TIP_TIMEOUT_MS` | Timeout for one coin node tip read from the utxo tracker. A failed or slow refresh keeps the last known tip, and `chainTipAt` says how old it is. Health reporting only. | `1500` |
+| `INDEXER_CHAIN_TIP_TTL_MS` | How long the coin node tip read from the utxo tracker is cached for the `chainLag` field on `/status`. A known tip older than this makes readiness fail with `chain_tip_stale`. A value that is not a positive integer keeps the default. Health reporting only. | `15000` |
+| `INDEXER_CHAIN_TIP_TIMEOUT_MS` | Timeout for one coin node tip read from the utxo tracker. A failed or slow refresh keeps the last known tip, and `chainTipAt` says how old it is. A value that is not a positive integer keeps the default. Health reporting only. | `1500` |
 | `XCALL_DIRECT_PRESENCE_TIMEOUT_MS` | Call-presence barrier timeout in direct-hub-DB mode. With no HubDbSync mirror the cross-chain-call sync barrier is skipped, but reading the hub's MariaDB directly does not guarantee an in-flight relay row has landed, so the indexer waits this long for it before the cross-chain-call pass. | `10000` |
 | `CHAIN_TIP_PUSH_MAX_LAG` | Skip pushing the chain tip to the hub while the indexer is more than this many blocks behind the decoder tip. During a bulk re-index, pushing a tip per historical block floods the hub's rate limiter with `429`s for no value: the hub only cares about the live tip. | `100` |
 | `HUB_SYNC_ANCHOR_ATTEST_GRACE_S` | Grace margin on the anchor-reward attestation mirror barrier. The BTC indexer only derives an anchor/archive reward once the hub mirror is certified to hold everything produced up to the block being processed; a node that cannot certify that defers the block rather than deriving a partial reward set. Honoured on regtest only: elsewhere it is a consensus input and the frozen value wins. **A fast chain must lower this or it cannot make progress.** The barrier waits for the mirror watermark to reach `block_time + this value`, which costs nothing where blocks are minutes apart, because the watermark is long past by the time a block is processed. Where blocks are stamped at about wall clock, and the watermark tracks wall clock too, a freshly mined block can never be this far behind it: the wait cannot be satisfied and every affected block burns the full barrier timeout before proceeding anyway. Measured on a regtest e2e venue at the default: 367 blocks in six hours against 2013 in under two once lowered, with 160 deferrals that were waiting on a condition that could not arrive. Set it to a small fraction of the block interval on any venue that mines quickly. | `120` |
@@ -124,7 +124,7 @@ The capability snapshot proof is unarmed until the train cut; when armed, these 
 | `HUB_DB_SYNC_HTTP_DEADLINE` | Total wall-clock budget for one hub-mirror snapshot GET. The request's own `timeout` option is an idle-socket timer that resets on every byte received, so a hub drip-feeding a body would otherwise hold the request, and the whole mirror bootstrap, open indefinitely; set to four times that idle timer so a large snapshot page has room to stream and only a wedged request reaches the ceiling. | `120000` |
 | `HUB_SYNC_WATERMARK_INTERVAL_MS` | Interval at which the hub-mirror sync persists its progress watermark | `10000` |
 | `HUB_SYNC_BATCH_APPLY` | Set to `false` to disable batched multi-row upserts when applying `price_snapshots` rows during a hub-mirror bootstrap drain, falling back to applying rows one at a time. Throughput only: no barrier, floor, or mirrored row depends on it. | `true` |
-| `HUB_SYNC_BATCH_APPLY_ROWS` | Number of buffered `price_snapshots` rows a hub-mirror bootstrap drain collects before flushing them as one multi-row upsert statement. Values below `2` fall back to the default. | `500` |
+| `HUB_SYNC_BATCH_APPLY_ROWS` | Number of buffered `price_snapshots` rows a hub-mirror bootstrap drain collects before flushing them as one multi-row upsert statement. Values below `2` fall back to the default. | `2500` |
 | `HUB_SYNC_BOOTSTRAP_PROGRESS_MS` | Minimum interval between the "bootstrapping &lt;table&gt;: N row(s) fetched..." progress lines a hub-mirror table drain logs on startup, so a cold start shows the drain moving rather than only its final result. `0` silences the periodic line entirely (the drain still logs when it starts and finishes). | `15000` (15s) |
 | `HUB_PUSH_RETRY_INTERVAL_MS` | How often the push-queue poller wakes to drain due rows | `30000` |
 | `HUB_PUSH_RETRY_BASE_MS` | Base backoff for a failed push. The wait grows as `base × 2^(attempts-1)`, capped at `HUB_PUSH_RETRY_MAX_MS`. | `30000` |
@@ -302,6 +302,8 @@ Read-only operator tools; neither broadcasts nor writes anything and neither is 
 | `XCHAIN_SYNC_DIR` | Sibling-checkout override for the `xchain-sync` tree the same `siblingDir()` resolves when the pin tool compares against sync's copy; read by literal name so the coverage gate can see it. Never read by the running indexer process. | `../xchain-sync` |
 | `XCHAIN_HUB_DIR` | Sibling-checkout override for the `xchain-hub` tree the same `siblingDir()` resolves when the pin tool compares against the hub's copy; read by literal name so the coverage gate can see it. Never read by the running indexer process. | `../xchain-hub` |
 | `PROM_CI_BASE_SHA` | Diff base commit for `bin/ci_fast_select.js`'s fast CI test selection: the CI venue's gate exports the target ref's value before the push, and the selector diffs `HEAD` against it to pick which test groups to run. Falls back to `git merge-base HEAD origin/develop` when unset or when the value is not a resolvable commit. Never read by the running indexer process. | _(unset: falls back to the merge-base with `origin/develop`)_ |
+| `CI_COMPANIONS` | Companion refs for a cross-repo landing, as space- or comma-separated `<repo>=<ref>` tokens (`*=<ref>` names every sibling). `bin/check-hub-db-sync-explorer-twins.js` compares changed canonical `src/hub/hub_db_sync` files against the `xchain-explorer` token's committed ref instead of the explorer working tree, so the indexer can land first against a committed explorer companion branch; `bin/sync-hub-mirror-client.sh --landing-order <branch>` prints the full order. A ref that does not resolve in the explorer checkout fails the check. Never read by the running indexer process. | _(unset: compares against the explorer working tree)_ |
+| `CI_SIBLING_PINS` | The sibling SHAs the CI venue's gate exports for the checkouts it shipped, in the same `<repo>=<ref>` form; the twin check reads the `xchain-explorer` pin ahead of `CI_COMPANIONS`, so on the venue the explorer copy is compared at the exact commit the dispatcher shipped. Never read by the running indexer process. | _(unset: falls back to `CI_COMPANIONS`)_ |
 | `CI_SHARDS` | Process count `bin/ci_shard.js` splits the `ci` chain's main mocha step across in the siblings STRICT tier; `1` runs the step unsharded as before. A value that is not a positive integer falls back to the default. Never read by the running indexer process. | half the CPU cores, at most 4 |
 | `PATH` | Read by `bin/ci_shard.js` only to put the package's `node_modules/.bin` in front of it for the chain steps it runs, as `npm run` does. Never read by the running indexer process. | the caller's `PATH` |
 
@@ -316,13 +318,14 @@ Native-coin fee validation and FIAT settlement read the oracle tables (`price_sn
 - **Single-host:** the indexer's own database already holds the synced hub copy, so no separate hub DB
   connection is needed and the oracle tables are read locally.
 
-That price-source choice does not cover the finalized ATTEST response mirror. A **BTC** indexer on a
-network where `ATTEST_RESPONSE_MIRROR_ACTIVATION` is armed must set `HUB_DB_HOST` and `HUB_DB_NAME`.
-The `attestation_responses` table is an off-chain consensus input that settles request fees, and
-AnchorRecovery cannot reconstruct it. The indexer therefore refuses to boot without a hub database
-source on BTC testnet and regtest, where the gate is currently armed. The gate remains unpinned on
-BTC mainnet. `INDEXER_ALLOW_LOCAL_PRICE_SOURCE=true` acknowledges only the local oracle-price
-topology and cannot bypass this response-mirror requirement.
+That price-source choice does not cover the finalized ATTEST response mirror controlled by
+`ATTEST_RESPONSE_MIRROR_ACTIVATION`. The `attestation_responses` table is an off-chain consensus
+input that settles request fees, and
+AnchorRecovery cannot reconstruct it. BTC testnet refuses to boot without a hub database source.
+BTC regtest warns and continues without one, although regtest deployments exercising the response
+mirror should configure the hub database source. The gate remains unpinned on BTC mainnet.
+`INDEXER_ALLOW_LOCAL_PRICE_SOURCE=true` acknowledges only the local oracle-price topology and
+cannot bypass the BTC testnet response-mirror requirement.
 
 The two are indistinguishable from config alone: a node with no hub DB looks the same whether that is
 intentional (single-host) or an operator forgot `HUB_DB_HOST` / `HUB_DB_NAME` on a distributed node. In
@@ -331,8 +334,8 @@ data, which on mainnet can diverge from the canonical fleet and fork the ledger.
 
 To make the intent explicit, a **mainnet** indexer fails closed at startup when no hub DB is configured,
 unless `INDEXER_ALLOW_LOCAL_PRICE_SOURCE=true` is set to confirm an intentional single-host node. On
-testnet and regtest the local-price acknowledgement is ignored. A missing hub DB only logs a warning
-for a chain that is not subject to the armed BTC response-mirror refusal above.
+testnet and regtest the local-price acknowledgement is ignored. The armed response-mirror guard
+refuses BTC testnet startup, while BTC regtest logs its response-mirror warning and continues.
 
 | Variable | Description | Default |
 |---|---|---|

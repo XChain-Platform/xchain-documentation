@@ -270,14 +270,30 @@ Which oracle rounds in a closed range already ride a valid `PRICE` batch on this
         "first_round": 21,
         "last_round": 1568,
         "batches": [
-            { "action_index": 10,  "first_round": 49, "last_round": 53, "round_count": 5 },
-            { "action_index": 270, "first_round": 52, "last_round": 53, "round_count": 2 }
+            {
+                "action_index": 10,
+                "first_round": 49,
+                "last_round": 53,
+                "round_count": 5,
+                "block_index": 67875001,
+                "block_time": 1712500000
+            },
+            {
+                "action_index": 270,
+                "first_round": 52,
+                "last_round": 53,
+                "round_count": 2,
+                "block_index": null,
+                "block_time": null
+            }
         ],
         "truncated": false
     },
     "id": 1
 }
 ```
+
+Each object in `batches` includes the landing `block_index` and that block's protocol `block_time`, the same clock carried by `pushpricebatch`. `block_index` is `null` when the batch action has no resolvable landing block. `block_time` is `null` when the landing block is absent or its protocol time cannot be resolved. Neither field is guessed.
 
 Batches are ordered by `first_round`, then `action_index`, and may overlap (a window published under a different split is still a valid carrier of its rounds). `truncated` is `true` when the page filled: the range past the last returned batch is unanswered, not empty, and the caller pages by asking again from there.
 

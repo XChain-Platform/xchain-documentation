@@ -15,7 +15,8 @@
  * WHY. XChain is a token platform for ANY blockchain. Adding a UTXO chain is a
  * configuration change (see concepts/blockchains.md), and account-model chains are a
  * public roadmap item (whitepaper §16, concepts/scope-and-non-goals.md).
- * Bitcoin, Litecoin, and Dogecoin are where it is LIVE TODAY, not what it is.
+ * Bitcoin, Litecoin, and Dogecoin are where testnet and regtest are live today,
+ * not what the platform is. Mainnet remains launch-gated for user actions.
  *
  * The failure mode this guard exists for is quiet and one-directional. Every
  * page that introduces the platform reaches for the concrete roster because it
@@ -240,7 +241,7 @@ test('the guard recognizes a bare closed-list definition', () => {
   // And the one-word fix has to be enough, or the guard is unfixable.
   const fixed = [
     'XChain is a token protocol that runs on top of existing blockchains. It is '
-      + 'chain-agnostic by design and live in production today on Bitcoin, Litecoin, and Dogecoin.',
+      + 'chain-agnostic by design and live today on the Bitcoin, Litecoin, and Dogecoin testnets.',
     '**metalayer**: A protocol that runs above an existing blockchain without '
       + 'modifying it. XChain is a metalayer on any UTXO blockchain; today Bitcoin, Litecoin, and Dogecoin.',
     'The free window is identical on every supported chain (Bitcoin, Litecoin, and Dogecoin today).',
@@ -269,8 +270,8 @@ test('no page defines XChain as a closed list of chains', () => {
     'these sentences define XChain (or one of its components) as the three chains it happens to '
     + 'run on today. XChain is chain-agnostic: adding a UTXO chain is a configuration change, and '
     + 'account-model chains are on the roadmap. Time-stamp the roster rather than deleting it, '
-    + 'which is usually one word: "Bitcoin, Litecoin, and Dogecoin today", "live in production '
-    + 'today on ...", "every supported chain (Bitcoin, Litecoin, and Dogecoin today)", "the first '
+    + 'which is usually one word: "Bitcoin, Litecoin, and Dogecoin today", "live today on the '
+    + '... testnets", "every supported chain (Bitcoin, Litecoin, and Dogecoin today)", "the first '
     + 'three supported chains, not the definition of the platform". If the sentence is really a '
     + 'fact about the deployed chains rather than a definition, it should not be tripping the '
     + 'verb list in DEFINITIONAL; fix the sentence or add the page to EXEMPT with a reason:\n'

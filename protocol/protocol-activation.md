@@ -525,11 +525,15 @@ that history cannot change any verdict a from-genesis replay reaches, so arming 
 state-neutral: no coordinated flag day, no arming window, no straggler to halt. A gate that CAN
 reinterpret the history keeps a future instant under the [notice policy](./upgrade-notice-policy.md).
 Exactly one gate is in the second class: `UNCAPPED_MAX_SUPPLY_ZERO`, because `MAX_SUPPLY = 0` is on
-essentially every imported name, so it arms at the mainnet launch instant and at nothing earlier.
+essentially every imported name. The ruling reserves its arm for T, the mainnet launch instant, and
+nothing earlier, but does not itself arm the constant. The operator has not yet armed this gate
+with T: its mainnet value remains the unarmed sentinel, mainnet does not apply the uncapped reading,
+and [Flag-Day Values](./flag-days.md) lists it among the unarmed gates.
 
 **What the arm covers, and what it deliberately leaves.** Every registry gate and activation map that
 was unarmed on mainnet before the ruling now reads `0` in its mainnet position in every repository
-that declares it, with four named exceptions: `UNCAPPED_MAX_SUPPLY_ZERO` (launch instant, above);
+that declares it, with four named exceptions: `UNCAPPED_MAX_SUPPLY_ZERO` (future launch instant T,
+above; the gate remains unarmed);
 `ATTEST_RESPONSE_MIRROR_ACTIVATION` (stays `null` until its quorum defect is closed);
 `ORACLE_FEE_SET_CAPTURE_ACTIVATION` (arms at its base gate's own contract-era instant, the earliest
 its ordering permits, which is identity all the same); and the staged SPV commitments

@@ -9,6 +9,42 @@ Each train tag is GPG-signed with the platform release key. See
 [Release Signing](./release-signing.md) to verify a download, and
 [Release Process](./release-process.md) for how a train is cut.
 
+## v0.26.3
+
+Released 2026-10-23. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.26.3)
+
+An indexer-only patch train: the manifest moves `xchain-indexer` to v0.26.3, which re-pins six LTC testnet gate heights.
+Every other component stays on its v0.26.2 pin.
+
+## v0.26.2
+
+Released 2026-10-22. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.26.2)
+
+A patch train that ships the testnet arming patch.
+The `xchain-node` component carries no code change, no ruleset row is added, and no gate height changed since v0.26.1.
+
+## v0.26.1
+
+Released 2026-10-21. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.26.1)
+
+A patch train with no ruleset row and no gate height change since v0.26.0.
+
+- Added: the audit workflow jobs now run through a new audit gate script.
+- Fixed: an explicitly named shared service is removed on uninstall while bulk teardown safeguards stay.
+- Fixed: the regtest oracle epoch now has a default, so a bare validator init no longer leaves it unset.
+- Fixed: follow-redirects is raised to its patched release for two new advisories.
+
+## v0.26.0
+
+Released 2026-10-20. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.26.0)
+
+A patch train with no ruleset row and no gate height change since v0.25.0.
+
+- Changed: stuck proof waits are refused at the bootstrap gate.
+- Changed: the external database host and port checks are tighter.
+- Changed: the scheduled attest-mirror run is turned off.
+- Fixed: the halt marker reads.
+
 ## v0.25.0
 
 Released 2026-10-19. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.25.0)
@@ -68,6 +104,45 @@ carries.
 
 Each component's own changelog lists its changes; the `xchain-node` Release carries the
 platform notes and the signed artifact set.
+
+## v0.23.4
+
+Released 2026-10-23. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.23.4)
+
+A dependency-only maintenance release on the `release/v0.23.4` line, which is what mainnet runs; it clears the high-severity npm audit advisories on the v0.23.3 line.
+It changes no source, gate or consensus behaviour, and the `trainActivation` block carries no new height.
+
+| Component | Version |
+|---|---|
+| xchain-decoder | 0.23.4 |
+| xchain-encoder | 0.23.4 |
+| xchain-utxo-tracker | 0.23.4 |
+| xchain-hub | 0.23.4 |
+| xchain-indexer | 0.23.4 |
+| xchain-node | 0.23.4 |
+| xchain-vm, xchain-sync, xchain-explorer, xchain-sdk | 0.23.0 (unchanged) |
+| xchain-e2e-test, xchain-regtest-miner | 0.21.0 (unchanged) |
+| xchain-contracts | 0.17.0 (unchanged) |
+
+The release is published with `--latest=false`, so `releases/latest` keeps resolving to the newest v0.26.x release.
+
+## v0.23.3
+
+Released 2026-10-23. [Release notes and artifacts](https://github.com/XChain-Platform/xchain-node/releases/tag/v0.23.3)
+
+A maintenance release on the `release/v0.23.3` line, which is what mainnet runs.
+Nothing in it changes derived state, and the `trainActivation` block carries no new height.
+
+| Component | Version | Change |
+|---|---|---|
+| xchain-decoder | 0.23.3 | runtime Node moves from 25.9.0 to 22.23.4 |
+| xchain-encoder | 0.23.3 | Node moves from 22.23.2 to 22.23.4 |
+| xchain-utxo-tracker | 0.23.3 | Node moves from 22.23.2 to 22.23.4 |
+| xchain-hub | 0.23.3 | Node moves from 22.23.2 to 22.23.4 |
+| xchain-indexer | 0.23.3 | refuses `Content-Encoding: br` request bodies with 415 |
+| xchain-vm, xchain-sync, xchain-explorer, xchain-sdk | 0.23.0 | unchanged |
+
+The release is published with `--latest=false`, so `releases/latest` keeps resolving to the newest v0.26.x release.
 
 ## v0.23.0
 

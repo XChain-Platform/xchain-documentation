@@ -157,7 +157,7 @@ flowchart TD
     D --> E["Step 4: WebSocket invalidation<br>Revoke session on balance-change event"]
     E --> F{"Gating logic must be<br>trustless and on-chain?"}
     F -->|"No, server-controlled is fine"| G["Off-chain gating<br>server checks balance, serves content"]
-    F -->|"Yes"| H["Step 5: On-chain gating<br>contract checks balance, emits proof or content hash"]
+    F -->|"Yes"| H["Step 5: On-chain gating<br>contract checks balance, records latest access result"]
 ```
 
 ### Step 1: Balance Check
@@ -339,7 +339,7 @@ function watchSession(sessionToken, address, tick, minimum) {
 
 ### Step 5: Smart Contract-Based Gating (On-Chain)
 
-For use cases where the gating logic itself must be trustless and on-chain (not controlled by a server) deploy a smart contract that checks balances before releasing content hashes or toggling access flags.
+For use cases where the gating logic itself must be trustless and on-chain (not controlled by a server) deploy a smart contract that checks balances before recording the latest access result or toggling access flags.
 
 ```js
 // Contract: on-chain token gate
@@ -349,7 +349,7 @@ module.exports = {
   // `description` are required at/after the CONTRACT_META_REQUIRED flag day.
   meta: {
     name:        'Token Gate',
-    description: 'Releases registered content hashes to callers holding a configured minimum balance of a token.',
+    description: 'Records content access for callers holding a configured minimum balance of a token.',
     version:     '1.0.0'
   },
 
@@ -386,7 +386,7 @@ module.exports = {
     var minimumAmount = xchain.state.get('minimumAmount');
 
     var balance = xchain.getBalance(caller, requiredTick);
-    if (!balance || xchain.math.smaller(balance, minimumAmount)) {
+    if (!balance || xchain.math.lt(balance, minimumAmount)) {
       throw new Error('Insufficient token balance for access');
     }
 
@@ -396,22 +396,26 @@ module.exports = {
       throw new Error('Content not found');
     }
 
-    // Emit a message back to the caller with the content hash
-    // The caller's off-chain app reads this from the indexer
-    xchain.emit.message({
-      destination: caller,
-      memo: 'access:' + contentId + ':' + contentHash,
+    // Record the latest access result in one bounded state slot.
+    // The caller's off-chain app reads this public state from the explorer API.
+    var accessRecord = JSON.stringify({
+      caller: caller,
+      contentId: contentId,
+      contentHash: contentHash,
     });
+    xchain.state.set('lastAccess', accessRecord);
   }
 };
 ```
+
+Contract state is public, and `lastAccess` is overwritten on each successful call. This publishes the latest access result rather than delivering the hash confidentially or keeping an access history. For confidential payloads, use [token-gated encrypted publishing](../protocol/token-gated-content.md).
 
 **When to use on-chain vs off-chain gating:**
 
 | Scenario | Approach |
 |---|---|
 | Web app serving media (music, video, e-books) | **Off-chain**: server checks balance, serves content |
-| Proving access rights to a third party trustlessly | **On-chain**: contract verifies balance, emits proof |
+| Publishing the latest access decision | **On-chain**: contract verifies balance, records the result |
 | Physical access (event entry, venue) | **Off-chain**; QR code + challenge-response at the door |
 | DAO/governance feature unlock | **On-chain**: contract checks balance before executing logic |
 | Content where the creator doesn't run a server | **On-chain**: contract holds content hashes, verifies holders |

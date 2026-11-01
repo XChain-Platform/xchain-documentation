@@ -168,7 +168,17 @@ The tracker retries coin node connections indefinitely with a 3-second backoff b
 
 ### Node Sync Waiting
 
-If the coin node's `verificationprogress` is below 0.99, the tracker logs a warning and sleeps for 3 seconds before rechecking. It will not begin indexing until the node is sufficiently synced. The `nodeSyncedProblem` flag tracks this state.
+The tracker indexes from a `getblockchaininfo` reply only when the node's `verificationprogress` is at least 0.99 (`MIN_VERIFICATION_PROGRESS_TO_PARSE`), or when the reply carries no such field. On regtest this gate is skipped: bitcoind derives `verificationprogress` from the age of the tip block, so it decays on a chain mined on demand while the node is healthy.
+
+While the gate refuses a reply, the tracker:
+
+- logs `The node is not synced. Waiting for it to synchronize...` once per episode, at info level, and tracks the episode in the `nodeSyncedProblem` flag;
+- sleeps 3 seconds and ends the pass without indexing;
+- still records the node's reported height as its latest known chain tip, which `GET /status` and the `node_height` metric report;
+- clears `synced` when that height is below its last processed block, as on a reindexing node;
+- does not refresh its last usable node tip time, so once `UTXO_TRACKER_NODE_RPC_STALE_MS` (default 150000 ms) has passed since the loop started or since the last usable tip, `GET /status` answers HTTP 503 with `status: "stalled"`, `node_rpc_stale: true` and `stale_for_ms`.
+
+Initial block download is a separate check, not part of this gate. The tracker reads `initialblockdownload` only when a usable tip is below its own committed height, and then waits for the node instead of rolling back; see [Initial Sync](../../operations/deployment.md#initial-sync).
 
 ### RPC Retry Behavior
 
@@ -202,7 +212,7 @@ Mempool fetch failures are logged and skipped; the tracker retries on the next 6
 Verify the coin node is running and the `NODE_URL`, `NODE_PORT`, `NODE_USER`, and `NODE_PASSWORD` environment variables are correct. The tracker retries indefinitely but will not begin indexing until the connection succeeds.
 
 **Node not synced**
-The tracker waits for the coin node's `verificationprogress` to reach 0.99 before starting. Check `bitcoin-cli getblockchaininfo` to see the current progress.
+On every network except regtest the tracker waits for the coin node's `verificationprogress` to reach 0.99 before indexing; regtest skips this wait (see [Node Sync Waiting](#node-sync-waiting)). While it waits, `node_height` shows the node's reported height, `synced` is false when that height is below the tracker's, and `GET /status` reports `stalled` with HTTP 503 once `UTXO_TRACKER_NODE_RPC_STALE_MS` has passed. Check `bitcoin-cli getblockchaininfo` for both `verificationprogress` and `initialblockdownload`.
 
 **LevelDB lock error**
 LevelDB only allows one process to open a database at a time. If the tracker crashes without releasing the lock, the lock file may remain. Stop any other process using the database, or delete the `LOCK` file in `/data/xchain-utxo-tracker/` (only if no other process is running).

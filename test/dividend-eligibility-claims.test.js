@@ -18,7 +18,8 @@
  *
  *   1. Holders who fail the PAYMENT token's allow or block list. The lists read
  *      are those of DIVIDEND_TICK, not of the share token TICK, and a
- *      configured but empty list still admits everyone.
+ *      configured but empty list admits everyone below
+ *      DIVIDEND_EMPTY_ALLOW_LIST_DENIES_ACTIVATION and no one at or above it.
  *   2. The paying address itself (address == SOURCE).
  *   3. Holders whose share floors to zero. The share is computed with
  *      bcmulfloor at the PAYMENT token's precision, and a recipient is added
@@ -76,8 +77,13 @@ test('the source facts the DIVIDEND eligibility wording rests on still hold', { 
     assert.match(dividend, /if\(share\s*!=\s*0\)/,
         'dividend.js no longer drops zero-share holders, so the guide\'s zero-share exclusion '
         + 'and the spec page\'s per-recipient-fee note are both stale');
-    assert.match(dividend, /allowList\.size\s*&&\s*!allowList\.has\(address\)/,
+    // The allow-list test admits an empty list below DIVIDEND_EMPTY_ALLOW_LIST_DENIES_ACTIVATION
+    // and denies every holder at and above it, which the spec Notes bullet states.
+    assert.match(dividend, /\(allowList\.size\s*\|\|\s*denyEmptyAllowList\)\s*&&\s*!allowList\.has\(address\)/,
         'dividend.js no longer filters recipients through the payment token\'s allow list');
+    assert.match(dividend, /DIVIDEND_EMPTY_ALLOW_LIST_DENIES_ACTIVATION/,
+        'dividend.js no longer reads the empty allow list gate, so the spec Notes bullet that '
+        + 'names DIVIDEND_EMPTY_ALLOW_LIST_DENIES_ACTIVATION is stale');
     assert.match(dividend, /blockList\.size\s*&&\s*blockList\.has\(address\)/,
         'dividend.js no longer filters recipients through the payment token\'s block list');
     assert.match(dividend, /dividendTokenInfo\['ALLOW_LIST'\]/,

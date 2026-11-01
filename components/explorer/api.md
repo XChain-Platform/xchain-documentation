@@ -113,6 +113,8 @@ Other hand-registered routes, such as `feequote` and `preflight`, carry no marke
 | `429` | Rate limit exceeded (180 requests per IP per 60s window by default; proof, batch, preflight, fee-quote and checkpoint routes have tighter limits, see [Rate Limiting](configuration.md#rate-limiting)) |
 | `503` | Coin not configured or database unavailable; or, only with `EXPLORER_STALE_FAIL_CLOSED=1`, `COIN_DATA_STALE` for a coin whose indexed tip is stale |
 
+Absent, empty, actual `null` and literal `null` address path values are no-filter sentinels. The free-text search routes (`getSearch`), including `/{COIN}/api/search/{QUERY}/address` and `/{COIN}/explorer/search/{QUERY}/address`, are exempt from address-shape refusal and pass the query to the search reader. Other API or explorer data routes whose address path segment is malformed for the route network answer HTTP 400 with `{ "error": "Invalid address", "code": "INVALID_ADDRESS" }`. The same refusal applies to the counterparty `{address}` segment on market history and market orders. The fixed text names nothing, unlike the batch-address form, so clients should branch on `code`, never the text. See the full [error-code registry](../../protocol/error-codes.md#explorer-rest-api).
+
 ---
 
 ## Pagination
@@ -2260,6 +2262,8 @@ Content-Type: application/json
 | `ping` | Health check: returns a pong response |
 
 > **Note:** The JSON-RPC interface currently exposes only the `ping` method. The REST API is the primary interface for data queries.
+
+A rate-limit or load-shed refusal on this endpoint is an HTTP `429` REST body (`RATE_LIMITED` or `SERVER_BUSY`), not a JSON-RPC error object; see [Explorer JSON-RPC endpoint](../../protocol/error-codes.md#explorer-json-rpc-endpoint).
 
 ---
 

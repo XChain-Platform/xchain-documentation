@@ -183,7 +183,7 @@ Thrown by wallet operations: key management, address derivation, PSBT signing, t
 | `NETWORK_MISMATCH` | The WIF key's network byte does not match the SDK's configured network |
 | `INVALID_PUBLIC_KEY` | Public key buffer is malformed or has an invalid length |
 | `INVALID_ADDRESS_TYPE` | Unknown address type requested (not `p2pkh`, `p2wpkh`, or `p2sh-p2wpkh`) |
-| `SEGWIT_NOT_SUPPORTED` | A SegWit address type was requested on a Dogecoin network |
+| `SEGWIT_NOT_SUPPORTED` | A SegWit address type was requested, or a PSBT input to be signed is a SegWit spend, on a Dogecoin network |
 | `INVALID_PSBT` | The hex string could not be parsed as a valid PSBT |
 | `SIGN_FAILED` | PSBT signing failed (wrong key for inputs, etc.) |
 | `FINALIZE_FAILED` | PSBT finalization failed after signing |

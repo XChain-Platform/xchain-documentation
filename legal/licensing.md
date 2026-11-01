@@ -10,7 +10,7 @@ XChain Platform is **open source**, dual-licensed under:
 
 You may use XChain under **either** license, whichever fits you.
 
-One first-party component is carved out of that dual license: the [`xchain-contracts`](https://github.com/XChain-Platform/xchain-contracts/) template library is licensed under the **MIT License**, because it exists to be copied into user contracts. Its terms are in that repository's own `LICENSE` file and are not affected by the AGPL's source-disclosure requirements (see [NOTICE](../NOTICE.md)).
+One first-party component is carved out of that dual license: the [`xchain-contracts`](https://github.com/XChain-Platform/xchain-contracts/) template library is licensed under the **MIT License**, because it exists to be copied into user contracts. Its terms are in that repository's own `xchain-contracts/LICENSE.md` file and are not affected by the AGPL's source-disclosure requirements (see [NOTICE](../NOTICE.md)).
 
 ---
 
@@ -65,7 +65,7 @@ No. That's free under the AGPL.
 You can, under the AGPL, *if* you publish your modified source to your users. If you want to keep those modifications private, you need a [commercial license](./commercial-license.md).
 
 **I copied a contract template from `xchain-contracts` into a proprietary product. Do I need a commercial license?**
-No. That repository is MIT-licensed, so keep the copyright and permission notice from its `LICENSE` file and the AGPL's source-disclosure requirement does not apply to what you copied. The rest of the platform stays under the AGPL-or-commercial terms above.
+No. That repository is MIT-licensed, so keep the copyright and permission notice from its `xchain-contracts/LICENSE.md` file and the AGPL's source-disclosure requirement does not apply to what you copied. The rest of the platform stays under the AGPL-or-commercial terms above.
 
 **Can I call my deployment "XChain"?**
 The software license lets you run the code; it does not grant rights to the **XChain name or brand**. See [TRADEMARK.md](./trademark.md).

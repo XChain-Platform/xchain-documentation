@@ -183,9 +183,10 @@ test('the source facts the zero-max-supply wording rests on still hold', { skip:
         /UNCAPPED_MAX_SUPPLY_ZERO_MAINNET_TIME\s*=\s*(?:UNARMED|9999999999)/,
         'protocol_changes.js no longer parks UNCAPPED_MAX_SUPPLY_ZERO_MAINNET_TIME on the '
         + 'unarmed sentinel. If the operator has named the mainnet launch instant, '
-        + 'the "### Supply" wording in user-guide/creating-tokens.md must be updated in the '
-        + 'same commit and this assertion retired: zero max supply then means uncapped on '
-        + 'mainnet too, and the guide must stop telling mainnet issuers to avoid it.');
+        + 'the "### Supply" wording in user-guide/creating-tokens.md and "The mainnet genesis '
+        + 'arm" in protocol/protocol-activation.md must be updated in the same commit and this '
+        + 'assertion retired: zero max supply then means uncapped on mainnet too, and the guide '
+        + 'must stop telling mainnet issuers to avoid it.');
     assert.match(mint, /isEnabled\('UNCAPPED_MAX_SUPPLY_ZERO'/,
         'mint.js no longer resolves the uncapped exemption through '
         + 'isEnabled(\'UNCAPPED_MAX_SUPPLY_ZERO\'), so the guide\'s gate-conditional wording '
@@ -200,6 +201,12 @@ test('the Supply section qualifies the zero-max-supply sentinel by network', () 
     assert.match(supplySection, /protocol-activation\.md/,
         'creating-tokens.md "### Supply" no longer links protocol/protocol-activation.md, so a '
         + 'reader cannot look up when the uncapped reading turns on for mainnet');
+    assert.match(supplySection, /flag-days\.md/,
+        'creating-tokens.md "### Supply" no longer links Flag-Day Values, so a reader cannot '
+        + 'verify that the mainnet UNCAPPED_MAX_SUPPLY_ZERO gate remains unarmed');
+    assert.match(supplySection, /not active[^.]*no published activation date/i,
+        'creating-tokens.md "### Supply" no longer says that the uncapped reading is inactive '
+        + 'and unscheduled on mainnet');
     assert.ok(!/zero means the supply is unlimited/.test(supplySection),
         'creating-tokens.md "### Supply" states unconditionally that a max supply of zero means '
         + 'unlimited supply. That is true on testnet and regtest only while the mainnet arm of '

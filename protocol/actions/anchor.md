@@ -182,7 +182,7 @@ from the hub on 2026-06-11 after ANCHOR verified end-to-end on mainnet; rows it 
 | `PUBKEY_n`            | String  | 0, 1, 3  | 64-hex Ed25519 pubkey, in the `oracle_publish` set at the signature's snapshot block |
 | `SIG_n`               | String  | 0, 1, 3  | 128-hex Ed25519 signature over the canonical checkpoint message    |
 | `PUBLISHER`           | String  | 0, 1, 3  | 64-hex Ed25519 pubkey of the elected publisher that earns the anchor reward |
-| `ATTEST_SIG_COUNT`    | Integer | 0, 1, 3  | Number of (pubkey, sig) attestation pairs that follow; on a v1/v3 this MAY be 0 when the attestation round degraded |
+| `ATTEST_SIG_COUNT`    | Integer | 0, 1, 3  | Number of (pubkey, sig) attestation pairs that follow; on a v1 this MAY be 0 when the attestation round degraded, while a v0 or v3 MUST carry at least 1 (an unattested bundle is deferred, not published) |
 | `APUBKEY_n`           | String  | 0, 1, 3  | 64-hex pubkey in the `oracle_publish` set at `SNAPSHOT_BLOCK` (attestation signer) |
 | `ASIG_n`              | String  | 0, 1, 3  | 128-hex Ed25519 signature over the `XANCPUB` canonical                 |
 

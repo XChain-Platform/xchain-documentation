@@ -467,6 +467,29 @@ const CHECKPOINT_COMMITMENT_ACTIVATION = {
     testnet: 146000,      // ARMED 2026-07-22 (commit 0e418c8c): first BTC-testnet anchor past all three STATE_COMMITMENT testnet thresholds; was 0, which forced the SPV root suffix from testnet genesis before the indexer computes roots, so the hub refused to sign every testnet checkpoint
     regtest: 0,
 };
+// CHECKPOINT_SUPERSEDE_ACTIVATION: the BTC snapshot_block height at/above which a state checkpoint
+// may carry `supersedes_from` (H, the lowest block a retroactive gate move changed) and `rules_digest`
+// (the applied-rules digest the replaying indexer reports). A hub sets both on the first checkpoint it
+// finalizes after its indexer replays from H; every later checkpoint leaves them null. When both are
+// present the checkpoint canonical gains `'|SUPERSEDE|' + supersedes_from + '|' + rules_digest` after
+// the root suffix and before the EQUIV wrap, and readers report every earlier checkpoint on the same
+// (chain, network) at or above supersedes_from as superseded (a reader rule, never an UPDATE). Below
+// the height a checkpoint carrying the fields is refused at propose, co-sign and persist.
+//
+// Read with coin BTC at the snapshot_block on every side. Consensus-relevant for signature
+// verification (the signed preimage changes), so hubs and every verifier (indexers, SDK, explorer,
+// sync) must run the new code before the armed height.
+//
+// Mainnet is unpinned (null). Testnet ships on the UNARMED sentinel until the cut after the fleet
+// roll arms one BTC height. Regtest is 0 so the rail drill exercises it.
+const CHECKPOINT_SUPERSEDE_ACTIVATION = {
+    mainnet: null,
+    'BTC:testnet': 158557, // UNARMED: the next cut sets it
+    'LTC:testnet': 4949697, // UNARMED: the next cut sets it
+    'DOGE:testnet': 68035864, // UNARMED: the next cut sets it
+    testnet: 9999999999,       // UNARMED: the next cut sets it
+    regtest: 0,
+};
 
 // ANCHOR_REWARD_ACTIVATION (anchor-reward re-derivation): the flag-day at/above which the validator
 // anchor reward stops being TRUSTED from the hub over a key-authenticated JSON-RPC (since retired)
@@ -663,6 +686,30 @@ const ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION = {
     'DOGE:testnet': 67962387,
     testnet: 9999999999,
     regtest: null,
+};
+
+// ARCHIVE_ROLLCALL_PRESENCE_ACTIVATION: the BTC snapshot_block height at/above which the
+// archive leg is elected, signed and judged against the archive_publish capability set instead
+// of oracle_publish. At a BTC block b where the oracle_publish set is resolved, archive_publish
+// is the stake-weighted oracle_publish set at b minus every row whose source appears in
+// rollcall_absences for E*, the latest epoch with rolled = 1 AND close_block <= b; when no such
+// epoch exists, or the subtraction leaves no row, it is the full oracle_publish set. Hubs write
+// the set into capability_snapshots and the DOGE indexer reads it through the mirror, so a
+// member absent from the last roll call no longer counts toward the archive quorum.
+//
+// Read with coin BTC at the snapshot_block on every side, the DOGE indexer included, and only
+// where stake-weighted quorum is active. Consensus-relevant (it moves the archive head and
+// wrapper-section quorum verdicts), so hubs must run the new code before the armed height.
+//
+// Mainnet is unpinned (null). Testnet ships on the UNARMED sentinel until the cut after the
+// fleet roll arms one BTC height. Regtest is 0: with no rolled epoch the set equals oracle_publish.
+const ARCHIVE_ROLLCALL_PRESENCE_ACTIVATION = {
+    mainnet: null,
+    'BTC:testnet': 158557, // UNARMED: the next cut sets it
+    'LTC:testnet': 4949697, // UNARMED: the next cut sets it
+    'DOGE:testnet': 68035864, // UNARMED: the next cut sets it
+    testnet: 9999999999,       // UNARMED: the next cut sets it
+    regtest: 0,
 };
 
 // ROLLCALL (validator liveness eviction). A roll call is a signed proof of presence bound to a
@@ -2063,6 +2110,20 @@ const LIST_TICK_COIN_ACTIVATION = {
     regtest: 0,
 };
 
+// Existing-child edit flag day, keyed on the block_index of the chain being parsed.
+// Canonical authority for the registry row
+// child_token_independent_edits_activation.CHILD_TOKEN_INDEPENDENT_EDITS_ACTIVATION.
+// At and above the height, ISSUE edits of an existing child use the child's owner and
+// escrow state without repeating the parent-owner and parent-escrow checks.
+const CHILD_TOKEN_INDEPENDENT_EDITS_ACTIVATION = {
+    mainnet: 9999999999,
+    'BTC:testnet': 157235,
+    'LTC:testnet': 4930600,
+    'DOGE:testnet': 68012800,
+    testnet: 9999999999,
+    regtest: 0,
+};
+
 // Tick-namespace flag day (R8), keyed on the block_index of the chain being
 // parsed. Canonical authority for the registry row tick_namespace_activation.TICK_NAMESPACE_ACTIVATION, which
 // carries the full rationale.
@@ -2285,8 +2346,8 @@ function resolveMirrorAdmissionRegtest(env){
 // v0.20.0 sizing was overrun on LTC by a cadence that nearly halved while BTC's slowed. Before
 // the carrying train rolls, re-measure all three tips and project each producer height forward
 // at its own window cadence. Re-cut when EITHER holds:
-//   1. The fleet has not rolled by TBTC 153,211 (this producer height less the 11 blocks a
-//      90-minute roll takes at the measured cadence). Re-cut every testnet key here and in both
+//   1. The fleet has not rolled by the BTC:testnet producer height below, less the blocks a
+//      90-minute roll takes at the measured cadence. Re-cut every testnet key here and in both
 //      registry twins from the NEXT epoch close, rather than shipping a height the chain passed.
 //   2. Any chain's projected crossing sits more than 6 h from the BTC producer's. Re-cut that
 //      chain onto the BTC instant. Six hours is the consumer gap below and so the entire
@@ -2331,12 +2392,27 @@ const ADMIT_CHAIN_MARGIN_BLOCKS = Object.freeze({
         price_snapshots:        16,
         remote_token_snapshots: 14,
     }),
+    // LTC testnet bursts leave the hub watermark 5 to 12 blocks behind the tip on the
+    // 8-minute round tables, so 12 plus 2 blocks of headroom. price_snapshots waits a
+    // 10-minute window: at the burst cadence that trails 12 blocks in 8 minutes it trails
+    // 15, plus the same 2, so 17. Both stay inside ADMIT_MAX_FUTURE_BLOCKS.LTC (24).
+    LTC: Object.freeze({
+        bridge_transfers:       14,
+        cross_chain_calls:      14,
+        cross_chain_matches:    14,
+        list_snapshots:         14,
+        policy_snapshots:       14,
+        price_snapshots:        17,
+        remote_token_snapshots: 14,
+    }),
 });
 
 const ADMIT_CHAIN_MARGIN_ACTIVATION = Object.freeze({
     mainnet:        null,
     'DOGE:mainnet': null,
     'DOGE:testnet': 67989993,
+    'LTC:mainnet':  null,
+    'LTC:testnet':  4949697, // UNARMED: the next cut sets it
     regtest:        0,
 });
 
@@ -2437,6 +2513,7 @@ module.exports = {
     SNAPSHOT_BURIAL_ACTIVATION,
     STATE_COMMITMENT_ACTIVATION,
     CHECKPOINT_COMMITMENT_ACTIVATION,
+    CHECKPOINT_SUPERSEDE_ACTIVATION,
     ANCHOR_REWARD_ACTIVATION,
     ANCHOR_REWARD_AMOUNT,
     ARCHIVE_REWARD_ACTIVATION,
@@ -2449,6 +2526,7 @@ module.exports = {
     ANCHOR_FOLD_ACTIVATION,
     ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION,
     ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION,
+    ARCHIVE_ROLLCALL_PRESENCE_ACTIVATION,
     ADMIT_MARGIN_BLOCKS,
     ADMIT_MIN_FUTURE_BLOCKS,
     ADMIT_MAX_FUTURE_BLOCKS,
@@ -2533,6 +2611,7 @@ module.exports = {
     LIST_TRANSFER_ACTIVATION,
     LIST_ADDRESS_REF_ACTIVATION,
     LIST_TICK_COIN_ACTIVATION,
+    CHILD_TOKEN_INDEPENDENT_EDITS_ACTIVATION,
     TICK_NAMESPACE_ACTIVATION,
     RESERVED_FUTURE_ROOTS,
     MAINNET_LAUNCH_ACTIVATION,

@@ -67,6 +67,8 @@ Errors are JSON objects:
 | `CONTRACT_STATE_NOT_COMMITTED` | 409 | `contract_state_root` is not committed at this height, so absence cannot be proven | No: choose a later height |
 | `ESCROW_LEAF_NOT_COMMITTED` | 409 | The locked-balance leaf is not committed at this height, so absence cannot be proven | No: choose a later height |
 | `STATE_TOO_LARGE` | 413 | Contract simulation: the contract's state exceeds the simulation limits | No |
+| `INVALID_JSON_BODY` | 400 | A `POST` body sent as `application/json` is not valid JSON. The status is 415 when the body uses a charset or content encoding the parser does not accept | No: fix the request |
+| `BODY_TOO_LARGE` | 413 | A `POST` body exceeds the explorer's ceiling: 10 KB on every route except `POST /{COIN}/api/preflight` and `POST /{COIN}/api/feequote`, which allow 1 MB. Unrelated to `STATE_TOO_LARGE` | No: send a smaller body |
 | `SERVER_BUSY` | 429 | The explorer's global in-flight request cap is reached and the request was shed; a second 429 distinct from the per-IP `RATE_LIMITED`, with a `Retry-After` header | Yes: back off; honor `Retry-After` |
 | `VM_BUSY` | 429 | Contract simulation: too many concurrent simulations, globally or from this client | Yes: back off |
 | `INTERNAL_ERROR` | 500 | An unhandled failure while serving a data request | Yes: with backoff |
@@ -94,15 +96,19 @@ Errors are JSON objects:
 | `CURSOR_UNSUPPORTED` | 400 | Keyset paging on API list routes: `before` or `after` was given on a list that does not page by cursor (a list whose rows can share an action index, such as sends; only lists whose OpenAPI entry documents `before`/`after` accept them). The cursor value is not inspected | No: page with `page` instead |
 | `INVALID_SORTORDER` | 400 | List routes, API and explorer feeds alike: `sortorder` is neither `asc` nor `desc` in any letter case | No: fix the request |
 | `INVALID_PAGE` | 400 | API list routes: `page` is not a whole number of at least 1 | No: fix the request |
+| `INVALID_START` | 400 | Explorer feeds: the `start` offset is not a whole number of at least 0 | No: fix the request |
+| `INVALID_TOTAL` | 400 | Explorer feeds: a supplied `total` is not a whole number of at least 0 (an empty or absent `total` is allowed and read as unknown) | No: fix the request |
+| `INVALID_TX_HASH` | 400 | Transaction lookups: the hash is neither a 64-character hex transaction id nor one of the synthetic forms the explorer serves (`GENESIS-*`, `XPOLICY-*`, `XBRIDGE*`, `LIST_SHARE*`) | No: fix the request |
+| `INVALID_TICK_REF` | 400 | Ticker routes: a `^` reference is not followed by a safe whole-number ticker id | No: fix the request |
 | `PAGE_TOO_DEEP` | 400 | API list routes: the requested `page` starts past row 100000, the deepest row served by position. A request carrying `before` or `after` is not held to this cap | No: page by `before`/`after` where the list offers them |
 | `INVALID_LENGTH` | 400 | Explorer list feeds (`/{COIN}/explorer/...`): `length` is not a whole number of at least 1 | No: fix the request |
 | `INVALID_OFFSET` | 400 | Explorer list feeds on a cursor-paged list: the `offset` cursor a next or previous page continues from is not a whole number. A feed paged by row position never reads it | No: fix the request |
 | `INVALID_ADDRESSES` | 400 | Batch address routes (`POST /{COIN}/api/balances`, `POST /{COIN}/api/coinpay_obligations`): the body's `addresses` field is missing, not an array, empty, or holds a non-string entry, and nothing is read. The SDK's client-side pre-flight throws the same code before a request is sent (see [SDK explorer methods](../components/sdk/explorer.md)) | No: fix the request |
 | `TOO_MANY_ADDRESSES` | 400 | Batch address routes: more than 20 addresses in one body, counted before duplicates are collapsed, so a body of repeats is refused rather than quietly served | No: send at most 20 per request |
-| `INVALID_ADDRESS` | 400 | Batch address routes: one entry is not a well-formed address; the offending entry is echoed (truncated) in the `error` text. Unrelated to the SDK library's own `INVALID_ADDRESS` typed error, which is a separate surface (see [SDK errors](../components/sdk/errors.md)) | No |
+| `INVALID_ADDRESS` | 400 | Batch address routes: one entry is not a well-formed address; the offending entry is echoed (truncated) in the `error` text. On API and explorer data routes, absent, empty, actual `null` and literal `null` path values are no-filter sentinels, and the free-text `getSearch` routes are exempt. Other `address`, `source`, `destination`, `oracle`, `delegator` or `delegate` path segments, plus the counterparty `{address}` on market history and market orders, emit this code when they are not well-formed for the route network; the fixed `error` text is `Invalid address` and names nothing. Cross-chain address lanes accept an address from any configured chain on the same network. Unrelated to the SDK library's own `INVALID_ADDRESS` typed error, which is a separate surface (see [SDK errors](../components/sdk/errors.md)) | No |
 | `READ_FAILED` | 200 (per-address) | Batch address routes only: the fallback code inside a per-address `error` object when the inner read failed without supplying a code of its own. The whole-request status is still 200; branch on the entry's own `status` field | Depends on the entry's `status` |
 
-The batch address routes fail at two layers, and a client has to read both. A whole-request refusal carries an HTTP 400 with one of the three codes above, or the coin gate's 503 (`COIN_NOT_AVAILABLE` / `COIN_DATA_STALE`), which answers the entire batch rather than being buried per address. Otherwise the response is HTTP 200 and each address may carry an `error` object of `{ code, error, status }`, where `code` is whatever the inner read returned, or `READ_FAILED` when it returned none. A 200 therefore does not mean every address succeeded.
+The batch address routes fail at two layers, and a client has to read both. A whole-request refusal carries an HTTP 400 with one of the three codes above, or the coin gate's 503 (`COIN_NOT_AVAILABLE` / `COIN_DATA_STALE`), which answers the entire batch rather than being buried per address. A body that is not valid JSON, or is over the 10 KB ceiling, is refused before the route reads it, with `INVALID_JSON_BODY` or `BODY_TOO_LARGE`. Otherwise the response is HTTP 200 and each address may carry an `error` object of `{ code, error, status }`, where `code` is whatever the inner read returned, or `READ_FAILED` when it returned none. A 200 therefore does not mean every address succeeded.
 
 The bridge-invariant route (`GET /{COIN}/api/bridge-invariant/{tick}`) answers HTTP 200 with `{ "available": false, "reason": "<reason>" }` in place of an invariant map when the explorer cannot ask the hub at all. That body means "could not ask", never "no copies exist", so check `available` before reading the body as a map. `reason` is a stable string, append-only like the codes above and scoped to this route:
 
@@ -132,11 +138,25 @@ The SDK treats every JSON-RPC body error as final: it does not automatically ret
 | `-32001` | Unauthorized: missing/invalid API key (`x-api-key` for encoder/hub, `Authorization: Bearer` for SDK API) | all | No: fix credentials |
 | `-32029` | Too many requests (rate limit) | encoder, hub | Yes: back off |
 | `-32005` | Too many requests (rate limit) on the **SDK API only**, which does not use `-32029`. Served as HTTP `429` with a `Retry-After` header carrying the seconds until the caller's window resets; the message names the limit and the window | SDK API | Yes: wait out `Retry-After`, then back off |
-| `-32010` | Operational error: an expected, caller-actionable condition (`create_tx`, `create_envelope_cancel_tx`, `broadcast_tx`). `error.data.reason` carries a stable code from the table below; branch on it, never on `message` | encoder | Depends on `reason` (see below) |
+| `-32010` | Operational error: an expected, caller-actionable condition (`create_tx`, `create_envelope_cancel_tx`, `broadcast_tx`, `estimate_fee`, `get_utxos`). `error.data.reason` carries a stable code from the table below; branch on it, never on `message` | encoder | Depends on `reason` (see below) |
 
 Rate limiting is the one condition with two codes. A client that talks to more than one of
 these services must treat `-32029` and `-32005` as the same condition, or key retry on the
-HTTP `429` and the `Retry-After` header, which every one of them sets.
+HTTP `429` and the `Retry-After` header, which every one of them sets. The explorer's
+JSON-RPC endpoint (below) sets the same status and header but sends neither code, so a client
+that also calls the explorer keys retry on the status.
+
+### Explorer JSON-RPC endpoint
+
+The explorer serves a JSON-RPC 2.0 dispatcher at `POST /` and at `POST /{COIN}/api/` (the
+federation reads), behind the same per-IP rate limiter and in-flight request cap as its REST
+routes. Those two guards refuse a JSON-RPC call with their REST body, not a JSON-RPC error
+object: HTTP `429` carrying `RATE_LIMITED` or `SERVER_BUSY` from the
+[Explorer REST API](#explorer-rest-api) table, with a `Retry-After` header. Check the HTTP
+status before requiring a `jsonrpc` envelope in the body. A body on either path that is not
+valid JSON is answered with `-32700` (HTTP `400`), and one over the 10 KB body ceiling with
+`-32600` (HTTP `413`). The explorer's own errors are the standard codes; it never sends
+`-32001`, `-32010`, `-32029` or `-32005`.
 
 ### Encoder operational reasons
 
@@ -152,7 +172,7 @@ A `-32010` error always carries `error.data.reason`, a stable string that is app
 | `DUPLICATE_TRANSACTION` | A transaction with the same inputs and outputs (same txid) was built inside the reservation window | `txid` | No: broadcast the one already built, or change the inputs or outputs |
 | `INPUT_RESERVED` | `options.exactInputs` names outpoints reserved by a transaction built inside the reservation window | `reserved` (outpoints) | No: broadcast that transaction and rebuild, or wait for the reservation to lapse |
 | `INPUT_SELECTION_RACE` | Input selection raced a concurrent reservation, so the obfuscation key is bound to an outpoint that is not the first input | `expectedFirstInput`, `actualFirstInput` | Caller may retry the request |
-| `UTXO_SET_TOO_LARGE` | The address holds more UTXOs than the encoder will return in one set, so it refuses rather than build from a partial set | `limit` | No: consolidate the address or pass `utxos` explicitly |
+| `UTXO_SET_TOO_LARGE` | `create_tx` and `get_utxos`: the address holds more UTXOs than the encoder will use or return in one set, so it refuses rather than use a partial set | `limit` | No: consolidate the address or pass `utxos` explicitly to `create_tx` |
 | `UTXO_TRACKER_ERROR` | The UTXO tracker is unreachable or returned a malformed response | none | Caller may retry with backoff |
 | `UTXO_TRACKER_STALE` | The tracker's view lags the node past the configured threshold, or is ahead of the node (an orphaned view), or the tracker reports `synced: false` (the remote tracker profile also refuses an absent `synced`) | `lag`, `tracker_height`, `node_height` | Caller may retry with backoff |
 | `UTXO_TRACKER_HALTED` | The tracker is halted (for example after an unrecoverable reorg) | `lag`, `tracker_height`, `node_height`, `halt_reason` | No: operator action |
@@ -166,6 +186,7 @@ A `-32010` error always carries `error.data.reason`, a stable string that is app
 | `TX_ALREADY_IN_CHAIN` | `broadcast_tx`: the coin node already knows the transaction, in its mempool or in a block | `node_code` (the node's RPC error code) | No: the transaction is already broadcast; track its txid |
 | `UTXO_TRACKER_UNREACHABLE` | Remote tracker profile only (`UTXO_TRACKER_PROFILE=remote`): the tracker's `get_sync_status` or `get_utxos` call failed (a transport fault, an error reply or a malformed result), and this profile has no fallback. The default profile reports the same failure as `UTXO_TRACKER_ERROR` | none | Caller may retry with backoff |
 | `UTXO_TRACKER_SYNC_MISSING` | Remote tracker profile only: the tracker returned an empty sync status, a `get_utxos` reply with no `sync` field, or a `sync` without a numeric `lag`, so the encoder refuses a view the tracker did not vouch for. The default profile builds in this case | none | No: operator action (upgrade or repair the tracker); a wallet may offer a manual retry |
+| `NODE_UNREACHABLE` | The coin node did not answer an encoder query, so the requested transaction build or fee quote could not proceed (for example, the connection timed out, was refused, or was reset) | none | Caller may retry with backoff |
 | `TX_BELOW_MIN_STANDARD_SIZE` | A single-transaction build would serialize under the coin node's minimum non-witness (stripped) size, so the node would not relay it: Litecoin Core 82 bytes, Bitcoin Core 65, Dogecoin Core none. Input selection first takes another input so a funded change output lifts the build over the floor; this reason means no input was left to do that | `strippedSize` (predicted non-witness bytes), `minimum` (the node floor) | No: add an input, or leave enough for a change output above the dust floor plus its fee |
 
 ## Where the specs live

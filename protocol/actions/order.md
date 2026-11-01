@@ -125,7 +125,7 @@ stateDiagram-v2
   - New child `ISSUE` using this `TICK` as a parent (period-separated name)
   - Additional `ORDER`/`SWAP`/`DISPENSER` ownership offers for this `TICK` from the original owner
 - Holder-side actions are unaffected: `SEND`, `MINT` (if mint window open), `DIVIDEND` payouts, `DEPOSIT`/`WITHDRAW`, `DESTROY` of held balance
-- Child `TICK`s (e.g. `JDOG.SUB1`) have independent ownership records and are **not** transferred when a parent's ownership is sold, sell each child separately if needed
+- Child `TICK`s (e.g. `JDOG.SUB1`) have independent ownership records and are **not** transferred when a parent's ownership is sold, sell each child separately if needed. Below the independent child-edit gate, a full-name child edit also requires the parent owner, while a compact `^id` edit does not run parent checks. The gate is currently unarmed on mainnet, so that below-gate rule applies there whenever mainnet user actions are admitted; see [NFT Standard collections](../nft-standard.md#collections)
 - On match: ownership transfers atomically to the counterparty's SOURCE
 - On cancel (Version 1) or `EXPIRATION`: ownership returns to the original SOURCE
 - When matched against a native-coin counterparty: ownership remains in escrow as a `pending_coinpay` obligation and is delivered to the buyer once `COINPAY` settles; if the obligation expires or is cancelled, ownership returns to the original SOURCE
@@ -145,6 +145,9 @@ flowchart TD
 
 ### Matching Origin
 - At or above the `MATCH_ORIGIN_OPEN_ACTIVATION` height, ORDER matching starts only from an order whose latest status is `open`. A match dispatched from an order that is already `complete`, `cancelling`, `cancelled`, `expiring` or `expired` (a LIST rematch plan that reaches an order its earlier step completed, or the match an ORDER cancel dispatches from the order it has just cancelled) stops at the gate before any candidate is looked up, so escrow already settled or refunded is not settled again. Below the height the match runs as before. The height is unarmed on mainnet and testnet, and a regtest venue arms it with `XC_MATCH_ORIGIN_OPEN_REGTEST_ACTIVATION`.
+
+### Equal-Price Priority
+- Candidate orders are ranked best price first. At or above the `MATCH_EQUAL_PRICE_OLDEST_FIRST` height, orders at an equal price are taken oldest first (lowest `ACTION_INDEX` first), the price-time priority rule in which the earlier offer is the maker (see [Cross-Chain DEX](../cross-chain-dex.md#order-offers-partial-fills)). Below the height orders at an equal price are taken newest first (highest `ACTION_INDEX` first). The height is armed on testnet at each chain's own height and unarmed on mainnet, and a regtest venue arms it with `XC_MATCH_EQUAL_PRICE_OLDEST_FIRST_REGTEST_ACTIVATION`.
 
 ### Sweep Closure
 - When `SWEEP` is broadcast from this order's SOURCE with `ORDERS=1`, the order is cancelled and the escrowed `GIVE_TICK` balance (or `GIVE_OWNERSHIP` ownership record) is credited to the SWEEP `DESTINATION` rather than returned to SOURCE (see [`SWEEP`](./sweep.md))

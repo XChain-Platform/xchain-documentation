@@ -51,15 +51,19 @@ covers both roles: the bettor who backs an outcome, and the oracle who runs the 
   deadline, refund window, optional minimum stake and allow/block lists.
 - **My bets**: `MyBets.jsx`. Your wagers across every address, as open / won / lost / refunded.
 - **Oracle console**: `OracleConsole.jsx`. The markets you run: Resolve (legal only between the
-  deadline and the end of the refund window) and Cancel (legal only before a terminal state), both
-  hidden in watcher mode. Markets are immutable once created, so the correction path is Cancel plus
-  "Copy to a new market".
+  deadline and the end of the refund window), Cancel (legal only before a terminal state) and Edit
+  lists (shown on an open market the connected address created; it replaces, keeps or detaches the
+  allow and block list references with BET v4, for bets placed afterwards). In watcher mode each one
+  builds an unsigned transaction instead of signing. Edit lists does not check whether the network
+  has activated BET v4, so on mainnet, where v4 is not yet enabled, the indexer rejects the edit.
+  Every other market term is fixed at creation, so correcting an outcome, token, fee or deadline
+  still means Cancel plus "Copy to a new market".
 - **Oracle record**: `OracleRecord.jsx`. An oracle's history and fees earned, for judging a market
   before staking on it.
 
 Composers live in `core/src/flows/betActions.js` (one per wire format) and read paths in
 `core/src/flows/betQueries.js`. Creating a market and placing a bet are both fee-bearing and mount
-`NativeFeeToggle`; resolve and cancel are not fee-bearing and deliberately do not.
+`NativeFeeToggle`; resolve, cancel and list edits are not fee-bearing and deliberately do not.
 
 Settlement is automatic: payouts credit the address that placed the bet, so there is no claim step
 and no claim button.

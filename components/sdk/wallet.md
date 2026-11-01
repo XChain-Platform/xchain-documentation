@@ -48,7 +48,7 @@ All methods that involve private keys are synchronous (pure crypto, no network c
 | `dogecoin-testnet` | Dogecoin testnet | No | `0xf1` |
 | `dogecoin-regtest` | Dogecoin regtest | No | `0xef` |
 
-Dogecoin does not support SegWit. Requesting a `p2wpkh` or `p2sh-p2wpkh` address on a Dogecoin network throws `SEGWIT_NOT_SUPPORTED`.
+Dogecoin does not support SegWit. Requesting a `p2wpkh` or `p2sh-p2wpkh` address on a Dogecoin network throws `SEGWIT_NOT_SUPPORTED`, and so does `signPsbt` when an input it is asked to sign is a SegWit or Taproot spend.
 
 ---
 

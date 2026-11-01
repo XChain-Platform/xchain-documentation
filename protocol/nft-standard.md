@@ -129,11 +129,24 @@ PEPESERIES.NIGHTSKY   ← item 2
 The consensus rules that make this a provenance system already exist in `ISSUE`
 validation:
 
-- A child `ISSUE` is valid **only from the current owner of the parent** `TICK`.
-- Child issuance is rejected while the parent's ownership is escrowed in an open
+- Creating a new child is valid **only from the current owner of the parent**
+  `TICK`, and is rejected while the parent's ownership is escrowed in an open
   ownership offer.
+- Editing an existing child by its full period-separated `TICK` depends on
+  `CHILD_TOKEN_INDEPENDENT_EDITS_ACTIVATION` (see
+  [Flag-Day Values](./flag-days.md)). At or above the gate, the editor needs the
+  child's ownership only and parent escrow does not block the edit. Below the
+  gate, the editor must own both parent and child, and escrow of either ownership
+  record blocks the edit. An edit that identifies the child by its compact `^id`
+  reference does not carry a period-separated parent name, so it does not run the
+  parent-owner or parent-escrow checks at any height; the child-owner and
+  child-escrow checks still apply. The gate is currently unarmed on mainnet,
+  so full-name mainnet child edits remain under the below-gate rules whenever
+  mainnet user actions are admitted.
 - Each child has its **own independent ownership record**; selling the parent's
-  ownership does not move the children, and vice versa.
+  ownership does not move the children, and vice versa. Below the independent-edit
+  gate, that separate transfer does not by itself grant the buyer full-name edit
+  access.
 
 So collection authenticity is chain-native: every item in `PEPESERIES.*` was provably
 added by whoever owned `PEPESERIES` at that block, and the parent's ownership history
@@ -270,7 +283,12 @@ All existing rails apply to NFT-pattern tokens, with one exception noted under T
 - **Issuer-rights sales:** `GIVE_OWNERSHIP`/`GET_OWNERSHIP` on ORDER/SWAP/DISPENSER
   sell the token's *ownership record* (the right to link files, edit unlocked fields,
   issue children under a parent), distinct from holding its supply. Ownership trades
-  are single-fill and escrow-protected.
+  are single-fill and escrow-protected. For a child token below
+  `CHILD_TOKEN_INDEPENDENT_EDITS_ACTIVATION`, its buyer must also own the parent to
+  edit unlocked fields when using the full period-separated `TICK`; a compact `^id`
+  reference does not run the parent checks. At or above the gate, the child's
+  ownership is sufficient in either form.
+  See [Collections](#collections).
 
 ## Royalties
 

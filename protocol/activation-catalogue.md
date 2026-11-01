@@ -26,6 +26,7 @@ same chain or field.
 | `active_stake_collation_activation` | `ACTIVE_STAKE_COLLATION_ACTIVATION` | height |
 | `airdrop_native_fee_tally_activation` | `AIRDROP_NATIVE_FEE_TALLY_ACTIVATION` | height |
 | `airdrop_native_fee_tally_rollback_activation` | `AIRDROP_NATIVE_FEE_TALLY_ROLLBACK_ACTIVATION` | height |
+| `airdrop_zero_legs_omitted_activation` | `AIRDROP_ZERO_LEGS_OMITTED_ACTIVATION` | height |
 | `amount_representability_activation` | `AMOUNT_REPRESENTABILITY_ACTIVATION` | time |
 | `anchor_activation` | `ANCHOR_ACTIVATION` | height |
 | `anchor_archive_fold_term_activation` | `ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION` | height |
@@ -40,6 +41,7 @@ same chain or field.
 | `archive_match_count_activation` | `ARCHIVE_MATCH_COUNT_ACTIVATION` | height |
 | `archive_orphan_geometry_activation` | `ARCHIVE_ORPHAN_GEOMETRY_ACTIVATION` | height |
 | `archive_rollback_author_scope_activation` | `ARCHIVE_ROLLBACK_AUTHOR_SCOPE_ACTIVATION` | height |
+| `archive_rollcall_presence_activation` | `ARCHIVE_ROLLCALL_PRESENCE_ACTIVATION`, the `archive_publish` set: `oracle_publish` minus the sources absent from the latest rolled roll call | height |
 | `archive_section_verdict_activation` | `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` | height |
 | `archive_v1_reissue_refusal_activation` | `ARCHIVE_V1_REISSUE_REFUSAL_ACTIVATION` | height |
 | `attest_admission_activation` | `ATTEST_ADMISSION_ACTIVATION` | height |
@@ -65,6 +67,7 @@ same chain or field.
 | `capability_snapshot_proof_activation` | `CAPABILITY_SNAPSHOT_PROOF_ACTIVATION` | height |
 | `caret_ref_strict_activation` | `CARET_REF_STRICT_ACTIVATION` | height |
 | `checkpoint_commitment_activation` | `CHECKPOINT_COMMITMENT_ACTIVATION` | height |
+| `checkpoint_supersede_activation` | `CHECKPOINT_SUPERSEDE_ACTIVATION`, the superseding checkpoint marker: `supersedes_from` and `rules_digest` signed into the checkpoint canonical | height |
 | `contract_slash_active_first_activation` | `CONTRACT_SLASH_ACTIVE_FIRST_ACTIVATION` | height |
 | `cooldown_maturity_escrow_reversal_activation` | `COOLDOWN_MATURITY_ESCROW_REVERSAL_ACTIVATION` | height |
 | `cross_chain_offer_list_export_activation` | `CROSS_CHAIN_OFFER_LIST_EXPORT` | height |
@@ -82,6 +85,7 @@ same chain or field.
 | `dispenser_refill_policy_activation` | `DISPENSER_REFILL_POLICY_ACTIVATION` | height |
 | `dispenser_send_amount_compare_activation` | `DISPENSER_SEND_AMOUNT_COMPARE_ACTIVATION` | height |
 | `dispenser_settlement_price_activation` | `DISPENSER_SETTLEMENT_PRICE_ACTIVATION` | time |
+| `dividend_empty_allow_list_denies_activation` | `DIVIDEND_EMPTY_ALLOW_LIST_DENIES_ACTIVATION` | height |
 | `empty_allow_list_denies_activation` | `EMPTY_ALLOW_LIST_DENIES` | height |
 | `execute_fee_cap_activation` | `EXECUTE_FEE_CAP_ACTIVATION` | height |
 
@@ -110,6 +114,7 @@ same chain or field.
 | `list_union_activation` | `LIST_UNION_ACTIVATION` | height |
 | `mainnet_launch_activation` | `MAINNET_LAUNCH_ACTIVATION` | time |
 | `market_list_source_activation` | `MARKET_LIST_SOURCE_ACTIVATION` | height |
+| `match_equal_price_oldest_first_activation` | `MATCH_EQUAL_PRICE_OLDEST_FIRST` | height |
 | `match_origin_open_activation` | `MATCH_ORIGIN_OPEN_ACTIVATION` | height |
 | `mirror_admission_activation` | `MIRROR_ADMISSION_ACTIVATION` and `MIRROR_ADMISSION_CONSUMER_ACTIVATION` | height |
 | `mirror_admission_margin_activation` | `ADMIT_CHAIN_MARGIN_ACTIVATION` | height |
@@ -143,6 +148,7 @@ same chain or field.
 | `retraction_signing_activation` | `RETRACTION_SIGNING_ACTIVATION` | height |
 | `rollcall_activation` | `ROLLCALL_ACTIVATION` | epoch |
 | `rollcall_gates_activation` | `ROLLCALL_GATES_ACTIVATION` | epoch |
+| `same_token_offer_refusal_activation` | `SAME_TOKEN_OFFER_REFUSAL_ACTIVATION` | height |
 | `send_caret_pack_key_activation` | `SEND_CARET_PACK_KEY_ACTIVATION` | time |
 | `send_gated_total_tick_id_activation` | `SEND_GATED_TOTAL_TICK_ID_ACTIVATION` | time |
 | `settlement_bounds_activation` | `SETTLEMENT_BOUNDS_ACTIVATION` | height |
@@ -159,6 +165,7 @@ same chain or field.
 | `swq_source_cap_activation` | `SWQ_SOURCE_CAP_ACTIVATION` | height |
 | `tick_cache_null_prototype_activation` | `TICK_CACHE_NULL_PROTOTYPE_ACTIVATION` | height |
 | `tick_namespace_activation` | `TICK_NAMESPACE_ACTIVATION` | height |
+| `tick_normalize_activation` | `TICK_NORMALIZE_ACTIVATION` | height |
 | `token_bridge_activation` | `TOKEN_BRIDGE_ACTIVATION` | height |
 | `token_policy_activation` | `TOKEN_POLICY_INHERITANCE_ACTIVATION` | height |
 | `token_supply_representation_activation` | `TOKEN_SUPPLY_REPRESENTATION_ACTIVATION` | height |

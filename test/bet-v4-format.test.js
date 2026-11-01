@@ -79,3 +79,25 @@ test('the user guide states where BET list editing is active, matching the index
     assert.match(section, /each testnet chain activates at its own block height and which is not active on mainnet yet/);
     assert.match(section, /\(\.\.\/protocol\/protocol-activation\.md\)/);
 });
+
+// Format 4 edits a market's list references, so no summary page may call a market wholly immutable.
+test('the whitepaper and wallet features page name format 4 instead of calling markets immutable', () => {
+    const bullet = read('whitepaper.md').split('\n').find((l) => l.startsWith('- **BET**'));
+    assert.ok(bullet, 'the whitepaper BET bullet is missing');
+    assert.doesNotMatch(bullet, /Markets are immutable from creation/);
+    assert.match(bullet, /v4 lets the creator change an open market's allow\/block list references/);
+    assert.match(bullet, /only its allow\/block list references can change, through v4/);
+    const features = read('components/wallet/features.md');
+    assert.doesNotMatch(features, /Markets are immutable once created/);
+    assert.match(features, /Edit\s+lists/);
+});
+
+test('the whitepaper BET status note matches the indexer gate row', { skip: indexer.skip }, () => {
+    const gates = fs.readFileSync(path.join(indexer.root, 'src/protocol_changes/gates_4.js'), 'utf8');
+    const row = gates.match(/addGate\('bet_feed_list_edit_activation\.BET_FEED_LIST_EDIT_ACTIVATION', 'height', \{([^}]*)\}\)/);
+    assert.ok(row, 'indexer gates_4.js no longer registers the BET list-edit gate');
+    const drift = 'BET_FEED_LIST_EDIT_ACTIVATION moved: update the BET status note in whitepaper.md, then this test';
+    assert.match(row[1], /mainnet:\s*UNARMED/, drift);
+    const bullet = read('whitepaper.md').split('\n').find((l) => l.startsWith('- **BET**'));
+    assert.match(bullet, /\*\(v4 is gated by `BET_FEED_LIST_EDIT_ACTIVATION`: active on regtest and the BTC, LTC and DOGE testnets, not yet enabled on mainnet\)\*/);
+});

@@ -92,11 +92,14 @@ Each validator's hub picks a transport per `xchain-hub/src/lib/hub_credentials.j
 
 Resolution order (first match wins):
 1. `HUB_CLAUDE_CONFIG_DIR`
-2. `CLAUDE_CONFIG_DIR`
-3. `HUB_CLAUDE_CODE_OAUTH_TOKEN`
-4. `CLAUDE_CODE_OAUTH_TOKEN`
-5. `ANTHROPIC_API_KEY`
-6. Default `~/.claude-xchain` if pre-populated.
+2. `HUB_CLAUDE_CODE_OAUTH_TOKEN`
+3. `HUB_ANTHROPIC_API_KEY`
+4. `CLAUDE_CONFIG_DIR`
+5. `CLAUDE_CODE_OAUTH_TOKEN`
+6. `ANTHROPIC_API_KEY`
+7. Default `~/.claude-xchain` if pre-populated.
+
+Every `HUB_`-scoped credential outranks every ambient one, so a shell's own `claude login` or OAuth token never moves a hub that was given `HUB_ANTHROPIC_API_KEY` onto `claude_spawn`.
 
 A mixed-transport quorum still converges because `judge_model` evaluates semantic equivalence, not byte equality.
 
