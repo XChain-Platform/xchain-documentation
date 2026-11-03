@@ -188,6 +188,7 @@ A `-32010` error always carries `error.data.reason`, a stable string that is app
 | `UTXO_TRACKER_SYNC_MISSING` | Remote tracker profile only: the tracker returned an empty sync status, a `get_utxos` reply with no `sync` field, or a `sync` without a numeric `lag`, so the encoder refuses a view the tracker did not vouch for. The default profile builds in this case | none | No: operator action (upgrade or repair the tracker); a wallet may offer a manual retry |
 | `NODE_UNREACHABLE` | The coin node did not answer an encoder query, so the requested transaction build or fee quote could not proceed (for example, the connection timed out, was refused, or was reset) | none | Caller may retry with backoff |
 | `TX_BELOW_MIN_STANDARD_SIZE` | A single-transaction build would serialize under the coin node's minimum non-witness (stripped) size, so the node would not relay it: Litecoin Core 82 bytes, Bitcoin Core 65, Dogecoin Core none. Input selection first takes another input so a funded change output lifts the build over the floor; this reason means no input was left to do that | `strippedSize` (predicted non-witness bytes), `minimum` (the node floor) | No: add an input, or leave enough for a change output above the dust floor plus its fee |
+| `PREV_TX_NOT_FOUND` | `create_tx`: the coin node does not know a transaction the build needs, such as the txid of a caller-supplied UTXO (for a confirmed transaction, the node may lack `txindex=1`); the message names the txid | none | No: check the outpoint, or run the node with `txindex=1` |
 
 ## Where the specs live
 
