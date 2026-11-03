@@ -29,6 +29,7 @@ The database and all tables are auto-created on startup if they don't exist. Sch
 | `events` | System events (reorgs, errors) | `id` (auto-increment) |
 | `pubkeys` | Source-address public keys captured during parsing | `address_id` |
 | `dispenser_extension_undo` | Local reorg bookkeeping, not replicated: each dispenser row's values before a block's first DISPENSE expiration extend | `(block_index, tx_index, address_id)` |
+| `block_tx_index_end` | Local cursor bookkeeping, not replicated: the `tx_index` cursor at the end of each stored block | `block_index` |
 
 ## Core Tables
 
@@ -54,6 +55,15 @@ Stores one row per block that the decoder has processed.
 | `previous_block_hash_id` | `BIGINT UNSIGNED` | FK to `index_transactions.id` |
 
 **Indexes:** `block_hash_id`, `previous_block_hash_id`
+
+### block_tx_index_end
+
+Records the decoder's `tx_index` cursor once each block is parsed, in the same database transaction as the block's rows. A carrier whose ACTION is skipped consumes an index but writes no `transactions` row, so after a restart or rollback the decoder resumes from the larger of `MAX(transactions.tx_index)` and `MAX(tx_index_end)`, numbering later rows exactly as a decoder that never stopped. A reorg deletes a block's row with the block. The table is decoder-local and xchain-sync does not replicate it.
+
+| Column | Type | Description |
+|---|---|---|
+| `block_index` | `BIGINT UNSIGNED` | Block height (primary key) |
+| `tx_index_end` | `BIGINT UNSIGNED` | The parse loop's `tx_index` cursor after the block |
 
 ### transactions
 
