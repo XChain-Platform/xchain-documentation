@@ -404,8 +404,8 @@ These values are defined in `src/config.js` and apply to all chains:
 
 | Parameter | Value | Description |
 |---|---|---|
-| `MAX_TOKEN_DESCRIPTION` | `250` | Maximum description length in characters |
-| `MAX_MEMO_LENGTH` | `250` | Maximum memo length in characters |
+| `MAX_TOKEN_DESCRIPTION` | `250` | Maximum description length in UTF-16 code units |
+| `MAX_MEMO_LENGTH` | `250` | Maximum memo length in UTF-16 code units |
 | `MAX_FILE_NAME_LENGTH` | `250` | Maximum file name length |
 | `MAX_FILE_TYPE_LENGTH` | `255` | Maximum MIME type length (per RFC 4288) |
 | `MAX_FILE_TITLE_LENGTH` | `250` | Maximum file title length |
@@ -415,6 +415,8 @@ These values are defined in `src/config.js` and apply to all chains:
 | `MAX_MESSAGE_KEY_LENGTH` | `1048576` | Maximum encryption key length (1 MB) |
 | `MAX_DISPENSES` | `1000` | Maximum dispenses per dispenser **fill** (a refill resets the count) |
 | `MAX_REFILLS` | `5` | Maximum refills per dispenser (the 6th is rejected), so 6 fills x `MAX_DISPENSES` lifetime |
+
+Text length limits (MEMO, MESSAGE, NAME, TITLE and DESCRIPTION) count UTF-16 code units, as JavaScript's `String.length` does, not Unicode characters. A character outside the Basic Multilingual Plane, such as an emoji, counts as two, so a memo of 250 emoji is refused even though the column could store it. This is the intended consensus rule (ruling 2026-11-03): it only ever refuses more text than storage needs and never halts.
 
 ### Timing and Delays
 
