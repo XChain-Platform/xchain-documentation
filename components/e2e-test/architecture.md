@@ -58,7 +58,7 @@ flowchart TD
     GUFA["utxoTrackerConnector.getUtxosFromAddress()<br>→ filter confirmed → cache"]
 
     WFI["indexerDatabase.waitForIssue({ source, tick, txHash, status: 'valid' })"]
-    POLL["polls every 1s for up to 30s → returns row or null"]
+    POLL["polls every 1s for 60s, extendable while the indexer is busy → returns row or null"]
 
     GNFA --> GNA
     GNFA --> SF
@@ -136,7 +136,7 @@ The `Database` class maintains a MariaDB connection pool and provides two method
 | Method Pattern | Behavior |
 |---|---|
 | `checkIssue(filterObj)` | Single query. Builds parameterized `WHERE` clause from non-null filter fields. Returns first row or `null`. Releases connection. |
-| `waitForIssue(filterObj, timeMax)` | Polls `checkIssue()` every 1 second until a row is found or `timeMax` (default 30s) is exceeded. Records performance metrics. |
+| `waitForIssue(filterObj, timeMax)` | Polls `checkIssue()` every 1 second for `timeMax` (default 60s), extending the deadline while the indexer is behind or still writing. Records performance metrics and returns `null` after an answered timeout; throws `WAIT_NO_ANSWER` if every poll errored. |
 
 **WHERE clause construction:**
 - Each non-null field in the filter object adds a `column = ?` clause

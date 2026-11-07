@@ -66,4 +66,7 @@ XChain Platform is, and will remain, genuinely open source under the AGPL: anyon
 
 ---
 
-*This page is a plain-language summary. The binding documents are the [AGPL-3.0 LICENSE](../LICENSE.md) and any signed commercial agreement with Dankest, LLC.*
+*This page is a plain-language summary. The [AGPL-3.0 LICENSE](../LICENSE.md) and
+[NOTICE](../NOTICE.md), including the NOTICE attribution requirement under section
+7(b) of the AGPL, control AGPL use. A signed commercial agreement with Dankest, LLC
+controls commercial use.*

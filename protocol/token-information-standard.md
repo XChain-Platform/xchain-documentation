@@ -25,6 +25,10 @@ rejected.
 - [Token Information Standard JSON Example](./json/token-information-standard-v1.1.1-example.json)
 
 Frozen as published; its `dns` requirement is the draft-07 form v1.1.2 restates.
+Its example is also out of date for gated content: the locked `stems.zip` entry
+references a sibling-chain `FILE` the token cannot gate, and its public artwork
+shares a `data_ref` with a locked entry. Follow the v1.1.2 example and the
+[`data_ref` and `locked` rules](#file-entry-fields) for new documents.
 v1.1.1 relaxes a single constraint over v1.1.0 and adds no field. An entry in `images`,
 `audio`, `video` or `files` requires `type` plus at least one of `data` or `data_ref`,
 where v1.1.0 required `data` outright and so rejected the fully on-chain form this
@@ -45,6 +49,10 @@ with a type or length it now declares (for example `"locked": "yes"`, a numeric 
 a `data_ref` over 255 characters, or `"packs": []`). Every other v1.0.0 document stays
 valid. Its four media definitions require `["type", "data"]`, which is the constraint
 v1.1.1 relaxes.
+
+Its example is out of date for gated content because the locked `stems.zip` entry
+references a sibling-chain `FILE` the token cannot gate. Follow the v1.1.2 example
+and the [`data_ref` and `locked` rules](#file-entry-fields) for new documents.
 
 ### v1.0.0
 - [Token Information Standard JSON Schema](./json/token-information-standard-v1.0.0-schema.json)

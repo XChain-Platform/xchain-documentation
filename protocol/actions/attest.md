@@ -136,7 +136,8 @@ Widening only ever changes who may additionally serve and earn a share of the fe
 
 ### Version 2 (expire)
 - Never user-broadcast: `VALID_ACTION_NAMES` accepts `ATTEST` for the decoder's v0/v1 paths, but v2 is rejected if it appears in a user transaction.
-- Synthesized once per stale pending request: indexer queries `SELECT * FROM attests WHERE version=0 AND request_status='pending' AND deadline_block < <current_block>` and synthesizes one v2 per row.
+- Synthesized once per stale pending request: indexer queries `SELECT * FROM attests WHERE version=0 AND request_status='pending' AND deadline_block < <current_block> ORDER BY deadline_block ASC, action_index ASC LIMIT ATTEST_MAX_EXPIRIES_PER_BLOCK` and synthesizes one v2 per row.
+- Expiries apply in `(deadline_block, action_index)` order, up to `ATTEST_MAX_EXPIRIES_PER_BLOCK` (25) per block; any overflow stays `pending` and carries forward to the next block. Because `action_index` is unique, every node selects the same capped prefix.
 - `REQUEST_ID` must match an existing `pending` row.
 
 ### Version 3 (relay request, BTC only)
@@ -202,7 +203,7 @@ The round's leader proposes the effective time a short margin ahead of the momen
 3. Top-`REDUNDANCY` validators (deterministic leader sort by `SHA-256(request_id || pubkey)`) fetch via the provider and gossip `ATTEST_PROPOSE`.
 4. What happens next depends on the request's own response-mirror activation height (see Response delivery, below). Below it, the leader publishes ATTEST v1 on-chain with `REDUNDANCY` Ed25519 signatures, paying the broadcast cost itself. At or above it, nobody broadcasts a transaction: the finalized response is written into the validator network's shared database, passed on to every hub, and delivered to every indexer that way.
 5. On a terminal response, whether it arrived as an on-chain v1 or through the mirror, the indexer flips the request to `fulfilled` (`STATUS=ok`) or `errored` (a genuinely terminal failure such as `expired`) and injects a system EXECUTE invoking the callback. A retryable v1 (`STATUS` of `no_quorum`, `timeout`, or `provider_error`) is recorded but leaves `request_status='pending'`, so the responsible set can attempt another round before the deadline; no callback fires yet.
-6. If `DEADLINE_BLOCK` passes while still `pending` (no terminal v1, or only retryable rounds), the indexer's per-block expiry pipeline synthesizes ATTEST v2 (flips status to `expired`, fires the callback with `status='expired'`).
+6. If `DEADLINE_BLOCK` passes while still `pending` (no terminal v1, or only retryable rounds), the indexer's per-block expiry pipeline synthesizes ATTEST v2 (flips status to `expired`, fires the callback with `status='expired'`). The pipeline applies at most `ATTEST_MAX_EXPIRIES_PER_BLOCK` (25) expiries per block, so a backlog can move v2 and its exactly-once callback one or more blocks past `DEADLINE_BLOCK`; see Version 2 above.
 
 ```mermaid
 sequenceDiagram
@@ -221,7 +222,7 @@ sequenceDiagram
     else retryable, no_quorum or timeout or provider_error
         Indexer->>Indexer: record v1, request_status stays pending
     end
-    alt DEADLINE_BLOCK passes while still pending
+    alt selected by capped expiry sweep after DEADLINE_BLOCK
         Indexer->>Indexer: synthesize ATTEST v2, flip to expired, fire callback
     end
 ```
@@ -231,7 +232,7 @@ stateDiagram-v2
     [*] --> pending: ATTEST v0 emitted
     pending --> fulfilled: v1 terminal, STATUS=ok
     pending --> errored: v1 terminal non-ok, e.g. expired
-    pending --> expired: DEADLINE_BLOCK passes while still pending, v2 synthesized
+    pending --> expired: selected by capped sweep after DEADLINE_BLOCK, v2 synthesized
     fulfilled --> [*]
     errored --> [*]
     expired --> [*]

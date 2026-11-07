@@ -1181,7 +1181,7 @@ Token-weighted governance: create a poll, cast a ballot, or set a standing deleg
 
 **Format Versions:** v0 (create poll), v1 (cast ballot), v3 (set/clear delegation)
 
-**Format v0:** `VOTE|0|TICK|END_BLOCK|OPTIONS|MAX_SELECTIONS|TALLY_MODE|WEIGHT_MODE|QUORUM|MIN_VOTERS|MIN_VOTE_BALANCE|DECIDE_THRESHOLD|QUESTION|DEPOSIT|CALLBACK_CONTRACT|CALLBACK_METHOD|CALLBACK_PARAMS|CALLBACK_ON|GAS_ESCROW`  
+**Format v0:** `VOTE|0|TICK|END_BLOCK|OPTIONS|MAX_SELECTIONS|TALLY_MODE|WEIGHT_MODE|QUORUM|MIN_VOTERS|MIN_VOTE_BALANCE|DECIDE_THRESHOLD|QUESTION|DEPOSIT|CALLBACK_CONTRACT|CALLBACK_METHOD|CALLBACK_PARAMS|CALLBACK_ON|GAS_ESCROW|CALLBACK_DELAY_BLOCKS`<br>
 **Format v1:** `VOTE|1|POLL_REF|BALLOT|MEMO`  
 **Format v3:** `VOTE|3|TICK|DELEGATE_TO|MEMO`
 
@@ -1189,7 +1189,7 @@ Token-weighted governance: create a poll, cast a ballot, or set a standing deleg
 
 | Builder | Produces | Key params |
 |---|---|---|
-| `createPollParams({...})` | v0 | `tick`, `endBlock`, `options` (array or comma string, min 2), `maxSelections` (default 1), `tallyMode` (`approval`/`split`, default `approval`), `weightMode` (`balance`/`flat`/`quadratic`/`time_weighted`, default `balance`), optional `quorum`, `minVoters`, `minVoteBalance`, `decideThreshold`, `question`, `deposit`, and the binding-poll callback fields (`callbackContract`, `callbackMethod`, `callbackParams`, `callbackOn`, `gasEscrow`) |
+| `createPollParams({...})` | v0 | `tick`, `endBlock`, `options` (array or comma string, min 2), `maxSelections` (default 1), `tallyMode` (`approval`/`split`, default `approval`), `weightMode` (`balance`/`flat`/`quadratic`/`time_weighted`, default `balance`), optional `quorum`, `minVoters`, `minVoteBalance`, `decideThreshold`, `question`, `deposit`, and the binding-poll callback fields (`callbackContract`, `callbackMethod`, `callbackParams`, `callbackOn`, `gasEscrow`, `callbackDelayBlocks`) |
 | `castBallotParams({...})` | v1 | `pollRef` (the poll's action_index), `ballot`, optional `memo`. `ballot` accepts a single option (`0`), an approval array (`[0, 2]`), a split as entry objects (`[{option: 0, share: 60}, ...]`) or an option-to-share map (`{0: 60, 2: 40}`) |
 | `delegateParams({...})` | v3 | `tick`, `delegateTo`, optional `memo` |
 | `clearDelegationParams({...})` | v3 | `tick`, optional `memo` (clears the standing delegation via a blank `DELEGATE_TO`) |
@@ -1199,6 +1199,7 @@ Token-weighted governance: create a poll, cast a ballot, or set a standing deleg
 **Notes:**
 - `quadratic` weighting requires `minVoteBalance > 0` (the builder enforces this): without a per-voter floor a holder could split across addresses to inflate quadratic weight.
 - Setting `callbackContract` makes the poll binding (`callbackMethod` then required): finalization fires a synthesized EXECUTE with the poll result.
+- `callbackDelayBlocks` is a non-negative integer for binding polls. It delays the callback EXECUTE by that many blocks after finalization, giving holders a reaction window while the tally and deposit settlement remain final. The indexer drops the field before the `VOTE_CALLBACK_TIMELOCK` flag-day and still accepts the poll, and the builder does not check activation, so confirm the gate is active on the target chain before relying on the delay. See the [VOTE spec](../../protocol/actions/vote.md).
 - A later valid ballot from the same voter replaces the earlier one (last-write-wins); storage is append-only, so a reorg that removes the replacement restores the prior ballot.
 
 ```mermaid

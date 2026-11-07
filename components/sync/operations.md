@@ -764,7 +764,7 @@ Decoder data is fully deterministic from the coin node (there are no synthetic c
 
 ### Tables replicated
 
-The decoder DB contains 10 tables. xchain-sync replicates 8 of them:
+The decoder DB contains 11 tables. xchain-sync replicates 8 of them:
 
 | Table | Replicated | Notes |
 |---|---|---|
@@ -778,6 +778,7 @@ The decoder DB contains 10 tables. xchain-sync replicates 8 of them:
 | `events` | Yes | Operational/logging |
 | `mempool_transactions` | **No** | Excluded: non-deterministic across nodes |
 | `dispenser_extension_undo` | **No** | Excluded: decoder-local reorg bookkeeping (each dispenser row's values before a block's first expiration extend) |
+| `block_tx_index_end` | **No** | Excluded: decoder-local cursor bookkeeping (the `tx_index` cursor at the end of each stored block) |
 
 Additionally, the transparency log table (`sync_meta`) is **not** created for decoder replicas; it is indexer-only.
 

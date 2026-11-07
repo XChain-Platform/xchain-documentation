@@ -28,7 +28,12 @@ This section is the canonical reference for the XChain Protocol; ACTION command 
 | [Index ID References](./index-id-references.md) | The `^<id>` compact wire form for tickers and addresses, and the deterministic reorg-safe id assignment rule |
 | [Database Naming Structure](./database-naming-structure.md) | Naming conventions for all platform databases |
 | [Protocol Activation (Flag Days)](./protocol-activation.md) | How consensus changes activate: the per-network time/height gate, the three activation cohorts, and forking vs halt-recoverable straggler behavior |
+| [Protocol Constants](./constants.js) | Documented source of protocol-level limits and activation maps shared across services |
+| [Flag-Day Values](./flag-days.md) | Generated table of current per-network activation gate values |
+| [Activation Module Catalogue](./activation-catalogue.md) | Discovery index for modules referenced by the indexer's protocol-change registry |
 | [Upgrade Notice Policy](./upgrade-notice-policy.md) | Minimum lead time between a release carrying consensus activation values and the moment they fire |
+| [Consensus Reference Implementations](./reference-impl/consensus/stake_weighted_quorum.js) | Byte-identity targets for [equivocation headers](./reference-impl/consensus/equivocation_header.js), the [gate registry](./reference-impl/consensus/gate_registry.js), and [snapshot reorg handling](./reference-impl/consensus/snapshot_reorg_buffer.js) |
+| [Conformance Test Vectors](./test-vectors/stake_weighted_quorum.json) | Canonical fixtures for [equivocation headers](./test-vectors/equivocation_header.json), [activation predicates](./test-vectors/activation_predicates.json), [anchors](./test-vectors/anchor_canonical.json), [roll calls](./test-vectors/rollcall_canonical.json), [Taproot envelopes](./test-vectors/taproot_envelope.json), [responsible sets](./test-vectors/responsible_set.json), and [list sharing](./test-vectors/list_share.json) |
 | [JSON Schemas](./json/) | Machine-readable schemas for ACTION payloads and API responses |
 
 ---

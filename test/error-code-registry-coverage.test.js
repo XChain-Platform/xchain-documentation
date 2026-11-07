@@ -22,8 +22,8 @@
  *
  * This test re-derives the emitted set from the explorer source on every run and
  * fails naming any code that has no row in the page's Explorer REST API section,
- * and any row in that section that nothing emits unless the row is marked
- * historical.
+ * any row in that section that nothing emits unless the row is marked
+ * historical, and any historical row whose code is still emitted.
  *
  * Collection is by emit shape rather than by a bare literal scan. Seven shapes
  * are read: a `code:` line, so the ternary fallback form
@@ -241,7 +241,7 @@ function restRows(section) {
     return rows;
 }
 
-// Emitted codes with no REST row, and REST rows nothing emits unless marked historical.
+// Report codes missing a row, live rows nothing emits, and historical rows still emitted.
 function registryDrift(emitted, rows) {
     const missing = [];
     for (const [code, where] of emitted) {
@@ -250,21 +250,29 @@ function registryDrift(emitted, rows) {
     }
     const phantoms = [...rows].filter(([code, historical]) => !historical && !emitted.has(code))
         .map(([code]) => code);
-    return { missing, phantoms };
+    const revived = [...rows].filter(([code, historical]) => historical && emitted.has(code))
+        .map(([code]) => code);
+    return { missing, phantoms, revived };
 }
 
 test('every explorer REST error code has a registry row', { skip: noExplorer }, () => {
-    const rows    = restRows(restSection(fs.readFileSync(REGISTRY_PAGE, 'utf8')));
+    const section = restSection(fs.readFileSync(REGISTRY_PAGE, 'utf8'));
+    const rows    = restRows(section);
     const emitted = emittedCodes();
 
     assert.ok(emitted.size > 20,
         `collected only ${emitted.size} codes from the explorer source; the emit `
         + 'shape changed, re-point the collection in this test');
 
-    assert.deepEqual(registryDrift(emitted, rows), { missing: [], phantoms: [] },
+    assert.deepEqual(registryDrift(emitted, rows), { missing: [], phantoms: [], revived: [] },
         'protocol/error-codes.md calls itself the complete append-only registry, so every '
         + 'code the explorer emits needs a REST row there, and a REST row nothing emits must '
-        + 'carry a **Historical:** marker (or the emit shape that sends it needs a rule here)');
+        + 'carry a **Historical:** marker, while a code still emitted must not carry that marker '
+        + '(or the emit shape that sends it needs a rule here)');
+    const upstream = section.match(/^\| `UPSTREAM_ERROR` \|.*$/m);
+    assert.ok(upstream, 'the Explorer REST registry lost its UPSTREAM_ERROR row');
+    assert.match(upstream[0], /Only when.*`"retryable": true`.*`Retry-After`.*bare body is final/,
+        'UPSTREAM_ERROR retries must follow the response classification instead of every 502');
 });
 
 test('INVALID_ADDRESS docs preserve the free-text search exception', () => {
@@ -296,6 +304,7 @@ test('the REST registry check fails on a dropped row or an unemitted row', { ski
     const emitted = emittedCodes();
     // The message/code pair rule reads a map row, never an HTTP method list.
     assert.equal(emitted.has('POST'), false, 'the message/code pair rule read a method list as a code');
+    assert.ok(emitted.has('BAD_REQUEST'), 'BAD_REQUEST is no longer collected from the final error handler');
     for (const code of ['VM_BUSY', 'MIRROR_STALE', 'INVALID_CURSOR', 'INVALID_TX_INDEX']) {
         assert.ok(emitted.has(code), `${code} is no longer collected from the explorer source`);
         const dropped = page.replace(new RegExp('^\\| `' + code + '` \\|.*\\n', 'm'), '');
@@ -308,6 +317,9 @@ test('the REST registry check fails on a dropped row or an unemitted row', { ski
     assert.deepEqual(registryDrift(emitted, restRows(restSection(inRest))).phantoms, ['FAKE_GONE_CODE']);
     const marked  = inRest.replace('| test |', '| test. **Historical: test.** |');
     assert.deepEqual(registryDrift(emitted, restRows(restSection(marked))).phantoms, []);
+    const revived = page.replace('| `VM_BUSY` | 429 |', '| `VM_BUSY` | 429 | **Historical: test.**');
+    assert.notEqual(revived, page, 'falsification fixture did not mark VM_BUSY historical');
+    assert.deepEqual(registryDrift(emitted, restRows(restSection(revived))).revived, ['VM_BUSY']);
     const rpcRow  = page.indexOf('\n| `', page.indexOf('\n## JSON-RPC'));
     assert.ok(page.indexOf('\n## JSON-RPC') >= 0 && rpcRow >= 0, 'protocol/error-codes.md lost its JSON-RPC table');
     const inRpc   = page.slice(0, rpcRow + 1) + fake + page.slice(rpcRow + 1);
@@ -351,6 +363,7 @@ function emittedWsCodes() {
 
 test('the websocket.md Error Codes table matches the codes src/ws sends', { skip: noExplorer }, () => {
     const page    = fs.readFileSync(path.join(ROOT, 'components/explorer/websocket.md'), 'utf8');
+    const registry = fs.readFileSync(REGISTRY_PAGE, 'utf8');
     const start   = page.indexOf('\n## Error Codes\n');
     assert.ok(start >= 0, 'components/explorer/websocket.md lost its "## Error Codes" section');
     const table   = page.slice(start + '\n## Error Codes\n'.length).split(/\n(?:## |---\n)/)[0];
@@ -362,4 +375,7 @@ test('the websocket.md Error Codes table matches the codes src/ws sends', { skip
     const phantoms = rows.filter((code) => !emitted.has(code));
     assert.deepEqual({ missing, phantoms }, { missing: [], phantoms: [] },
         'websocket.md Error Codes must list exactly the codes the WebSocket server sends');
+    assert.match(registry,
+        /Errors on the Explorer WebSocket channel[^\n]*including[^\n]*`CATCH_UP_REORGED`[^\n]*websocket\.md#error-codes/,
+        'the REST registry pointer must present WebSocket codes as examples and link the complete table');
 });

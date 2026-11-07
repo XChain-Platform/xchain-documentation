@@ -94,11 +94,12 @@ The `initialCheck.test.js` Mocha root hook runs five phases before any test:
 All `waitFor*` methods in `db.js` follow the same pattern:
 
 1. Record start time and poll count
-2. Loop while `Date.now() < endTime` (default 30 seconds)
+2. Poll until the `timeMax` deadline (default 60 seconds / `60000` ms)
 3. Call the corresponding `check*` method (parameterized SQL query)
 4. If a row is found, record performance metrics and return the row
 5. If not found, sleep 1 second and retry
-6. On timeout, record metrics and return `null`
+6. If the deadline passes while the indexer is behind or still writing action rows, extend it by another `timeMax`, up to `WAIT_MAX_EXTENSIONS` times (default 3). Only waits of at least `WAIT_MIN_FOR_EXTENSION` ms (default 5000) are eligible, and every extension is logged. A default wait can therefore run for roughly 240 seconds.
+7. On final timeout, record metrics and log the give-up reason. Return `null` if at least one poll answered but found no row; if every poll errored, throw `WAIT_NO_ANSWER` instead.
 
 ### Quiesce Barrier
 

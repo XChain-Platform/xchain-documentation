@@ -112,6 +112,13 @@ flowchart TD
 | `insertIdAsNumber` | `true` | `db.js` | Return insert IDs as numbers, not BigInt |
 | `bigIntAsNumber` | `true` | `db.js` | Deserialize BIGINT columns (e.g., `action_index`, `tx_index`) as Number, not BigInt. Keeps consensus hash serialization consistent with the indexer and sync prod pools, which also set this flag. |
 | `timeMax` (default) | `60000` | `db.js` | Default polling timeout for all `waitFor*` methods (ms) |
+| `WAIT_MAX_EXTENSIONS` | `3` | `src/config/index.js` | Maximum extra `timeMax` periods; override with `E2E_WAIT_MAX_EXTENSIONS` |
+| `WAIT_LAG_BLOCKS` | `0` | `src/config/index.js` | Extend when indexer lag exceeds this block count; override with `E2E_WAIT_LAG_BLOCKS` |
+| `WAIT_LAG_PROBE_MS` | `2000` | `src/config/index.js` | Pipeline-progress probe timeout (ms); override with `E2E_WAIT_LAG_PROBE_MS` |
+| `WAIT_MIN_FOR_EXTENSION` | `5000` | `src/config/index.js` | Minimum `timeMax` eligible for extension (ms); override with `E2E_WAIT_MIN_FOR_EXTENSION` |
+| `WAIT_PROBE_INTERVAL_MS` | `10000` | `src/config/index.js` | Maximum interval between progress probes (ms); override with `E2E_WAIT_PROBE_INTERVAL_MS` |
+| `WAIT_PROBE_MIN_MS` | `1000` | `src/config/index.js` | Minimum interval between progress probes (ms); override with `E2E_WAIT_PROBE_MIN_MS` |
+| `WAIT_WRITE_IDLE_MS` | `20000` | `src/config/index.js` | Recent-write window that permits extension (ms); override with `E2E_WAIT_WRITE_IDLE_MS` |
 | `sleep interval` | `1000` | `db.js` | Polling interval between `check*` calls (ms) |
 | `waitForTx timeout` | `10000` | `BlockchainConnector.js` | Default timeout for `waitForTx` polling (ms) |
 | `waitForUtxos timeout` | `60000` | `XChainUtxoTrackerConnector.js` | Default timeout for `waitForUtxos` polling (ms) |

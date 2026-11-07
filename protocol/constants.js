@@ -187,14 +187,14 @@ const ATTEST_MAX_EXPIRIES_PER_BLOCK = 25;
 // the next block. Mirrors both sibling caps in value and carry-forward semantics.
 //
 // CONSENSUS-VISIBLE, like both siblings: the cap decides which block a settlement
-// lands in. Unlike ATTEST_MAX_EXPIRIES_PER_BLOCK it has no fleet-wide replay behind
-// it, and the fresh-genesis testnet restart does not cover mainnet, so enforcing it
-// on an already-live chain would reinterpret settled history. The operator ruled on
-// 2026-08-11 that it lands behind a flag day rather than ungated: the gate is
-// CROSS_SETTLE_PER_BLOCK_CAP in the indexer's protocol_changes.js, genesis-active on
-// testnet and regtest and unarmed on mainnet until the operator ratifies the anchor.
-// The value below is the cap; the gate decides when it applies. Before the flag day a
-// mainnet block settles the full effective backlog, exactly as it always has.
+// lands in. CROSS_SETTLE_PER_BLOCK_CAP in the indexer's protocol_changes.js gates
+// the behavior, and the gate is armed at genesis on every network, including
+// mainnet. The mainnet genesis arm is replay-safe because indexed mainnet history
+// contains no finalized cross-chain match for the cap to defer. The capped prefix
+// therefore applies to every historical and future block on every network, and
+// overflow carries forward in the total order above. The value below defines the
+// capped quantity, while the gate remains the authority for when it applies.
+// Keep both facts aligned with the indexer's registry and settlement pass.
 const CROSS_SETTLE_MAX_PER_BLOCK = 25;
 
 // ── Cross-chain bridge (protocol/xchain-bridge.md) ──────────────────────────
@@ -202,10 +202,10 @@ const CROSS_SETTLE_MAX_PER_BLOCK = 25;
 // CHAIN per block. Overflow carries forward in (snapshot_block, transfer_id) order
 // and is never dropped, the XCALL and CROSS_SETTLE discipline.
 //
-// UNGATED, unlike CROSS_SETTLE_MAX_PER_BLOCK above: that cap re-sliced history a
-// chain had already indexed and therefore needed its own flag day, while this one
+// Unlike CROSS_SETTLE_MAX_PER_BLOCK above, this cap needs no separate gate. It
 // ships inside XCHAIN_BRIDGE_ACTIVATION, below which no chain has ever applied an
-// XBRIDGE settle leg. There is no history for it to reinterpret.
+// XBRIDGE settle leg. There is no bridge-settlement history for it to reinterpret.
+// CROSS_SETTLE keeps its gate even though that gate is armed at genesis everywhere.
 //
 // Canonical authority for xchain-indexer/src/protocol/constants.js.
 const XBRIDGE_MAX_PER_BLOCK = 25;
@@ -879,6 +879,17 @@ const CROSS_CHAIN_ROYALTY_ACTIVATION = {
 const ATTEST_ADMISSION_ACTIVATION = {
     mainnet: 961000,      // ARMED: BTC anchor ~2026-08-04 (same anchor as STAKE_WEIGHTED_QUORUM); deploy ALL indexers before this height
     testnet: 0,
+    regtest: 0,
+};
+
+// Gate the state-hash class for the batch-completion stamp on a surviving v5 attest head.
+// Keep the per-chain testnet values aligned with the consensus gate registry.
+const ATTEST_BATCH_HEAD_STATE_HASH_ACTIVATION = {
+    mainnet: 9999999999,
+    'BTC:testnet': 156230,
+    'LTC:testnet': 4912984,
+    'DOGE:testnet': 67989993,
+    testnet: 9999999999,
     regtest: 0,
 };
 
@@ -2555,6 +2566,7 @@ module.exports = {
     RETRACTION_SIGNING_ACTIVATION,
     CROSS_CHAIN_ROYALTY_ACTIVATION,
     ATTEST_ADMISSION_ACTIVATION,
+    ATTEST_BATCH_HEAD_STATE_HASH_ACTIVATION,
     ATTEST_REQUEST_CAPS,
     ATTEST_RELAY_ACTIVATION,
     ATTEST_RELAY_FEE_ACTIVATION,

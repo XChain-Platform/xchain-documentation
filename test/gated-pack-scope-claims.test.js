@@ -108,6 +108,14 @@ test('the pages state that gating covers only same-chain gated FILEs', () => {
     const refRow = lineStarting(tis, '| data_ref ', 'token-information-standard.md');
     assert.match(refRow, /A sibling-chain FILE is not gated by the token/,
         'the TIS data_ref row no longer says a sibling-chain FILE is ungated');
+    const v111 = tis.match(/### v1\.1\.1[\s\S]*?(?=### v1\.1\.0)/);
+    const v110 = tis.match(/### v1\.1\.0[\s\S]*?(?=### v1\.0\.0)/);
+    assert.ok(v111 && /locked `stems\.zip`[\s\S]*sibling-chain `FILE` the token cannot gate/.test(v111[0]),
+        'the frozen v1.1.1 example warning no longer names its ungated locked entry');
+    assert.ok(v111 && /public artwork[\s\S]*shares a `data_ref` with a locked entry/.test(v111[0]),
+        'the frozen v1.1.1 example warning no longer names its shared public and locked reference');
+    assert.ok(v110 && /locked `stems\.zip`[\s\S]*sibling-chain `FILE` the token cannot gate/.test(v110[0]),
+        'the frozen v1.1.0 example warning no longer names its ungated locked entry');
 });
 
 test('the current TIS example keeps locked entries same-chain and unshared', () => {

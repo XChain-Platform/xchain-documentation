@@ -58,7 +58,7 @@ flowchart TD
 | `src/chain/XChainBlockDecoder.js` | `XChainBlockDecoder` | Block and transaction parsing via bitcoinjs-lib with coin-specific fixes (Litecoin MWEB, Dogecoin AuxPoW) |
 | `src/chain/crypto_networks.js` | `CryptoNetworks` | Network configuration: bitcoinjs-lib network objects and start block indexes for all 9 chain/network combinations |
 | `src/util.js` | None | Utility functions: sleep, SHA256, hex conversion, timer |
-| `src/sql/*.sql` | None | Table creation SQL for all 10 database tables |
+| `src/sql/*.sql` | None | Table creation SQL for all 11 database tables |
 
 ## Block Polling Loop
 

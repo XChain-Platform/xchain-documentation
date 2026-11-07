@@ -72,4 +72,7 @@ The software license lets you run the code; it does not grant rights to the **XC
 
 ---
 
-*This page is a plain-language summary for convenience. The binding documents are the [AGPL-3.0 LICENSE](../LICENSE.md) and any signed commercial agreement; if anything here conflicts with them, they control.*
+*This page is a plain-language summary for convenience. For AGPL use, the binding
+documents are the [AGPL-3.0 LICENSE](../LICENSE.md) and [NOTICE](../NOTICE.md),
+including the NOTICE attribution requirement under section 7(b) of the AGPL. For
+commercial use, the signed commercial agreement controls.*

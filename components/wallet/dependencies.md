@@ -76,7 +76,7 @@ Its direct external runtime dependencies match the extension's: `@ledgerhq/hw-ap
 
 ## Desktop shell
 
-The Electron shell ships for Windows, macOS, and Linux. The packaged application embeds Electron, uses the shared React renderer, and reuses the extension background host in its main process.
+The Electron shell is built for Windows, macOS, and Linux. The macOS and Linux builds have shipped; the Windows build has not been published yet. The packaged application embeds Electron, uses the shared React renderer, and reuses the extension background host in its main process.
 
 ### `electron-updater`
 

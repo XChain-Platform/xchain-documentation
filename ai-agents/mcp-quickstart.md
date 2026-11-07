@@ -60,7 +60,7 @@ Ask your agent things like:
 
 ## Pointing at a regtest stack
 
-The `R*` coins (`RBTC`, `RLTC`, `RDOGE`) default only the explorer to `localhost:8080`, so read tools work against a local stack, but `compose_action` and the write tools also need `ENCODER_URL` (or `ENCODER_PORT`). The standard SDK environment variables (`EXPLORER_URL`, `EXPLORER_PORT`, `ENCODER_URL`, `HUB_API_HOST`, …) override any endpoint (see [SDK configuration](../components/sdk/configuration.md)).
+The `R*` coins (`RBTC`, `RLTC`, `RDOGE`) default only the explorer to `localhost:8080`. That reaches an explorer running directly on its native port, not the default xchain-node stack, which publishes the explorer on host port `18080`. To reach that stack, set `EXPLORER_PORT=18080` or `EXPLORER_URL=http://localhost:18080`; when `EXPLORER_URL` includes a scheme, put the port in the URL because `EXPLORER_PORT` is not appended. The `compose_action` and write tools also need `ENCODER_URL` (or `ENCODER_PORT`). The standard SDK environment variables (`EXPLORER_URL`, `EXPLORER_PORT`, `ENCODER_URL`, `HUB_API_HOST`, …) override any endpoint (see [SDK configuration](../components/sdk/configuration.md)).
 
 ## Writes are off by default: and policy-gated when on
 

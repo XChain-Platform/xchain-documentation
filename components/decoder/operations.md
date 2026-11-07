@@ -22,7 +22,7 @@ On startup, the decoder:
 2. Starts the Express JSON-RPC API server on `DECODER_API_PORT`
 3. Validates the database name (alphanumeric + underscores only)
 4. Creates the database if it doesn't exist
-5. Creates all 10 tables if they don't exist
+5. Creates all 11 tables if they don't exist
 6. Waits for the coin node to reach 99% verification progress
 7. Begins parsing from the configured start block (or last parsed block + 1)
 

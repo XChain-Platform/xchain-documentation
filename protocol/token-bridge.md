@@ -156,6 +156,11 @@ shape that matters to a reader of this page:
   the *previous* policy for that window; nothing is retroactive.
   `getappliedpolicy(tick)` (indexer, open read) shows exactly what a given chain has applied and
   as of which origin block.
+- **A bounded apply queue.** Each chain applies at most `XPOLICY_MAX_PER_BLOCK` (5) policy snapshots
+  per block per chain, before any XBRIDGE settle leg in that block. Overflow carries forward in
+  `(snapshot_block, snapshot_id)` order across ticks and `policy_seq` order within a tick, so a
+  backlog can extend the confirmed lag. Transfer credits use the separate cap described in
+  [XBRIDGE settlement scheduling](./actions/xbridge.md#settlement-scheduling).
 - **Detaching a list.** When the origin issuer detaches its allow or block list (an
   [`ISSUE`](./actions/issue.md) format `5` carrying `0` in that field), the next signed snapshot
   carries that list as null. From the destination's `BRIDGE_POLICY_DETACH` activation, read at

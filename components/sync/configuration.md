@@ -204,7 +204,7 @@ XChain_{TICKER}_{Network}_{Component}
 
 In **server mode**, the service reads from the authoritative indexer and decoder databases; the same ones the indexer/decoder write to.
 
-In **client mode**, the service creates replica databases with the same names and schema. Indexer replicas contain an exact copy of the indexer data; decoder replicas contain 8 of the 10 decoder tables (`mempool_transactions` and `dispenser_extension_undo` excluded).
+In **client mode**, the service creates replica databases with the same names and schema. Indexer replicas contain an exact copy of the indexer data; decoder replicas contain 8 of the 11 decoder tables (`mempool_transactions`, `dispenser_extension_undo` and `block_tx_index_end` excluded).
 
 ## Database Schema
 
@@ -229,7 +229,7 @@ One additional table is used by the sync service itself for indexer replicas onl
 
 ### Decoder replicas
 
-Decoder replica databases use a smaller schema derived from the decoder DB. Of the 10 tables in the decoder DB, xchain-sync replicates 8 (`mempool_transactions` is excluded as it is non-deterministic across nodes, and `dispenser_extension_undo` is decoder-local reorg bookkeeping that stays local):
+Decoder replica databases use a smaller schema derived from the decoder DB. Of the 11 tables in the decoder DB, xchain-sync replicates 8 (`mempool_transactions` is excluded as it is non-deterministic across nodes, `dispenser_extension_undo` is decoder-local reorg bookkeeping, and `block_tx_index_end` is decoder-local cursor bookkeeping; all three stay local):
 
 - `blocks`, `transactions`, `transaction_outputs`, `dispensers`
 - `index_addresses`, `index_transactions`, `pubkeys`, `events`

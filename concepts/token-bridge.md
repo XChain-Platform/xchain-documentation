@@ -56,8 +56,9 @@ the settings can never be pulled out from under them, even by a future owner of 
   list can bridge, and a policy the issuer sets on the origin afterward reaches every bridged
   copy automatically, enforced identically everywhere, never re-set per chain. The two are still
   not instant: an origin-side change reaches a copy after that chain's own confirmation depth
-  plus a short signing-and-mirror margin (typically a few minutes), so a copy briefly enforces
-  the *previous* policy right after the issuer changes it, never a *later* one before the issuer
+  plus a short signing-and-mirror margin (typically a few minutes). The delay can grow when a
+  backlog of policy snapshots waits for the per-block apply limit, so a copy briefly enforces the
+  *previous* policy right after the issuer changes it, never a *later* one before the issuer
   changes it. A list also has a size ceiling (10,000 addresses) an issuer sees at opt-in time,
   since every snapshot and every chain's copy carries the full list. A smart-contract-controlled
   policy is the one exception that still does not travel: the contract only exists on the chain

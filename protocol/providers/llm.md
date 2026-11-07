@@ -66,7 +66,7 @@ The `judge_model` (default `claude-haiku-4-5`) is also block-anchored. The leade
 | `1`        | No consensus. The single responsible validator's response is final after the deadline window. The responsible validator is still selected deterministically: all validators with the `attestation` capability are sorted by SHA-256(request_id \|\| pubkey) and only the top-1 entry serves the request. |
 | `3` / `5`  | `judge_model` strategy. Validators fetch independently; the judge picks the canonical response. The top-REDUNDANCY entries by the same SHA-256 sort form the responsible set, with the lowest-hash validator acting as leader. |
 
-LLM responses won't be byte-identical even at `temperature=0` (whitespace, occasional rerouting). The judge call decides whether they're *semantically* equivalent; if so, it returns a `canonical_index` and that proposal becomes the on-chain response. If not, the round emits no-quorum and the request expires on its deadline (callback fires with `status='expired'`).
+LLM responses won't be byte-identical even at `temperature=0` (whitespace, occasional rerouting). The judge call decides whether they're *semantically* equivalent; if so, it returns a `canonical_index` and that proposal becomes the on-chain response. If not, the round emits no-quorum and the request stays pending until its deadline has passed. Under an expiry backlog, the callback with `status='expired'` can land a few blocks later because the [ATTEST expiry sweep](../actions/attest.md#version-2-expire) is capped per block.
 
 ```mermaid
 flowchart TD

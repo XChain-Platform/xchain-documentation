@@ -493,7 +493,7 @@ When a user posts an `ORDER` or `SWAP` whose get-side coin differs from the post
 2. **Match** compatible offers.
 3. **Finalize and sign** a single match record with a quorum of `cross_chain`-capable validators, selected from a block-boundary snapshot.
 4. **Deliver** the signed match to every indexer over the same hub-DB mirror that carries price data, with no per-trade on-chain transaction.
-5. **Settle**: each indexer independently verifies the signatures against the snapshot validator set and releases its leg's escrow to the counterparty, recording an internal settlement for idempotency and reorg-safety. Indexers apply a match at the first block whose timestamp passes the match's effective time, so all operators of a chain settle identically.
+5. **Settle**: each indexer independently verifies the signatures against the snapshot validator set and releases its leg's escrow to the counterparty, recording an internal settlement for idempotency and reorg-safety. A match settles no earlier than the first block whose timestamp passes its effective time. Indexers settle at most 25 matches per block in fixed `(snapshot_block, match_id)` order, carrying any overflow to the next block, so all operators of a chain settle identically.
 6. **Retract** on a source-order reorg; any indexer that settled within the reorged span rolls its leg back.
 
 ```mermaid

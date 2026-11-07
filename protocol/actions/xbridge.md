@@ -71,6 +71,12 @@ Burns 250 of the bridged BTC.PEPECASH row on DOGE; a matching XBRIDGE v5 release
 - A source `SLEEP`, `ALLOW_LIST` or `BLOCK_LIST` on the token blocks a new v0/v3 lock and v1/v4 burn the same way it blocks a `SEND`; it never blocks the injected v2/v5 settle leg.
 - Below `TOKEN_POLICY_INHERITANCE_ACTIVATION` on the network, the origin's `SLEEP`, `ALLOW_LIST` and `BLOCK_LIST` have no effect on a copy already bridged elsewhere. At or above it, they reach every bridged copy after a confirmed lag, never retroactively, as bridge-owned lists and an injected `SLEEP` on the copy's row, so the rule above then also refuses a v4 burn of a sleeping copy (`invalid: TICK (sleeping)`) or by a list-blocked holder. Controller bindings never carry. See [Policy inheritance](../token-bridge.md#policy-inheritance).
 
+## Settlement scheduling
+
+Each block applies at most `XBRIDGE_MAX_PER_BLOCK` (25) version 2 or version 5 settle legs per destination chain. Eligible records are considered in `(snapshot_block, transfer_id)` order; overflow carries forward and is never dropped. A record below its settle format's activation height is deferred without using a slot, and a terminally refused transfer also uses no slot. Under load, a credit can therefore land one or more blocks after its `effective_time`.
+
+At the head of the pass, each chain applies at most `XPOLICY_MAX_PER_BLOCK` (5) inherited policy snapshots before any settle leg in that block, so a same-block credit sees the newly applied policy. Policy overflow carries forward in `(snapshot_block, snapshot_id)` order across ticks and `policy_seq` order within a tick. See [Policy inheritance](../token-bridge.md#policy-inheritance) for the resulting lag.
+
 ## Trust model, stated plainly
 
 The record a lock or burn produces is signed by the hub's `cross_chain` federation and mirrored to every indexer; the destination applies it once quorum-verified against the mirrored validator set. Milestone 1 is therefore a **hub-trusted mint**: a compromised hub can supply both the transfer record and the roster that verifies it. This is the same trust boundary the cross-chain DEX already runs on, stated here rather than left implicit. A destination-side check against the origin chain's own signed state (a checkpoint cross-check) closes that boundary before this action is armed on mainnet; see [Cross-Chain Bridge](../xchain-bridge.md#trust-model) for the full statement and its status.

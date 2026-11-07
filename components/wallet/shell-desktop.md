@@ -3,7 +3,7 @@
 
 # Shell: Desktop
 
-`@xchain-wallet/desktop` is the Electron-based desktop shell. It ships for Windows, macOS, and Linux from a single codebase and a single source tree.
+`@xchain-wallet/desktop` is the Electron-based desktop shell. It is built for Windows, macOS, and Linux from a single codebase and source tree. The macOS and Linux builds have shipped; the Windows build has not been published yet.
 
 ## Two-process model
 

@@ -162,4 +162,4 @@ We follow our [Code of Conduct](https://github.com/XChain-Platform/.github/blob/
 
 ---
 
-Last reviewed: 2026-06-16.
+Last reviewed: 2026-11-06.

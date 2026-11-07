@@ -78,8 +78,10 @@ selected height for a private venue without scheduling either public network.
 section-count rule. A v3 with `SECTION_COUNT` 0 is an empty fold and is never a legal v3 wire:
 at or above this gate it is `invalid: SECTION_COUNT (empty fold)`. Before activation, indexers
 retain the earlier acceptance behavior only for consensus replay compatibility; that behavior
-does not make a zero-section fold valid for publishers to emit. The reject gate is currently
-UNARMED on every network pending the historical empty-fold audit.
+does not make a zero-section fold valid for publishers to emit. The reject gate uses the house
+UNARMED sentinel on mainnet. Testnet is armed per chain through its `BTC:testnet`, `LTC:testnet`
+and `DOGE:testnet` keys; the bare `testnet` key is only the UNARMED fallback for a chain with no
+key of its own. Regtest is `0`, so the reject rule is live from genesis wherever v3 is armed.
 
 `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` is the companion gate for the v3 archive
 section's verdict scope (see [Version 3 only](#version-3-only) below). It carries the fold's values
