@@ -5,7 +5,7 @@
 
 Token-gated content is XChain's protocol-native mechanism for publishing files that are readable only by holders of a specific token. Files are encrypted on-chain with a symmetric key, and the key is delivered to each holder through standard ECIES messaging. Owning the token cryptographically grants the ability to decrypt, without an on-chain unlock transaction, without third-party infrastructure, and without storing the content off-chain.
 
-This is the platform's first cryptographically secure publishing capability. It composes three existing primitives, the [`FILE`](./actions/file.md) ACTION, the [`MESSAGE`](./actions/message.md) ACTION (ECIES mode), and the [`BATCH`](./actions/batch.md) ACTION, by appending four optional fields (`GATE_TICKER`, `ENCRYPTION_METHOD`, `KEY_HASH`, `GATE_MIN_AMOUNT`) to `FILE` format 0 and adding one indexer rule on `SEND`. No new ACTIONs. No new format versions. No new infrastructure. No external services.
+This is the platform's first cryptographically secure publishing capability. It composes three existing primitives, the [`FILE`](./actions/file.md) ACTION, the [`MESSAGE`](./actions/message.md) ACTION (ECIES mode), and the [`BATCH`](./actions/batch.md) ACTION, by appending four optional fields (`GATE_TICKER`, `ENCRYPTION_METHOD`, `KEY_HASH`, `GATE_MIN_AMOUNT`) to `FILE` metadata and adding one indexer rule on `SEND`. FILE format 0 carries a single-transaction file, while formats 1 and 2 carry a multi-part file. No new ACTIONs or external infrastructure are needed.
 
 ---
 
@@ -30,7 +30,7 @@ This is the platform's first cryptographically secure publishing capability. It 
 
 The token issuer composes one or more on-chain transactions that publish the encrypted file(s) and record the key.
 
-### Single file
+### Single-transaction file
 
 1. Issuer generates a random 256-bit symmetric key `K` and computes `KEY_HASH = sha256(K)` (lowercase hex; see [`FILE`](./actions/file.md) for the case rule, which is tolerant on chain and canonicalized at record time).
 2. Issuer **compresses the plaintext, then encrypts it** with AES-256-GCM under `K`. Output ciphertext is `[12-byte nonce][16-byte GCM authentication tag][ciphertext]`. The order is not a preference: GCM ciphertext is incompressible, so encrypting first throws the saving away entirely. When the compressed form is kept, the `FILE` action's `COMPRESSION` field is set to `1` and means **inflate after decrypt** (see [Compression ordering](#compression-ordering) below).
@@ -38,6 +38,14 @@ The token issuer composes one or more on-chain transactions that publish the enc
    - `FILE|0|NAME|TYPE|TITLE|MEMO|GATE_TICKER|1|KEY_HASH|GATE_MIN_AMOUNT|COMPRESSION` (where `1` = AES-256-GCM in the `ENCRYPTION_METHOD` field) with the ciphertext as the action's `rawData` (transported via P2WSH per [Transaction Encoding](../concepts/encoding.md)). `GATE_MIN_AMOUNT` is optional and may be omitted entirely; the eight-field form is unchanged and still valid, so every historical `FILE` reads identically.
    - `MESSAGE|2|COIN|<issuer-address>|<ECIES ciphertext>` whose decrypted plaintext is the binary payload below, encrypted to the issuer's own address so the issuer can recover `K` later for redistribution.
 4. The single transaction is signed and broadcast. There is no window in which the encrypted file exists on-chain without the key being recorded.
+
+### Multi-part gated file
+
+A gated file that does not fit in one transaction uses the FILE version 1 manifest and version 2 parts described in [Multi-part files](./actions/file.md#multi-part-files-versions-1-and-2). The publisher performs the gated pipeline once: optionally deflate the original plaintext, encrypt the result as `[nonce][tag][ciphertext]`, then slice that stored ciphertext into parts. `TOTAL_BYTES` is therefore the ciphertext length, and `FILE_HASH` binds the ciphertext slices. Parts are never compressed or encrypted independently.
+
+The gated manifest carries `GATE_TICKER`, `ENCRYPTION_METHOD`, `KEY_HASH`, `GATE_MIN_AMOUNT`, and `COMPRESSION`, but no raw bytes. It may share a `BATCH` with the self-addressed MESSAGE v2 that commits the recoverable key. Each version 2 part must be published outside a `BATCH`. The gated file joins its pack at the manifest's action index even before assembly completes, but its raw bytes remain unavailable until every part is present and the group completes with matching hash and length. A holder's raw request receives the assembled ciphertext, never plaintext and never a partial file; pending and mismatched assemblies are not treated as empty content.
+
+On unlock, the wallet waits for completion, fetches the assembled ciphertext using the manifest action index, verifies and decrypts it exactly as for format 0, and only then inflates when `COMPRESSION=1`. The 150:1 inflation guard is additionally capped at 12,000,000 bytes. The manifest action index is also the pack member and the only valid `LINK` target; part indexes are not files.
 
 ### Pack of files (shared key)
 
@@ -47,7 +55,7 @@ The publisher is part of the key because token ownership transfers. A former iss
 
 1. Issuer generates one `K` and `KEY_HASH`.
 2. Issuer encrypts each file plaintext under `K`. Each file gets a fresh 12-byte nonce, but they all share `K`.
-3. Issuer publishes one `FILE|0|...` action per file, each in its own transaction. A transaction carries exactly one `rawData` payload and a `BATCH` hands that same payload to every sub-command, so a `BATCH` holds at most one `FILE` whatever the file sizes are; a second `FILE` batched beside the first is recorded valid carrying the FIRST file's ciphertext, permanently. To publish a pack in one transaction, combine the files into a single archive and publish that archive as one `FILE`.
+3. Issuer publishes one manifest or `FILE|0|...` action per file. A transaction carries exactly one `rawData` payload and a `BATCH` hands that same payload to every sub-command, so a `BATCH` holds at most one format 0 `FILE`. A multi-part manifest may share a `BATCH` with its MESSAGE v2 key commit, but a second FILE beside that manifest is invalid and every part is published separately. To publish a pack in one transaction, combine the files into a single archive and publish that archive as one `FILE`.
 4. After (or alongside) the last file, issuer publishes a self-`MESSAGE` whose binary payload contains the single shared `K`.
 
 Because every file in the pack shares the same `K`, one 32-byte entry in the handoff unlocks every file in the pack regardless of how many there are.
@@ -67,7 +75,7 @@ sequenceDiagram
     Issuer->>Issuer: generate one K and KEY_HASH
     Issuer->>Issuer: optionally deflate each file, then encrypt it under K<br>with a fresh nonce per file
     loop each file in the pack
-        Issuer->>Chain: FILE|0|... action, same publisher, GATE_TICKER, KEY_HASH
+        Issuer->>Chain: FILE|0, or FILE|1 manifest then FILE|2 parts,<br>same publisher, GATE_TICKER, KEY_HASH
     end
     Issuer->>Chain: self-MESSAGE, ECIES, binary payload contains the shared K
 ```
@@ -212,7 +220,7 @@ These are the protocol-level rules the indexer enforces. See the individual acti
 
 ## Related specs
 
-- [`FILE`](./actions/file.md): format 0 including the optional gating fields.
+- [`FILE`](./actions/file.md): format 0 and the multi-part format 1 manifest, including the optional gating fields.
 - [`MESSAGE`](./actions/message.md): v2 ECIES used for key handoff.
 - [`SEND`](./actions/send.md): gated-SEND validation rule.
 - [`BATCH`](./actions/batch.md): composition pattern for publish-with-key and transfer-with-handoff in one transaction. A `BATCH` is not atomic, so confirm both commands settled valid.
