@@ -60,6 +60,16 @@ const { sibling } = require('./helpers/sibling_checkout.js');
 const ROOT = path.join(__dirname, '..');
 const CONSTANTS = require(path.join(ROOT, 'protocol', 'constants.js'));
 
+test('multi-part FILE limits and activation times are pinned', () => {
+  assert.strictEqual(CONSTANTS.MULTIPART_FILE_MAX_PARTS, 32);
+  assert.strictEqual(CONSTANTS.MULTIPART_FILE_MAX_BYTES, 12000000);
+  assert.deepStrictEqual(CONSTANTS.FILE_MULTIPART_ACTIVATION_TIME, {
+    mainnet: null,
+    testnet: 1796083200,
+    regtest: 0,
+  });
+});
+
 /*
  * Constants whose value is quoted in prose as a number of bytes. `superseded`
  * lists values this constant USED to have; each one is a value that must never
