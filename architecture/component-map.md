@@ -58,9 +58,9 @@ See [`../components/decoder/`](../components/decoder/) for full documentation.
 
 Key technical details:
 
-- Routes each ACTION string to one of 48 dedicated handler classes (`IssueAction`, `SendAction`, `OrderAction`, `PriceAction`, etc.).
+- Routes each ACTION string to one of 50 dedicated handler classes (`IssueAction`, `SendAction`, `OrderAction`, `PriceAction`, etc.).
 - Validates all fields before execution. Invalid actions are recorded with status `invalid` and produce no ledger effects.
-- Maintains a double-entry ledger: every token movement is a credit to one address and a debit from another. Balance = SUM(credits) - SUM(debits). A sanity check asserts `token_supply == net ledger total` after each issuance.
+- Maintains a double-entry ledger: every token movement is a credit to one address and a debit from another. Balance = SUM(credits) - SUM(debits). After every block, a sanity check verifies each token touched in that block against both the net ledger total and balances plus escrows; a mismatch halts the indexer.
 - Holds XCHAIN gas in escrow for time-bounded operations (orders, dispensers). Releases escrow on expiration or cancellation.
 - DEX matching engine handles `ORDER` and `SWAP` actions, matching bids and asks within each block.
 - Processes expirations after each block: open orders and active dispensers whose expiration timestamp is past the block's own time are closed automatically. Token-weighted governance polls (`VOTE`) are finalized the same way, by a deterministic sweep at each poll's end block.
@@ -123,7 +123,7 @@ Key technical details:
 - On apply, an indexer replica recomputes `state_hash` (`VERIFY_STATE_HASH`, default on) and the per-block SPV state-commitment roots (balances, block Merkle root) with sync's SHA-256 Merkle/SMT primitives (`VERIFY_STATE_COMMITMENT`, default on), and halts durably on a mismatch. Both checks still trust the source for the committed values, so they do not by themselves catch a single dishonest source.
 - Separately, server mode keeps a transparency log that groups indexer blocks into Merkle epochs (`MERKLE_EPOCH_SIZE`) and serves inclusion proofs and the latest root for external auditors.
 - Clients can sync from 2+ independent sources and cross-verify block hashes to detect tampered data.
-- Reorg detection mirrors the indexer's pattern: detects rollbacks in the source database and broadcasts reorg events. Clients roll back their local replicas using the same table lists as the indexer's `Rollback.js`.
+- Reorg detection mirrors the indexer's pattern: detects rollbacks in the source database and broadcasts reorg events. The source and replica generic rollback lists are both generated from byte-identical copies of the shared `table_lifecycle.js` registry.
 
 See [`../components/sync/`](../components/sync/) for full documentation.
 

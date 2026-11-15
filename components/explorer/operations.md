@@ -36,19 +36,24 @@ EXPLORER_API_PORT_HTTPS=8081
 
 ### Docker
 
-The Dockerfile copies the source into `/XChainExplorer/` inside the container:
+This excerpt mirrors `xchain-explorer/Dockerfile`, which is authoritative:
 
 ```dockerfile
-FROM node:latest
+FROM node:22.23.4-bookworm@sha256:2bd396628eceb5c999a6e43731fab69d5fb98b94ba9d9d90b5f64575c5178765
 RUN mkdir /XChainExplorer/
+COPY ./xchain-v[m] /XChainExplorer/xchain-vm
 COPY ./package.json /XChainExplorer/package.json
 COPY ./package-lock.json /XChainExplorer/package-lock.json
 WORKDIR /XChainExplorer
 RUN npm ci --omit=dev
 COPY ./src /XChainExplorer/src
 COPY ./docs /XChainExplorer/docs
-CMD ["npm", "run", "api"]
+COPY ./test/fixtures/action-manifest.json /XChainExplorer/test/fixtures/action-manifest.json
+ENV EXPLORER_BIND_HOST=0.0.0.0
+CMD ["node", "./src/api.js"]
 ```
+
+The optional `xchain-v[m]` build-context entry is a no-op for a standalone build without a staged copy.
 
 Environment variables can be passed at runtime:
 

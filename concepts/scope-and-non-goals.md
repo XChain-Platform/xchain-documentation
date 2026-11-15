@@ -28,9 +28,9 @@ Bitcoin-family blockchains:
 - **Moving a token between supported chains** with [XBRIDGE](../protocol/actions/xbridge.md):
   the balance is locked in a protocol escrow address nobody holds a key for (or burned on the
   way back) and the same amount is credited on the destination as a copy named after its home
-  chain (such as `BTC.PEPECASH`). That
-  credit is authorized by the hub's validator federation, a
-  [hub-trusted mint](../protocol/xchain-bridge.md#trust-model), not a trustless one. On the
+  chain (such as `BTC.PEPECASH`). That credit needs both the hub federation's signature and
+  proof against the origin chain's [signed checkpoint](../protocol/xchain-bridge.md#trust-model).
+  It is not trustless because both validator quorums remain trust assumptions. On the
   public networks the bridge runs on testnet only and is not active on mainnet (see
   [Token Bridge](./token-bridge.md)).
 - **A smart-contract VM** that orchestrates the protocol's validated ACTIONs, can reach the
@@ -44,7 +44,7 @@ Bitcoin-family blockchains:
 Everything in scope shares one property: it can be expressed as deterministic rules applied to
 data embedded in standard coin transactions, secured by the host chain's existing consensus.
 The XBRIDGE destination credit is the one place a balance also rests on the hub federation's
-signature.
+signature, with the origin chain's signed checkpoint as an independent cross-check.
 
 ---
 
@@ -76,13 +76,15 @@ real-time system, has no payment channels or off-chain rollup, and is not suitab
 point-of-sale, gaming, or high-frequency trading. The hub validator network exists only for
 configuration, price oracles, cross-chain coordination (swap matching and XCALL relay),
 attestation, anchoring, and the XBRIDGE bridge. It never orders transactions and never
-custodies base-layer token balances. The one place its signature decides a balance is XBRIDGE,
-where it authorizes the destination credit and the release from escrow on the way back (a
-[hub-trusted mint](../protocol/xchain-bridge.md#trust-model)).
+custodies base-layer token balances. The one place its signature helps decide a balance is
+XBRIDGE, where it authorizes the destination credit and the release from escrow on the way
+back; each credit must also agree with the origin chain's
+[signed checkpoint](../protocol/xchain-bridge.md#trust-model).
 
 *Why:* inheriting the host chain's proof-of-work is exactly what lets XChain avoid a
-sidechain and a new consensus layer for ordering and settling base-layer state; XBRIDGE's
-hub-trusted mint is the one place the federation decides a balance. Speed is the price of that security.
+sidechain and a new consensus layer for ordering and settling base-layer state; XBRIDGE is the
+one place the federation helps decide a balance, cross-checked against the origin chain's signed
+checkpoint. Speed is the price of that security.
 
 ### A general-purpose "world computer"
 
@@ -108,8 +110,8 @@ those chains as first-class supported chains, not to bridge to them. Until that 
 ships, cross-chain functionality stays **among the supported UTXO chains**: swaps, references,
 cross-chain contract calls ([XCALL](../protocol/actions/xcall.md)), and token transfers
 ([XBRIDGE](../protocol/actions/xbridge.md)). Swaps and XCALL are coordinated (not custodied) by
-the hub. An XBRIDGE credit is authorized by the hub federation, a hub-trusted mint that is not
-active on mainnet.
+the hub. An XBRIDGE credit needs both the hub federation's signature and proof against the
+origin chain's signed checkpoint. It is not active on mainnet.
 
 What stays out of scope on every roadmap: custodial bridge contracts, wrapped external
 assets, and pooled cross-ecosystem liquidity.

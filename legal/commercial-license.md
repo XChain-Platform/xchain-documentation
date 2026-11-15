@@ -39,7 +39,7 @@ In short: **the AGPL is free, but it requires you to share your changes. The com
 - The right to keep your modifications and integrations **proprietary**.
 - Support, SLAs, and indemnification are available as separate terms in the agreement, priced per engagement.
 
-The commercial license does **not** grant rights to the **XChain trademark or branding** (see [TRADEMARK.md](./trademark.md). You may run the software; you may not call your deployment "XChain" or use the marks without separate permission.
+The commercial license does **not** grant rights to the **XChain trademark or branding** (see [trademark.md](./trademark.md). You may run the software; you may not call your deployment "XChain" or use the marks without separate permission.
 
 ---
 

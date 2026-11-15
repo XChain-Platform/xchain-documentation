@@ -96,11 +96,11 @@ flowchart TD
 | `db/sql_util.js` | `splitSqlStatements` | Splits `.sql` files on `;`, stripping line comments to avoid false splits |
 | `hub/client.js` | `HubClient` | JSON-RPC client for xchain-hub; `getallconfigs()` to discover indexer and decoder DB connections |
 | `sync_service.js` | `SyncService` | Orchestrator: hub discovery, DB pool creation, server/client mode branching |
-| `server/poller.js` | `ServerPoller` | Polls one indexer DB for new blocks; builds block payloads; emits events |
+| `server/poller.js` | `ServerPoller` | Polls one indexer or decoder DB for new blocks, with one instance per chain/network/dbType; builds block payloads; emits events |
 | `server/block_broadcaster.js` | `BlockBroadcaster` | Manages WebSocket subscriptions per chain/network; broadcasts block/reorg events |
 | `server/snapshot_builder.js` | `SnapshotBuilder` | Builds full and incremental JSON snapshots with gzip streaming |
 | `server/transparency_log.js` | `TransparencyLog` | Writes append-only per-block hash records to `sync_meta` table; every write is a no-op when `REPLICA_DB_READONLY=1` (see Configuration) |
-| `schema/replicated_tables.js` | `getTopology()` | Single source of truth for the block/tx/action-scoped table sets that replicate per dbType; shared by ServerPoller and the row-count completeness check |
+| `schema/replicated_tables.js` | `getTopology()` | Exposes the per-dbType topology: indexer sets are generated from `table_lifecycle.js`, while decoder sets are declared here; shared by ServerPoller and the row-count completeness check |
 | `server/updated_rows.js` | `collectUpdatedRows` | Collects in-place mutations to surviving (earlier-block) rows for a block window; the source side of the "updated rows" replication channel |
 | `server/cooldown_credits.js` | `collectMaturedCooldownCredits` | Collects backdated cooldown-refund credits that the action-scoped join cannot reach; source side |
 | `util/wire_codec.js` | `encodeRow`, `decodeValue` | Binary-safe row serialization: tags BLOB/Buffer column values with a `__xbin__` sentinel so they survive JSON round-trip intact |
@@ -120,7 +120,7 @@ flowchart TD
 | `consensus/equivocation_header.js` | None | Consensus-critical implementation of the uniform signed equivocation header (WI-2 bump 2) |
 | `client/sync.js` | `ClientSync` | Client-mode orchestrator: bootstrap, catch-up, live sync loop per chain/network |
 | `client/applier.js` | `ClientApplier` | Applies block payloads and snapshots to local replica DB via INSERT IGNORE |
-| `client/rollback.js` | `ClientRollback` | Rollback logic mirroring indexer's Rollback.js table lists |
+| `client/rollback.js` | `ClientRollback` | Generic rollback lists (`blockTables`, `indexTables`, `dataTables`) generated from `src/table_lifecycle.js`; bespoke in-place resets/restores mirror the indexer rollback |
 | `client/hash_verifier.js` | `HashVerifier` | Cross-source hash comparison and hash chain continuity verification |
 
 ## Hub Discovery Flow
@@ -253,7 +253,7 @@ sequenceDiagram
     participant REST as REST API
     WS->>CS: 1. { type: 'reorg', block_index }
     CS->>CR: 2. rollback(block_index)
-    Note over CR: Find first action_index at/after block_index<br>DELETE FROM dataTables WHERE action_index >= firstActionIndex<br>DELETE FROM blockTables WHERE block_index >= block_index
+    Note over CR: Find first action_index at/after block_index<br>DELETE FROM dataTables WHERE action_index >= firstActionIndex<br>DELETE FROM indexTables by their registry scope<br>DELETE FROM blockTables WHERE block_index >= block_index
     CS->>WS: 3. wait for new block events
     Note over CS,WS: server re-broadcasts as indexer re-indexes
     alt 4. WS disconnects during reorg
@@ -262,7 +262,7 @@ sequenceDiagram
     end
 ```
 
-The `ClientRollback` table lists (`blockTables` and `dataTables`) are copied from the indexer's `Rollback.js` to ensure identical rollback behavior. These lists must be kept in sync when new tables are added to the indexer.
+The table-lifecycle registry is the single source of truth for generic indexer rollback coverage. `xchain-sync/src/table_lifecycle.js` is a byte-identical twin of `xchain-indexer/src/hub/table_lifecycle.js`; it generates the source and replica `blockTables`, `indexTables`, and `dataTables`, as well as the per-block stream topology and completeness set. Add a table to the indexer registry and copy the registry twin verbatim to xchain-sync rather than editing rollback lists. `xchain-sync/test/unit/rollback_coverage.test.js` fails if the twins differ or a replicated table lacks rollback coverage. Bespoke in-place resets and restores remain explicit in the rollback implementations.
 
 ---
 

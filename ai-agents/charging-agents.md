@@ -77,4 +77,4 @@ Combine this with [token-gated content](../protocol/token-gated-content.md): pub
 - The invoice codes are single-use and bound to the payer's address, replays and front-running don't work.
 - The gateway's file-backed state is for a **single server process**. Running multiple instances? Plug in a shared store (`invoiceStore` option).
 - Prices are token amounts, not USD. If you want USD-pegged pricing, adjust the configured amount from your own price feed for now; native USD quoting arrives with the platform price oracle surface.
-- Full wire spec for interoperators: [protocol/X402_Payments.md](../protocol/x402-payments.md).
+- Full wire spec for interoperators: [protocol/x402-payments.md](../protocol/x402-payments.md).

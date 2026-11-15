@@ -13,10 +13,12 @@ fail **closed and silent** if you forget one:
 ## How it is enforced
 
 Each repo vendors a byte-identical copy at `test/fixtures/action-manifest.json`
-and ships an `ActionManifestConformance.test.js` that runs in its own unit tier
-(no sibling checkout required). Each guard asserts two things:
+and ships an action-manifest conformance test under `test/unit/`
+(`action_manifest_conformance.test.js`; `ActionManifestConformance.test.js` in
+xchain-wallet) that runs in its own unit tier (no sibling checkout required).
+Each guard asserts two things:
 
-1. **BEHAVIOR**: the repo's local action set equals the manifest slice for its role flag (`wireDecoded` for the decoder, `indexerHandled` for the indexer dispatch, `userEncodable` for the SDK Formats, `explorerRender` for the explorer, `walletForm` for the wallet registry).
+1. **BEHAVIOR**: the repo's local action set equals the manifest slice for its role flag (`wireDecoded` for the decoder and the encoder's pre-broadcast `VALID_ACTION_NAMES` gate, with the encoder's `ACTION_ALIASES` also matching the manifest aliases; `indexerHandled` for the indexer dispatch, `userEncodable` for the SDK Formats, `explorerRender` for the explorer, `walletForm` for the wallet registry).
 2. **IDENTITY**: the vendored copy is byte-identical to this canonical file (skips when `xchain-documentation` is not checked out, matching the `ConsensusPrimitiveConformance` convention).
 
 So adding an action everywhere-but-one-repo fails that repo's CI, naming the
@@ -64,7 +66,9 @@ user forces an SDK Format that can only build dead transactions, so re-read the
 handler before editing one.
 
 The per-repo sets legitimately differ by role: the SDK omits validator-only
-actions (`ANCHOR`/`ATTEST`/`NODEPROOF`/`ROLLCALL`/`SLASH`); the indexer adds mirror-injected
+actions (`ANCHOR`/`ATTEST`/`NODEPROOF`/`ROLLCALL`/`SLASH`); the encoder's
+pre-broadcast gate carries the decoder's `wireDecoded` set plus the manifest
+aliases; the indexer adds mirror-injected
 (`XCALL`/`XEXEC`/`CROSS_SETTLE`) and lifecycle (`*_MATCH`/`*_EXPIRE`/`DISPENSE`)
 handlers that are never decoded wire bytes; the explorer is the render superset
 (including legacy order/dispenser cancel+edit views and the `BET_EDIT` view). The manifest encodes these
@@ -96,7 +100,7 @@ conformance guard would otherwise appear with nothing keeping it in step.
 ```mermaid
 flowchart TD
     Add["Add entry to action-manifest.json<br>with the role flags it should carry"] --> Vendor["Re-vendor: bin/sync-action-manifest.sh<br>copies the file over every repo's<br>test/fixtures/action-manifest.json"]
-    Vendor --> Test["Each repo runs ActionManifestConformance.test.js<br>in its own unit tier"]
+    Vendor --> Test["Each repo runs its action-manifest conformance test<br>in its own unit tier"]
     Test --> Behavior{"BEHAVIOR: repo's local action set<br>equals the manifest slice for its role flag?"}
     Behavior -->|"no"| Fail["That repo's CI fails,<br>naming the missing action and the file to edit"]
     Behavior -->|"yes"| Identity{"IDENTITY: vendored copy<br>byte-identical to the canonical file?"}

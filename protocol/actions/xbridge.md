@@ -79,7 +79,7 @@ At the head of the pass, each chain applies at most `XPOLICY_MAX_PER_BLOCK` (5) 
 
 ## Trust model, stated plainly
 
-The record a lock or burn produces is signed by the hub's `cross_chain` federation and mirrored to every indexer; the destination applies it once quorum-verified against the mirrored validator set. Milestone 1 is therefore a **hub-trusted mint**: a compromised hub can supply both the transfer record and the roster that verifies it. This is the same trust boundary the cross-chain DEX already runs on, stated here rather than left implicit. A destination-side check against the origin chain's own signed state (a checkpoint cross-check) closes that boundary before this action is armed on mainnet; see [Cross-Chain Bridge](../xchain-bridge.md#trust-model) for the full statement and its status.
+The record a lock or burn produces is signed by the hub's `cross_chain` federation and mirrored to every indexer. Before any effect, the destination verifies that quorum and `bridge_checkpoint_check.js` proves the origin lock or burn against the origin chain's quorum-signed ANCHOR checkpoint. A record the checkpoint does not support is refused. This replaces the earlier milestone-1 hub-trusted mint, but it is not trustless: the credit assumes the `cross_chain` quorum and checkpoint quorum did not both lie. See [Cross-Chain Bridge](../xchain-bridge.md#trust-model) for the full statement. The bridge remains off on mainnet until its mainnet activation height is armed.
 
 ## Reorgs and finality
 

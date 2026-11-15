@@ -95,23 +95,26 @@ correct, or list capabilities you don't serve under `DISABLED_CAPABILITIES`.
 
 ## Docker
 
-The hub is designed to run inside Docker. The Dockerfile copies source to `/XChainHub/`:
+The hub is designed to run inside Docker. This excerpt mirrors `xchain-hub/Dockerfile`, which is authoritative:
 
 ```dockerfile
-FROM node:latest
+FROM node:22.23.4-bookworm@sha256:2bd396628eceb5c999a6e43731fab69d5fb98b94ba9d9d90b5f64575c5178765
 
 RUN mkdir /XChainHub/
 COPY ./package.json /XChainHub/package.json
 COPY ./package-lock.json /XChainHub/package-lock.json
 WORKDIR /XChainHub
 RUN npm ci --omit=dev
+RUN npm install -g @anthropic-ai/claude-code@2.1.266
 
 COPY ./src /XChainHub/src
 COPY ./docs /XChainHub/docs
-COPY ./.en[v] /XChainHub/.env
+COPY ./bin /XChainHub/bin
 
-CMD ["npm", "run", "api"]
+CMD ["node", "./src/api.js"]
 ```
+
+No `.env` is baked into the image. Configuration arrives as environment variables, injected by `xchain-node` or passed with `docker run --env-file .env` for a standalone run. The direct `node` command lets `SIGTERM` reach graceful shutdown.
 
 In production, the hub is typically managed by `xchain-node`, which handles container lifecycle, environment variable injection, and network configuration.
 
@@ -352,7 +355,7 @@ curl -X POST http://localhost:10000 \
 
 `label` is the effector's guard label: `OraclePublisher`, `AttestationPublisher`, `StateAnchorPublisher`, or `FullNodeChallengeRound`. An unknown label is refused with `no effector registered with label '<label>'` rather than silently doing nothing. `reason` is optional and recorded with the pause.
 
-The pause is **runtime state, not configuration**: it does not survive a hub restart. To disable an effector durably, use its `*_ENABLED` variable (`ORACLE_PUBLISH_ENABLED`, `ATTEST_ENABLED`, `ANCHOR_ENABLED`, `FULLNODE_ENABLED`) in [CONFIGURATION.md](configuration.md).
+The pause is **runtime state, not configuration**: it does not survive a hub restart. To disable an effector durably, use its `*_ENABLED` variable (`ORACLE_PUBLISH_ENABLED`, `ATTEST_ENABLED`, `ANCHOR_ENABLED`, `FULLNODE_ENABLED`) in [configuration.md](configuration.md).
 
 ## Oracle Metrics
 
@@ -440,11 +443,14 @@ On startup, the hub retries database connections with a delay between attempts. 
 The P2P gossip layer automatically reconnects to peers with exponential backoff:
 - Base delay: 2 seconds (configurable via `P2P_RECONNECT_BASE`)
 - Maximum delay: 60 seconds (configurable via `P2P_RECONNECT_MAX`)
-- Dead connection detection via heartbeat/ping-pong (interval: 15 seconds)
+- Dead connection detection via WebSocket ping/pong every 30 seconds (configurable via `P2P_WS_PING_INTERVAL`); a peer that misses a pong is terminated on the next ping tick
+- A separate heartbeat broadcast runs every 15 seconds (configurable via `P2P_HEARTBEAT_INTERVAL`) and carries hub version and consensus-rules information; it is not the dead-connection check
 
 ### Single-Node Fallback
 
-When no peers are connected, all consensus-dependent operations (config writes, oracle finalization, attestation, governance) fall back to direct execution. This ensures the hub remains functional even when temporarily isolated from the network.
+A consensus engine uses its single-member branch only when the membership it is working from has zero or one member (`N <= 1`), such as a single-operator regtest stack. Standalone mode, with no `P2P_VALIDATOR_ADDR`, is a separate configuration that performs config reads and writes without consensus.
+
+This is not a fallback for losing peers. Once a federation membership or round snapshot has loaded, disconnected validators still count toward its quorum. An isolated member of a federation cannot finalize alone; the round waits until quorum is reachable again. Before membership has loaded at startup, some engines use authenticated or open peers as a bootstrap fallback. See [Decentralization: Quorum](decentralization.md#quorum).
 
 ### Message Deduplication
 

@@ -124,6 +124,8 @@ The return-value cap is measured in UTF-16 code units, with `String.length` over
 
 Gas is the primary execution bound. The wall-clock timeout exists only as a safety net for gas metering bugs; it should never trigger under normal operation. Its budget is a consensus quantity, not an operator setting: every validator runs a consensus execution against the same `CONSENSUS_MAX_WALL_MS`, so a node configured with a tighter `maxCpuTimeMs` cannot return a different status or a different `gasUsed` for the same execution.
 
+That guarantee covers configuration differences only, not host speed or load. The budget is fork-safe only while every builtin reachable on the network is metered, so that the gas ceiling runs out well inside the budget; an execution that finishes just under the budget on a fast host would otherwise time out on a slower one. On mainnet the string-receiver meter is not yet armed, and `String.prototype.trimLeft`, `trimRight`, `Number.parseInt` and `Number.parseFloat` can take about 15 to 29 seconds to exhaust the 1,000,000 gas ceiling, so that condition does not hold there yet.
+
 ---
 
 **Copyright &copy; 2025–2026 Dankest, LLC**

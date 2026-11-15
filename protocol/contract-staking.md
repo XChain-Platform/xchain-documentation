@@ -30,7 +30,7 @@ DEPLOY|1|CODE_ENCODING|GAS_LIMIT|CONSTRUCTOR_PARAMS|COOLDOWN_BLOCKS|SLASH_DESTIN
 | TARGET_CONTRACT_INDEX | unsigned int | The `action_index` of a stakeable contract, deployed via either `DEPLOY v1` (inline) or `DEPLOY v3` (chunked) with `COOLDOWN_BLOCKS` set. Must be in `valid` status. |
 | TICK | string | Any registered token. Must exist in `tokens` at the action's block. |
 
-Top-up vs. new is auto-detected: if `(target_contract_index, signing_pubkey, tick)` already has an active row, the action is treated as a top-up (must be owned by the same `SOURCE`). Otherwise it creates a new row.
+Top-up vs. new is auto-detected: if `(target_contract_index, signing_pubkey, tick)` already has a valid row, whether or not that stake is still active, the action is treated as a top-up and the row must be owned by the same `SOURCE`; a different `SOURCE` is refused with `SIGNING_PUBKEY (already staked to this contract by another source)`. The first valid staker keeps the key, and only a DELEGATE rotation that rewrites a live row's signing key moves a row off it. Otherwise the action creates a new row.
 
 Activation delay is calibrated per chain for roughly **60 minutes of reorg protection**: **6 blocks on BTC** (~10 min/block), **24 blocks on LTC** (~2.5 min/block), and **60 blocks on DOGE** (~1 min/block). Because contract staking runs on every chain, a single block count would give materially different wall-clock protection (6 blocks ≈ 6 minutes on DOGE), so each chain sets its own `STAKING.ACTIVATION_DELAY_BLOCKS` default; operators may override it per deployment. (Capability staking is BTC-only and uses the same 6-block BTC value.)
 
@@ -79,8 +79,18 @@ Slashes `amount` of `token` from the staker identified by `pubkey` on **this** c
 
 - **Authorization is implicit.** The VM accessor only sees this contract's stakes; the slash can only target stakers of this contract.
 - **Slash reaches active stakes first** (LIFO by activation block), then cooldown-locked balances if there's a remainder.
-- **Over-slash is silently capped** at the staker's available balance. No error is thrown for "tried to slash 500 but only 200 was available"; only 200 is taken.
+- **Over-slash is silently capped** at the staker's available balance. Asking to slash 500 when only 200 is available takes 200 without an over-slash error. Malformed arguments still throw as described below.
 - **Atomic with the EXECUTE.** If the executing method reverts, the slash also rolls back.
+
+#### Throws and argument validation
+
+`xchain.contract.slash` charges `VM_EMISSION` gas before validating its arguments. A validation error throws synchronously before a SLASH emission is added. Contract code can catch the exception and continue; if it is not caught, the calling EXECUTE fails and its changes roll back:
+
+- `pubkey` must be a string of exactly 64 hexadecimal characters
+- `token` must be a non-empty string. Once the token-delimiter guard is active, it must not contain `|`
+- `amount` must be a decimal string with digits before the decimal point, no sign, exponent or whitespace, and no trailing decimal point. The fractional ceiling is 8 digits before the amount-precision rider and 18 digits after it. The pattern accepts zero, despite the gateway error text calling the value "positive"
+
+Both riders are active from genesis on testnet and regtest and follow the contract-era activation on mainnet. See [Cohort A riders that mint no constant](./protocol-activation.md#cohort-a-riders-that-mint-no-constant) for activation details.
 
 Gas: `VM_EMISSION` (500).
 
@@ -159,6 +169,22 @@ STAKE|3|200.00000000|abc...64hex...|42|XCHAIN
 // Contract method (in JS source):
 //   - any caller can check whether `pubkey` has at least 100 XCHAIN staked
 //   - only the contract itself can slash via xchain.contract.slash
+// Return true when a >= b exactly, by the sign of the exact subtract ('-0' is zero).
+// xchain.math.gt/gte/lt/lte/eq/compare treat values within max(1e-12 relative, 1e-15) as
+// equal, so custody, cap and payment guards use this; `a <= b` is isAtLeastExact(xchain, b, a).
+// A non-finite difference ('Infinity', '-Infinity', 'NaN') returns false, so the guard fails closed.
+function isAtLeastExact(xchain, a, b) {
+    var diff = String(xchain.math.subtract(a, b));
+    var neg = diff.charAt(0) === '-';
+    var nonzero = false;
+    for (var i = neg ? 1 : 0; i < diff.length; i++) {
+        var c = diff.charAt(i);
+        if (c >= '1' && c <= '9') nonzero = true;
+        else if (c !== '0' && c !== '.') return false;
+    }
+    return !(neg && nonzero);
+}
+
 module.exports = {
     meta: {
         name:        'Stake Gate',
@@ -167,10 +193,11 @@ module.exports = {
     },
     isStaked: function(xchain) {
         let pubkey = xchain.getInputParam(0)
-        return xchain.math.gte(xchain.contract.getStake(pubkey, 'XCHAIN'), '100') ? 'yes' : 'no'
+        return isAtLeastExact(xchain, xchain.contract.getStake(pubkey, 'XCHAIN'), '100') ? 'yes' : 'no'
     },
     punishMisbehavior: function(xchain) {
         let pubkey = xchain.getInputParam(0)
+        // Malformed values throw here; catch the exception if this method should continue.
         // Slash 50 XCHAIN; funds go to BURN address per the deploy-time config.
         xchain.contract.slash(pubkey, 'XCHAIN', '50')
     }

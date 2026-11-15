@@ -13,10 +13,10 @@
  * Regtest tip-age escape-hatch documentation gate.
  *
  * WHY. The explorer's tip-age gate refuses reads for a coin whose newest
- * indexed block has aged past six hours. On a live chain that never fires. On
- * regtest it fires by design, because blocks are mined on demand, so an idle
- * dev stack wakes up answering 503 COIN_DATA_STALE on every endpoint for that
- * coin. The gate has an escape hatch (`EXPLORER_TIP_MAX_AGE_S_<COIN>=0`) and
+ * indexed block has aged past six hours. On a live chain that never fires. The
+ * regtest miner's default heartbeat keeps a dev chain fresh, but the gate fires
+ * when that heartbeat is disabled, mining is paused, or the miner is down. The
+ * gate has an escape hatch (`EXPLORER_TIP_MAX_AGE_S_<COIN>=0`) and
  * the operator decision of 2026-08-11 was to keep it an env knob and DOCUMENT
  * it, explicitly rejecting a built-in regtest exemption: the gate fails
  * closed, and a rule keyed on a network name would let anything calling itself
@@ -120,6 +120,8 @@ describe('regtest tip-age escape hatch is documented for dev setups', () => {
     test('the regtest guide names the symptom a developer searches for', () => {
         assert.match(devDoc, /COIN_DATA_STALE/,
             'the regtest guide never mentions COIN_DATA_STALE, so nobody hitting it finds this page');
+        assert.match(devDoc, /IDLE_MINE_INTERVAL_MS/,
+            'the regtest guide no longer states when an idle regtest chain goes stale');
     });
 
     test('the explorer configuration page routes dev/regtest installs to the knob', () => {

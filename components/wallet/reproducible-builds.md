@@ -90,7 +90,7 @@ The wallet depends on `xchain-sdk` as a normal, published npm dependency, pinned
 ### What's not reproducible
 
 - **Signed artifacts** (`.dmg`, signed `.app`, signed `.exe`, notarized builds). Code signatures embed a certificate-specific signature plus, for macOS, Apple's notarization ticket. These outputs are inherently maintainer-specific. The pre-signing artifact hashes let verifiers prove the content going into signing matches what was built from source.
-- **macOS and Windows builds.** The reproducible-build container targets Linux only. Cross-compiling macOS (requires platform-specific tooling and Apple's signing toolchain) and Windows (requires a Windows runner for code signing) bit-for-bit is a significantly larger undertaking. macOS and Windows releases publish pre-signing hashes produced on maintainer-operated runners; a later phase may add VM-based reproduction.
+- **macOS and Windows builds.** The reproducible-build container targets Linux only. Cross-compiling macOS (requires platform-specific tooling and Apple's signing toolchain) and Windows (requires a Windows runner for code signing) bit-for-bit is a significantly larger undertaking. macOS releases publish pre-signing hashes produced on maintainer-operated runners; Windows will do the same once that lane ships. A later phase may add VM-based reproduction.
 - **Anything run on a host that is not amd64, natively.** The pinned base image resolves to `linux/amd64` only, and the reproduce script passes an explicit platform flag, so this is a stated cost rather than a surprise. The release lane itself runs on an amd64 runner and cross-builds the arm64 artifact from there, so an arm64 container would faithfully reproduce a build that was never actually cut that way. Verifiers on Apple Silicon or arm64 Linux need working amd64 emulation, and which emulator they have decides whether this lane finishes at all: under qemu user-mode it crashes inside esbuild's Go runtime (`fatal error: lfstack.push`) rather than running slowly. See "Verifying from an arm64 machine" above for the routes that work.
 - **The Snap Store package (`.snap`).** The AppImage and `.deb` are packed by our own build, which is where the archive-timestamp normalization described below is installed, so both are byte-identical across independent builds. A snap's squashfs image is assembled by `snapcraft` instead, outside that step entirely, so none of the normalization that makes the other two reproducible applies to it and no claim is made here. This is stated rather than quietly omitted because a reader comparing hashes would otherwise expect the snap to behave like the `.deb` beside it. A snap also carries its own integrity story that the hosted artifacts do not: the Snap Store signs what it serves and `snapd` installs only what the Store has signed, so the verification recipe below is the right tool for a hosted download and the wrong one for a store install.
 - **The Electron framework download itself.** electron-builder fetches prebuilt Electron binaries from Electron's own distribution server; the SHA-256 is checked against electron-builder's baked-in manifest, but the trust assumption cannot be eliminated without shipping a self-built Chromium fork. This is an Electron-ecosystem-wide constraint, not specific to this wallet.
@@ -189,7 +189,7 @@ bash packages/extension/scripts/reproduce.sh v0.334.0 ./verify-out
 pnpm --filter @xchain-wallet/extension reproduce
 ```
 
-The script checks out the tag in an isolated worktree, builds the digest-pinned image, runs the in-container build, and prints the resulting hash manifest. Diff it against the official manifest published with the release tag. Expect the unpacked bundle to match; the store-published `.crx` will not.
+The script checks out the tag in an isolated worktree, builds the digest-pinned image, runs the in-container build, and prints the resulting hash manifest. The extension lane has not shipped, so no official extension manifest is published yet; for now this output is your own reference for the tag. Expect an unpacked bundle built from that tag to match; a store-repacked package will not.
 
 The in-container build also runs a check that fails before a manifest is emitted if the bundle reached the development-mode SDK fallback, so a build that would silently ship without real signing capability never produces a manifest that looks like a valid release.
 
@@ -243,8 +243,7 @@ The verifier does not need the maintainer's signing identity; the comparison ver
 
 ## Roadmap
 
-- Publishing per-release SHA-256 manifests for the extension and web shells alongside their already-deterministic builds, so the same diff-based comparison used for desktop today extends to them.
-- Subresource Integrity coverage for the web SPA's script and stylesheet tags, so a tampered file fails to execute in the browser even before a manual hash comparison.
+- Publishing per-release SHA-256 manifests for the extension shell once that lane ships, so the same diff-based comparison used for the hosted web and desktop releases extends to it.
 - macOS and Windows reproducibility, which needs VM-based per-OS runners and is a larger undertaking than the Linux path above.
 - Level-3 multi-party signing is out of scope for now. Level-2 covers what is verifiable without operational overhead; Level-3 trades that simplicity for stronger custody of the signing identity itself.
 

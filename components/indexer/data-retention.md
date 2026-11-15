@@ -134,6 +134,26 @@ never pruned: `state_checkpoints`, `anchor_reward_attestations`,
 supersedes an older one, and no sweep deletes them. See
 [Hub Database](../hub/database.md) for their schema.
 
+The hub's chain-derived record tables below have no age-based sweep and no
+size cap. The delete paths that exist remove rows only when a reorg retracts
+them, when a regtest chain instance changes, or when an unarchived reward is
+superseded, so plan hub disk for steady growth. `price_snapshots`,
+`oracle_prices`, `attestation_responses`, `cross_chain_matches`,
+`cross_chain_calls` and `bridge_transfers` are also served to peer hubs by
+id-paged catch-up (the mirrored table list in the hub's peer catch-up code),
+so a sweep on any of them would break that path. `attestations`,
+`reorg_attestations`, `swap_records` and `validator_rewards` are not mirrored;
+their retention is unbounded today and is not a recorded policy decision.
+
+| Table | Growth driver | Delete paths |
+|---|---|---|
+| `price_snapshots`, `oracle_prices` | One row per finalized oracle round per pair. | Reorg retraction only. |
+| `attestations`, `attestation_responses` | One row per cross-chain attestation, and one finalized response per attested request. | `attestations`: reorg retraction only. `attestation_responses`: none. |
+| `reorg_attestations` | One row per reorg, confirmed or rejected. | None. |
+| `cross_chain_matches`, `cross_chain_calls` | One row per matched cross-chain order, and one per call phase (dispatch and result). | Regtest chain-instance reset only. |
+| `bridge_transfers`, `swap_records` | One row per finalized bridge transfer, and one per swap source action. | None. |
+| `validator_rewards` | One row per validator per rewarded round or anchor. | Superseding an unarchived reward only; an archived row is never deleted. |
+
 ## Indexer hub push queue
 
 The indexer queues every push to the hub in `pending_hub_pushes` and retries

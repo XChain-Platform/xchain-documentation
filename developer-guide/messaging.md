@@ -227,9 +227,9 @@ if (pubkey) {
 
 ## Next Steps
 
-- [Advanced_Token_Features.md](advanced-token-features.md): gated file delivery using a self-MESSAGE key handoff
-- [Query_The_Explorer.md](query-the-explorer.md): read messages and other action data via the REST and JSON-RPC APIs
-- [Integration_Patterns.md](integration-patterns.md): using messaging in production wallets and applications
+- [advanced-token-features.md](advanced-token-features.md): gated file delivery using a self-MESSAGE key handoff
+- [query-the-explorer.md](query-the-explorer.md): read messages and other action data via the REST and JSON-RPC APIs
+- [integration-patterns.md](integration-patterns.md): using messaging in production wallets and applications
 
 ---
 

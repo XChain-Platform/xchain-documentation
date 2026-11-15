@@ -127,7 +127,7 @@ In the wallet, **Move across chains** performs the move, and **Bridge settings**
 
 **What is live today.** XCHAIN can be bridged between Bitcoin and Litecoin or Dogecoin on testnet and regtest. Bridging other tokens through the issuer opt-in is active on regtest and armed on testnet behind `TOKEN_BRIDGE_ACTIVATION`, switching on for each testnet chain at that chain's own height. The bridge is not active on mainnet, for XCHAIN or for any other token. [Flag-Day Values](../protocol/flag-days.md) lists where each activation stands.
 
-**What it trusts.** The credit on the destination chain relies on the hub's validator federation: a compromised hub could supply both the transfer record and the validator roster that checks it, so this is a hub-trusted mint, not a trustless one. The bridge stays off on mainnet until each credit must also agree with a validator-signed checkpoint of the Bitcoin ledger.
+**What it trusts.** The destination verifies the `cross_chain` federation's signature and proves the origin lock or burn against the origin chain's quorum-signed ANCHOR checkpoint before applying a credit. A record the checkpoint does not support is refused. This replaces the earlier hub-trusted mint, but is not trustless: it assumes the transfer-record quorum and checkpoint quorum did not both lie. The bridge remains off on mainnet until mainnet activation.
 
 **Finality.** Once a credit has been applied on the destination chain, it cannot be undone or redirected. A lock reversed by a reorg before its credit is applied is withdrawn and never applied; the confirmation depth is what makes a deeper reorg expensive.
 

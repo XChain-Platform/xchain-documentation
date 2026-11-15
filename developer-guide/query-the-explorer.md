@@ -298,15 +298,15 @@ async function waitForIncomingTransfer(address, tick, afterBlock) {
 }
 ```
 
-See [Integration_Patterns.md](integration-patterns.md) for more production-ready polling and event-detection patterns.
+See [integration-patterns.md](integration-patterns.md) for more production-ready polling and event-detection patterns.
 
 ---
 
 ## Next Steps
 
-- [Integration_Patterns.md](integration-patterns.md): using explorer queries in real applications
-- [Build_A_Dispenser.md](build-a-dispenser.md): monitor dispenser state
-- [Cross_Chain_Swap.md](cross-chain-swap.md): query swaps across chains
+- [integration-patterns.md](integration-patterns.md): using explorer queries in real applications
+- [build-a-dispenser.md](build-a-dispenser.md): monitor dispenser state
+- [cross-chain-swap.md](cross-chain-swap.md): query swaps across chains
 
 ---
 

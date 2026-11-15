@@ -96,7 +96,7 @@ The oracle reward is designed to split into two tranches once a rail mints it:
 
 Proof happens through a periodic possession challenge. Every node can derive the challenge from on-chain data, but only a node holding the chain can compute the answer. Verdicts are recorded on-chain, and eligibility for the tranche is a participation *rate*, not a single success: a validator must pass at least 70% of the challenge epochs in the trailing window, so one outage costs nothing.
 
-**The full-node tranche is not active yet.** It ships inert and stays that way until its reward share is set above zero and the initial verifier set is seeded. Until then, both tiers earn the same rewards, and running a full node buys you self-sufficiency rather than income.
+**The full-node tranche is not active yet.** It pays nothing until a consensus rail mints oracle-round rewards, `FULLNODE.REWARD_SHARE` is above zero, and an initial `FULLNODE.GENESIS_VERIFIERS` set is seeded. Until then, both tiers earn the same rewards, and running a full node buys you self-sufficiency rather than income. See [NODEPROOF](../protocol/actions/nodeproof.md#bootstrap-and-degradation).
 
 ## What lightweight validators are never penalised for
 

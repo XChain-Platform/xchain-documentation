@@ -1934,7 +1934,7 @@ POST /{COIN}/api/preflight   {"action":"BATCH","params":"...","source":"...","fe
 GET /{COIN}/api/oraclefeequote?oracleAddress=...&giveTick=...&fiatCode=USD&giveEscrow=1000
 ```
 
-Proxied to the colocated indexer's `feequote` / `feeschedule` / `preflight` / `oraclefeequote` JSON-RPC. Returns `501` with code `INDEXER_NOT_CONFIGURED` when no `INDEXER_API_URL` is configured. See [CONFIGURATION.md](configuration.md) for `INDEXER_API_URL_<COIN>_<NETWORK>`.
+Proxied to the colocated indexer's `feequote` / `feeschedule` / `preflight` / `oraclefeequote` JSON-RPC. Returns `501` with code `INDEXER_NOT_CONFIGURED` when no `INDEXER_API_URL` is configured. See [configuration.md](configuration.md) for `INDEXER_API_URL_<COIN>_<NETWORK>`.
 
 A `GET` `feequote` is length-capped before the indexer is asked. If its `params` value passes 8192 characters, or its `source` passes 4096, the explorer refuses it with `400` and the body `{ "error": "parameter too long", "code": "INVALID_PARAMETER" }`. Likewise, repeated query parameters (for example `params` given twice) are refused with `400` and code `INVALID_PARAMETER`, rather than one of the values being picked.
 

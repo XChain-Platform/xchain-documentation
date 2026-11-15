@@ -240,7 +240,9 @@ Cross-platform reproduction is not yet wired. Until that lands, the per-platform
 
 ### Extension and web
 
-Per-release reproduce scripts for the extension `.zip` and the web SPA bundle are not yet available. Until they land, the extension store's signing pipeline and the web SPA's SRI hashes are the available integrity guarantees for those targets.
+Both bundles have reproduce scripts: run `packages/extension/scripts/reproduce.sh <tag> <out-dir>` or `packages/web/scripts/reproduce.sh <tag> <out-dir>`, with the matching `pnpm --filter ... reproduce` command as an alternative. Each script checks out the tag in an isolated worktree, builds it in the digest-pinned container, and prints a SHA-256 manifest. See the Extension and Web verification protocols in [Reproducible Builds](../reproducible-builds.md) for prerequisites and comparison steps.
+
+The hosted web tarball is named in its signed release manifest. The extension lane has not shipped, so it has no published per-release reference manifest yet; until its first release, an independent rebuild can only be compared at content level with an unpacked bundle, and a store-repacked package will not hash-match. Delivery is protected by the extension store's signature and by the web build's SRI attributes.
 
 ---
 

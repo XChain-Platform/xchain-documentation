@@ -104,7 +104,7 @@ The hub exposes three REST endpoints that collect and report this telemetry:
 `POST /telemetry` (ingest), `GET /telemetry/summary` (anonymous aggregate census), and
 `GET /telemetry/operators` (admin-only per-install detail, gated by `TELEMETRY_ADMIN_KEY`).
 Full request/response shapes, query parameters, and field references are documented in
-[components/hub/TELEMETRY_API.md](../components/hub/telemetry-api.md).
+[components/hub/telemetry-api.md](../components/hub/telemetry-api.md).
 
 ---
 

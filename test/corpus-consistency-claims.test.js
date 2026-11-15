@@ -582,6 +582,11 @@ const DESKTOP_STORE_LANES = {
     'components/wallet/release/desktop/mac-app-store.md': ['mas', 'mac'],
     'components/wallet/release/desktop/snap-store.md': ['snap', 'linux'],
 };
+const DESKTOP_DIRECT_LANES = {
+    'components/wallet/release/desktop/windows.md': 'windows',
+    'components/wallet/release/desktop/macos.md': 'mac',
+    'components/wallet/release/desktop/linux.md': 'linux',
+};
 const CHANNELS_SHIP = new RegExp(
     String.raw`\b(?:both|the two)\b[^.\n]{0,40}\bchannels?\b[^.\n]{0,30}`
         + String.raw`\b(?:ship|ships|shipping|shipped|live)\b`,
@@ -597,6 +602,19 @@ function shippedLaneStatuses(markdown) {
 function channelShippingClaims(rel, markdown) {
     return markdown.split('\n').flatMap((line, i) =>
         CHANNELS_SHIP.test(line) ? [`${rel}:${i + 1}  ${line.trim()}`] : []);
+}
+
+const NOT_SHIPPED_MARKER = /\b(?:not shipped|has not (?:yet )?(?:shipped|been published)|not (?:yet )?(?:been )?published)\b/i;
+const PENDING_ROW_MARKER = /\b(?:pending|not (?:yet )?shipped)\b/i;
+
+function directLaneStatusProblems(rel, status, page, row) {
+    const shouldBePending = status === 'NOT-SHIPPED';
+    const introIsPending = NOT_SHIPPED_MARKER.test(page.split('\n## ')[0]);
+    const rowIsPending = PENDING_ROW_MARKER.test(row);
+    return [
+        ...(introIsPending === shouldBePending ? [] : [`${rel} status marker`]),
+        ...(rowIsPending === shouldBePending ? [] : [`${rel} README row`]),
+    ];
 }
 
 test('desktop store pages do not call channels shipped while a lane is NOT-SHIPPED',
@@ -621,6 +639,34 @@ test('falsification: channel-state claims are caught without matching build cont
     }
     assert.deepEqual(channelShippingClaims('fixture.md',
         'The complete trading surface ships in the Microsoft Store build.'), []);
+});
+
+test('desktop direct-download pages match the shipped-lane declaration',
+    { skip: walletRelease.skip }, () => {
+        const statuses = shippedLaneStatuses(
+            fs.readFileSync(path.join(walletRelease.root, SHIPPED_LANES_REL), 'utf8'));
+        const readme = readDoc('components/wallet/release/README.md');
+        const offenders = [];
+        for (const [rel, lane] of Object.entries(DESKTOP_DIRECT_LANES)) {
+            assert.ok(statuses.has(lane), `${lane} is missing from shipped-lanes.txt`);
+            const link = `](${rel.replace('components/wallet/release/', '')})`;
+            const row = readme.split('\n').find((line) => line.includes(link));
+            assert.ok(row, `${rel} is missing from the release README table`);
+            offenders.push(...directLaneStatusProblems(
+                rel, statuses.get(lane), readDoc(rel), row));
+        }
+        assert.deepEqual(offenders, [], 'direct-download docs disagree with shipped-lanes.txt:\n'
+            + offenders.join('\n'));
+    });
+
+test('falsification: an unmarked Windows lane is caught as not shipped', () => {
+    const stalePage = 'The Windows desktop build ships two artifacts from the same source tree.';
+    const staleRow = '| Desktop: Windows | [desktop/windows.md](desktop/windows.md) | update channel |';
+    assert.deepEqual(directLaneStatusProblems(
+        'components/wallet/release/desktop/windows.md', 'NOT-SHIPPED', stalePage, staleRow), [
+        'components/wallet/release/desktop/windows.md status marker',
+        'components/wallet/release/desktop/windows.md README row',
+    ]);
 });
 
 function desktopTradingReviewNotes(markdown) {

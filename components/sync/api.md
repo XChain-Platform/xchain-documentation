@@ -16,7 +16,7 @@ A replicating client bootstraps from a REST snapshot, then subscribes over
 WebSocket for live blocks, falling back to the incremental snapshot endpoint to
 fill any gap after a disconnect. This reference catalogs the endpoints and the
 WebSocket protocol; for deployment, server/client modes, and worked examples see
-[`OPERATIONS.md`](./operations.md).
+[`operations.md`](./operations.md).
 
 **Path parameters used throughout:**
 - `:dbType` is `indexer` or `decoder`.

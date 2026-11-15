@@ -22,7 +22,7 @@ await sdk.mint({ tick: 'MYTOKEN', amount: '100' })
 // etc.
 ```
 
-An optional second argument passes encoder options (see [ENCODER.md](./encoder.md)):
+An optional second argument passes encoder options (see [encoder.md](./encoder.md)):
 
 ```js
 await sdk.send({ tick: 'MYTOKEN', amount: '100', destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' }, { encoding: 'OP_RETURN' })
@@ -115,7 +115,7 @@ await sdk.address(sdk.controller.bindAddress({ controller: 500, actionClass: 'tr
 await sdk.address(sdk.controller.unbindAddress({ actionClass: 'transfer' }))
 ```
 
-See also: [`../actions/ADDRESS.md`](../../protocol/actions/address.md)
+See also: [`../actions/address.md`](../../protocol/actions/address.md)
 
 ---
 
@@ -143,7 +143,7 @@ Distribute tokens to all addresses on a list.
 await sdk.airdrop({ tick: 'MYTOKEN', amount: '10', listActionIndex: 42 })
 ```
 
-See also: [`../actions/AIRDROP.md`](../../protocol/actions/airdrop.md)
+See also: [`../actions/airdrop.md`](../../protocol/actions/airdrop.md)
 
 ---
 
@@ -170,7 +170,7 @@ Combine multiple action commands into a single transaction.
 - At most **250 commands** per BATCH, counted over the raw semicolon-separated list including empty entries.
 - Sub-commands are **not atomic**: each is validated and settled on its own, so a command that fails does not undo the ones before it. Protocol fees are charged per command and accumulate across the batch.
 - The child-issuance exemption, the per-distinct-token MINT rule, the 250-command cap and cumulative fee accounting are active on testnet and regtest, and have been active on mainnet since `2026-08-16T00:00:00Z`.
-- See [BATCH.md](./batch.md) for the fluent builder interface (`sdk.batch()`).
+- See [batch.md](./batch.md) for the fluent builder interface (`sdk.batch()`).
 
 ```js
 await sdk.batch({
@@ -178,7 +178,7 @@ await sdk.batch({
 })
 ```
 
-See also: [`../actions/BATCH.md`](../../protocol/actions/batch.md)
+See also: [`../actions/batch.md`](../../protocol/actions/batch.md)
 
 ---
 
@@ -215,7 +215,7 @@ await sdk.broadcast({ message: 'PRICE_BTC_USD', value: 65000, fee: 0.01 })
 await sdk.broadcast({ broadcastActionIndex: 120, value: 67000 })
 ```
 
-See also: [`../actions/BROADCAST.md`](../../protocol/actions/broadcast.md)
+See also: [`../actions/broadcast.md`](../../protocol/actions/broadcast.md)
 
 ---
 
@@ -238,7 +238,7 @@ Trigger a callback on an issued token, redeeming holder balances at the terms de
 await sdk.callback({ tick: 'MYTOKEN', memo: 'Calling back all holders' })
 ```
 
-See also: [`../actions/CALLBACK.md`](../../protocol/actions/callback.md)
+See also: [`../actions/callback.md`](../../protocol/actions/callback.md)
 
 ---
 
@@ -296,7 +296,7 @@ let check = sdk.contracts.validate(contractSource);
 if (!check.valid) console.log(check.error);
 ```
 
-See also: [`../actions/DEPLOY.md`](../../protocol/actions/deploy.md)
+See also: [`../actions/deploy.md`](../../protocol/actions/deploy.md)
 
 ---
 
@@ -324,7 +324,7 @@ const amm = sdk.contract(12345);
 await amm.deposit('MYTOKEN', '1000', { pubkey: 'yourPubkey' });
 ```
 
-See also: [`../actions/DEPOSIT.md`](../../protocol/actions/deposit.md)
+See also: [`../actions/deposit.md`](../../protocol/actions/deposit.md)
 
 ---
 
@@ -350,7 +350,7 @@ Permanently burn tokens, removing them from supply.
 await sdk.destroy({ tick: 'MYTOKEN', amount: '500', memo: 'Deflationary burn' })
 ```
 
-See also: [`../actions/DESTROY.md`](../../protocol/actions/destroy.md)
+See also: [`../actions/destroy.md`](../../protocol/actions/destroy.md)
 
 ---
 
@@ -419,7 +419,7 @@ await sdk.dispenser({
 await sdk.dispenser({ dispenserActionIndex: 77 })
 ```
 
-See also: [`../actions/DISPENSER.md`](../../protocol/actions/dispenser.md)
+See also: [`../actions/dispenser.md`](../../protocol/actions/dispenser.md)
 
 ---
 
@@ -444,7 +444,7 @@ Pay a dividend of one token proportionally to all holders of another token.
 await sdk.dividend({ tick: 'MYTOKEN', dividendTick: 'REWARD', amount: '1000' })
 ```
 
-See also: [`../actions/DIVIDEND.md`](../../protocol/actions/dividend.md)
+See also: [`../actions/dividend.md`](../../protocol/actions/dividend.md)
 
 ---
 
@@ -485,7 +485,7 @@ let exec = (await sdk.getExecution(actionIndex)).data[0];
 if (exec && exec.status !== 'valid') console.log(exec.error_message);
 ```
 
-See also: [`../actions/EXECUTE.md`](../../protocol/actions/execute.md)
+See also: [`../actions/execute.md`](../../protocol/actions/execute.md)
 
 ---
 
@@ -517,7 +517,7 @@ Attach a file to the chain. File data is supplied via the encoder (not in the ac
 await sdk.file({ name: 'logo.png', type: 'image/png', title: 'Project Logo' }, { rawData: fileBuffer })
 ```
 
-See also: [`../actions/FILE.md`](../../protocol/actions/file.md)
+See also: [`../actions/file.md`](../../protocol/actions/file.md)
 
 ---
 
@@ -671,7 +671,7 @@ await sdk.issue(sdk.controller.bindToken({ tick: 'MYTOKEN', controller: 500, act
 await sdk.issue(sdk.controller.unbindToken({ tick: 'MYTOKEN', actionClass: 'transfer' }))
 ```
 
-See also: [`../actions/ISSUE.md`](../../protocol/actions/issue.md)
+See also: [`../actions/issue.md`](../../protocol/actions/issue.md)
 
 ---
 
@@ -697,7 +697,7 @@ Link two on-chain actions across chains, establishing an association between the
 await sdk.link({ coin1: 'BTC', coin1ActionIndex: 500, coin2: 'LTC', coin2ActionIndex: 200 })
 ```
 
-See also: [`../actions/LINK.md`](../../protocol/actions/link.md)
+See also: [`../actions/link.md`](../../protocol/actions/link.md)
 
 ---
 
@@ -778,7 +778,7 @@ await sdk.list({ version: 4, type: 1, name: 'Partners', description: 'Partner to
 await sdk.list({ version: 5, listActionIndex: 70, name: 'Partner tokens' })
 ```
 
-See also: [`../actions/LIST.md`](../../protocol/actions/list.md)
+See also: [`../actions/list.md`](../../protocol/actions/list.md)
 
 ---
 
@@ -825,7 +825,7 @@ await sdk.message({ destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', p
 await sdk.message({ destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', encryptionMethod: 1, encryptionKey: '<pubkey>' })
 ```
 
-See also: [`../actions/MESSAGE.md`](../../protocol/actions/message.md)
+See also: [`../actions/message.md`](../../protocol/actions/message.md)
 
 ---
 
@@ -850,7 +850,7 @@ Mint new tokens from an existing ISSUE's mintable supply.
 await sdk.mint({ tick: 'MYTOKEN', amount: '100', destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' })
 ```
 
-See also: [`../actions/MINT.md`](../../protocol/actions/mint.md)
+See also: [`../actions/mint.md`](../../protocol/actions/mint.md)
 
 ---
 
@@ -914,7 +914,7 @@ await sdk.order({
 await sdk.order({ orderActionIndex: 99 })
 ```
 
-See also: [`../actions/ORDER.md`](../../protocol/actions/order.md)
+See also: [`../actions/order.md`](../../protocol/actions/order.md)
 
 ---
 
@@ -984,7 +984,7 @@ The `customOutputs` array contains objects with `address` (the seller's GET_ADDR
 
 **Note on validation:** `ORDER_MATCH_ACTION_INDEX` is required and must be numeric. It is validated as a required field in the COINPAY action entry and is handled separately from the generic `ACTION_INDEX fields` group listed in the Validation Rules section below, which covers the cancel/edit index fields for other actions.
 
-See also: [`../actions/COINPAY.md`](../../protocol/actions/coinpay.md)
+See also: [`../actions/coinpay.md`](../../protocol/actions/coinpay.md)
 
 ---
 
@@ -1015,7 +1015,7 @@ await sdk.send({ tick: 'MYTOKEN', amount: '100', destination: 'bc1qxy2kgdygjrsqt
 await sdk.send({ tick: 'MYTOKEN', amount: '100', destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', memo: 'Payment for invoice 42' })
 ```
 
-See also: [`../actions/SEND.md`](../../protocol/actions/send.md)
+See also: [`../actions/send.md`](../../protocol/actions/send.md)
 
 ---
 
@@ -1044,7 +1044,7 @@ await sdk.sleep({ resumeBlock: 900000 })
 await sdk.sleep({ resumeBlock: 900000, tick: 'MYTOKEN' })
 ```
 
-See also: [`../actions/SLEEP.md`](../../protocol/actions/sleep.md)
+See also: [`../actions/sleep.md`](../../protocol/actions/sleep.md)
 
 ---
 
@@ -1107,7 +1107,7 @@ await sdk.swap({
 await sdk.swap({ swapActionIndex: 103 })
 ```
 
-See also: [`../actions/SWAP.md`](../../protocol/actions/swap.md)
+See also: [`../actions/swap.md`](../../protocol/actions/swap.md)
 
 ---
 
@@ -1139,7 +1139,7 @@ await sdk.sweep({ destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' })
 await sdk.sweep({ destination: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', balances: 1, ownerships: 1, orders: 0, swaps: 0, dispensers: 0 })
 ```
 
-See also: [`../actions/SWEEP.md`](../../protocol/actions/sweep.md)
+See also: [`../actions/sweep.md`](../../protocol/actions/sweep.md)
 
 ---
 
@@ -1171,7 +1171,7 @@ const amm = sdk.contract(12345);
 await amm.withdraw('MYTOKEN', '500', { pubkey: 'yourPubkey' });
 ```
 
-See also: [`../actions/WITHDRAW.md`](../../protocol/actions/withdraw.md)
+See also: [`../actions/withdraw.md`](../../protocol/actions/withdraw.md)
 
 ---
 
@@ -1221,9 +1221,9 @@ await sdk.vote(sdk.voting.createPollParams({
 await sdk.vote(sdk.voting.castBallotParams({ pollRef: 307, ballot: { 0: 60, 2: 40 } }))
 ```
 
-For signed and broadcast round trips use the workflow recipes `sdk.createPoll` / `sdk.castBallot` / `sdk.delegateVote` / `sdk.clearVoteDelegation` (see [WORKFLOWS.md](./workflows.md)), or `session.vote(params)` on a wallet session.
+For signed and broadcast round trips use the workflow recipes `sdk.createPoll` / `sdk.castBallot` / `sdk.delegateVote` / `sdk.clearVoteDelegation` (see [workflows.md](./workflows.md)), or `session.vote(params)` on a wallet session.
 
-See also: [`../actions/VOTE.md`](../../protocol/actions/vote.md)
+See also: [`../actions/vote.md`](../../protocol/actions/vote.md)
 
 ---
 
@@ -1290,9 +1290,9 @@ await sdk.bet(sdk.betting.placeBetParams({
 await sdk.bet(sdk.betting.resolveMarketParams({ feedActionIndex: 1234, outcome: 0 }))
 ```
 
-For signed and broadcast round trips use the workflow recipes `sdk.workflows.openMarket` / `placeBet` / `resolveMarket` / `cancelMarket` (see [WORKFLOWS.md](./workflows.md)), or `session.bet(params)` on a wallet session. Read markets back with `sdk.explorer.getBetFeeds` / `getBetFeed` / `getBets` / `getOracleStats`, and follow one live with `sdk.ws.subscribeBetFeed(index)`.
+For signed and broadcast round trips use the workflow recipes `sdk.workflows.openMarket` / `placeBet` / `resolveMarket` / `cancelMarket` (see [workflows.md](./workflows.md)), or `session.bet(params)` on a wallet session. Read markets back with `sdk.explorer.getBetFeeds` / `getBetFeed` / `getBets` / `getOracleStats`, and follow one live with `sdk.ws.subscribeBetFeed(index)`.
 
-See also: [`../actions/BET.md`](../../protocol/actions/bet.md)
+See also: [`../actions/bet.md`](../../protocol/actions/bet.md)
 
 ---
 
@@ -1337,7 +1337,7 @@ await sdk.workflows.bridgeTokenBurn(wif, { tick: 'BTC.PEPECASH', originAddress: 
 
 Read the escrow-versus-supply invariant and in-flight transfers over the indexer's `getpendingbridgetransfers` / `getbridgetransfer` and the hub's `getbridgeinvariant` (see [Cross-Chain Bridge](../../protocol/xchain-bridge.md#reads)).
 
-See also: [`../actions/XBRIDGE.md`](../../protocol/actions/xbridge.md)
+See also: [`../actions/xbridge.md`](../../protocol/actions/xbridge.md)
 
 ---
 
@@ -1450,7 +1450,7 @@ Stake tokens. Two flavors with different chain reach:
 - **v1 / v2, capability staking.** BTC-only. XCHAIN-only. Per-pubkey aggregate active stake auto-qualifies the pubkey for each of five independent capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`, `full_node`) per governance-configurable `min_stake[capability]`.
 - **v3:** contract-targeted staking.** Works on any chain (BTC, LTC, DOGE). Any token. Targets a specific stakeable contract deployed via [DEPLOY](../../protocol/actions/deploy.md) v1.
 
-See [protocol/actions/STAKE.md](../../protocol/actions/stake.md).
+See [protocol/actions/stake.md](../../protocol/actions/stake.md).
 
 ```js
 // New capability stake against a fresh pubkey

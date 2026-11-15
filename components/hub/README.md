@@ -31,7 +31,7 @@ The hub operates in two modes. In **standalone mode** (no `P2P_VALIDATOR_ADDR` s
 - **Offense detection** (`SlashDetector`): price deviation (>5%), repeated deviation (3+ in 24h), and non-participation (30+ missed rounds) monitoring. These are hub-local records; governance can suspend a validator, and on-chain stake is burned only by a SLASH proof of equivocation
 - **Multi-instance**: multiple hub instances against shared MariaDB with consumer fallback via `HUB_VALIDATORS`
 - **MariaDB storage**: relational schema auto-created from `src/sql/` (see [Database](database.md)), with connection pooling, circuit breaker, and exponential backoff
-- **Single-node fallback**: all consensus-dependent operations fall back to direct execution when no peers are connected
+- **Single-node mode**: a consensus engine uses its single-member branch only when its membership has zero or one member (`N <= 1`), such as single-operator regtest. Losing peers does not shrink a loaded federation's quorum, so an isolated validator cannot finalize alone; see [Operations: Single-Node Fallback](operations.md#single-node-fallback)
 - **3,638 tests** (measured 2026-07-27): unit, integration, e2e, fuzz, chaos, boundary, smoke, regression, performance
 - **Docker-ready**: Dockerfile for containerized deployment via xchain-node
 

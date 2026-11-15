@@ -218,13 +218,13 @@ A batch is bounded by a **weight budget of 250**: each command carries a cost we
 What that means in practice:
 
 - An ordinary command keeps the default weight of 1, so a batch with no VM and no fan-out action behaves exactly as before: same 250 bound, same error string. If your batches are sends, issues and mints, nothing changes for you.
-- Weights mix arithmetically. Two `EXECUTE`s (60) plus one `AIRDROP` (25) leave a budget of 165 for ordinary sub-commands in the same batch.
-- A full batch of VM sub-commands is 8 (8 x 30 = 240); a full batch of fan-out sub-commands is 10 (10 x 25 = 250).
+- Weights mix arithmetically. Two `EXECUTE`s (60) plus one single-leg `AIRDROP` (25) leave a budget of 165 for ordinary sub-commands in the same batch. With per-leg AIRDROP weighting active, a 3-leg AIRDROP costs 75, so the same combination costs 135 and leaves 115.
+- A full batch of VM sub-commands is 8 (8 x 30 = 240). Ten `DIVIDEND`s or ten single-leg AIRDROPs use the full 250 budget. With per-leg AIRDROP weighting active, one 10-leg AIRDROP also uses the full budget.
 - A chunked contract deployment (a format-4 `DEPLOY` chunk carrier) weighs the default 1 rather than the VM weight: carrying code bytes is a data write, not a contract run, so uploading a large contract in chunks stays cheap.
 - The per-action caps above do not move: one `MINT` per distinct token, one top-level `ISSUE` and at most one `DEPLOY` per batch at the protocol level (the SDK builder does not compose a `DEPLOY` at all), weighted or not.
 - The count cap is still checked first, and every weight is at least 1, so more than 250 commands always busts the budget too.
 
-*The weighted budget is in force on every network. Its gate is armed at genesis, but the budget is only consulted where the batch limits above are active, so on mainnet it took effect at the same instant they did (the `BATCH_ISSUANCE_LIMITS` row in [Flag-Day Values](../protocol/flag-days.md#mainnet-time-keyed-gates)). Mainnet blocks before that instant have neither the command cap nor the budget. The canonical rule is in the [BATCH spec](../protocol/actions/batch.md).*
+*The weighted budget is in force on every network. Its gate is armed at genesis, but the budget is only consulted where the batch limits above are active, so on mainnet it took effect at the same instant they did (the `BATCH_ISSUANCE_LIMITS` row in [Flag-Day Values](../protocol/flag-days.md#mainnet-time-keyed-gates)). Mainnet blocks before that instant have neither the command cap nor the budget. `BATCH_AIRDROP_LEG_WEIGHT_ACTIVATION` separately enables per-leg AIRDROP weighting: it is active from genesis on regtest, armed per chain on testnet, and unarmed on mainnet. The canonical rule is in the [BATCH spec](../protocol/actions/batch.md).*
 
 ---
 
@@ -276,9 +276,9 @@ P2SH and P2WSH require a second transaction to spend the script and reveal the d
 
 ## Next Steps
 
-- [Advanced_Token_Features.md](advanced-token-features.md): SLEEP patterns that rely on BATCH
-- [Build_Your_First_Token.md](build-your-first-token.md): foundation for batch operations
-- [Integration_Patterns.md](integration-patterns.md): airdrop and multi-send patterns
+- [advanced-token-features.md](advanced-token-features.md): SLEEP patterns that rely on BATCH
+- [build-your-first-token.md](build-your-first-token.md): foundation for batch operations
+- [integration-patterns.md](integration-patterns.md): airdrop and multi-send patterns
 
 ---
 

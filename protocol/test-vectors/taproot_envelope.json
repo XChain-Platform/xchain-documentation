@@ -54,16 +54,15 @@
     "envelope_script_sha256": "72a69c5fac2761547e326f6b5c7f626a3bbdf051e223479cf642c0cae2f500c3"
   },
   "source_attribution": {
-    "description": "Spec §3.4 (decision pinned by this vector once review lands): the reveal's ins[0] is the commit output, a payload-dependent one-time P2TR address, so naive ins[0]-prevout attribution breaks ownership/gating/fees.",
+    "description": "Spec §3.4: the reveal's ins[0] is the commit output, a payload-dependent one-time P2TR address, so naive ins[0]-prevout attribution breaks ownership/gating/fees.",
     "rule": "source = the address funding the commit, i.e. the prevout of the COMMIT transaction's ins[0], mirroring how the funding transaction anchors identity in the chunk lanes",
-    "build_time_task": "read the shipped chunk-reveal attribution rule and keep the envelope structurally identical to it; if the shipped rule differs from this recommendation, the shipped rule wins and this vector is regenerated",
     "requires": "SIGHASH_ALL on all commit inputs (§3.5); commit-RBF replacements MUST preserve ins[0]"
   },
   "commit_fee_output_placement": {
     "description": "Spec §3.5: native fee-destination outputs ride the COMMIT transaction, mirroring the funding transaction's role in the chunk lanes; the decoder's funding-fee resolver (findFundingFeeOutputs / FUNDING_VOUT_BASE) extends to the commit.",
     "commit_vout_0": "the envelope P2TR output (by construction in the shipped encoder)",
     "fee_destination_outputs": "vout >= 1 on the commit",
-    "fee_evaluation_height": "the requirement in force at the REVEAL's block height, using the outputs recorded on the commit (build-time task: verify the shipped chunk-lane evaluation height and mirror it exactly)",
+    "fee_evaluation_height": "the requirement in force at the REVEAL's block height, using the outputs recorded on the commit",
     "reveal_outputs": "never consulted for protocol-fee sufficiency"
   },
   "deflate_raw_pair": {
@@ -88,6 +87,42 @@
     "ciphertext_hex": "000102030405060708090a0b3f9888180e59c179aa9196ec1473990c3d1e28e84c34f59c37fe7f29dd6db06ee96cabdf16ef9a21476c6dea240afee5a35ccc53d505d225ee9c418c9af365ea8b21adccfef193a6eba683600ae8c6427823219fac17c28edcc2fce7c7b2765835e359943ed326914d33811e5c3b5edb0650",
     "ciphertext_sha256": "35e425b528ea41649892faec6148ce0a87f962355b85195e209d654f1c4f06b4",
     "compression_semantics": "for gated FILEs COMPRESSION=1 means inflate-after-decrypt, client-side only"
+  },
+  "header_framing": {
+    "description": "Recognition reads every grammar element after decompilation, so the push framing of the OP_FALSE, the magic, the format byte and the internal key never decides whether a reveal is an action (spec rules section). Each entry is the golden envelope_grammar script with exactly one header element re-framed, so the decompiled element list is identical to the golden one except where an entry says otherwise. Entries use the same control block as the golden script.",
+    "base": "envelope_grammar.envelope_script_hex",
+    "vectors": [
+      {
+        "name": "nonminimal_op_false",
+        "description": "The golden script with its leading OP_FALSE (00) framed as the empty push 4c00 (OP_PUSHDATA1, length 0). Any empty push decompiles to OP_0, so the header reads OP_FALSE OP_IF unchanged and the reveal is an action. An implementation that matches the frozen prefix 0063045843484e0100 as literal bytes would diverge here.",
+        "envelope_script_hex": "4c0063045843484e01004c5f3046494c457c307c676f6c64656e2e7478747c746578742f706c61696e7c476f6c64656e20766563746f727c7c7c7c7c7c2d58436861696e20746170726f6f7420656e76656c6f706520676f6c64656e20766563746f72207061796c6f6164682079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ac",
+        "expect": "recognized"
+      },
+      {
+        "name": "nonminimal_magic_push",
+        "description": "The golden script with the magic framed 4c04 5843484e (OP_PUSHDATA1, length 4) instead of 04 5843484e. The decompiled element is the same four bytes, so the reveal is an action.",
+        "envelope_script_hex": "00634c045843484e01004c5f3046494c457c307c676f6c64656e2e7478747c746578742f706c61696e7c476f6c64656e20766563746f727c7c7c7c7c7c2d58436861696e20746170726f6f7420656e76656c6f706520676f6c64656e20766563746f72207061796c6f6164682079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ac",
+        "expect": "recognized"
+      },
+      {
+        "name": "nonminimal_format_push",
+        "description": "The golden script with the format byte framed 4c01 00 (OP_PUSHDATA1, length 1) instead of 01 00. The decompiled element is the same one-byte push of 0x00, so the reveal is an action.",
+        "envelope_script_hex": "0063045843484e4c01004c5f3046494c457c307c676f6c64656e2e7478747c746578742f706c61696e7c476f6c64656e20766563746f727c7c7c7c7c7c2d58436861696e20746170726f6f7420656e76656c6f706520676f6c64656e20766563746f72207061796c6f6164682079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ac",
+        "expect": "recognized"
+      },
+      {
+        "name": "nonminimal_internal_key_push",
+        "description": "The golden script with the 32-byte internal key framed 4c20 <key> instead of 20 <key>. The decompiled element is the same 32 bytes, so the reveal is an action.",
+        "envelope_script_hex": "0063045843484e01004c5f3046494c457c307c676f6c64656e2e7478747c746578742f706c61696e7c476f6c64656e20766563746f727c7c7c7c7c7c2d58436861696e20746170726f6f7420656e76656c6f706520676f6c64656e20766563746f72207061796c6f6164684c2079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ac",
+        "expect": "recognized"
+      },
+      {
+        "name": "bare_op_0_format",
+        "description": "The golden script with the format byte written as a bare 00 (OP_0). That is a zero-length element, not the one-byte push 01 00, so it is not a format byte and the reveal is not an envelope.",
+        "envelope_script_hex": "0063045843484e004c5f3046494c457c307c676f6c64656e2e7478747c746578742f706c61696e7c476f6c64656e20766563746f727c7c7c7c7c7c2d58436861696e20746170726f6f7420656e76656c6f706520676f6c64656e20766563746f72207061796c6f6164682079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ac",
+        "expect": "not_recognized"
+      }
+    ]
   },
   "adversarial": [
     {

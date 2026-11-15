@@ -74,11 +74,11 @@ meta: { name: 'Escrow ' + xchain.getBlockHeight(), description: '...' }   // leg
 
 Every node reads it under the same block context, so every node records the same string. Three things argue against it anyway: the value is not a function of your source bytes, so nobody reading the code can tell what the chain recorded; the SDK and foundry pre-flight checks parse the source statically and cannot see a computed value, so they downgrade to a warning and you lose the "refused before you paid a fee" safety net; and `xchain.getBlockHash()` is **`undefined`** during the manifest read (only the height, the timestamp and the contract address are supplied), so a name built from it records the literal text `undefined` forever. Write a literal.
 
-**What may go in `meta`.** Unknown keys are allowed and ignored by consensus, and they are stored verbatim, so `author`, `url` or anything else you want to carry can ride along and be displayed later without another flag day. The whole `meta` object, serialised, must stay under 4096 characters.
+**What may go in `meta`.** Unknown keys are allowed and ignored by consensus, and they are stored verbatim, so `author`, `url` or anything else you want to carry can ride along and be displayed later without another flag day. The whole `meta` object, serialised with `JSON.stringify(meta)`, must be at most 4096 UTF-16 code units; a longer one is rejected at deploy (see the [DEPLOY verdicts](../protocol/actions/deploy.md#verdicts)).
 
 **The rules, in one list.** `name` and `description` are required strings; `version` is optional but is validated whenever the key is present, so `version: ''` and `version: 3` are rejected rather than dropped. All three are capped in UTF-8 **bytes** (64 / 512 / 32), must be well-formed text with no control, zero-width or bidi code points, and must not begin or end with whitespace. `description` is the only field a line break may appear inside. Nothing is repaired for you: a value that does not conform rejects the deploy, with a verdict naming the field. The full grammar and the seven verdict strings are in [DEPLOY](../protocol/actions/deploy.md#contract-identity-manifest-meta-required-at-the-flag-day).
 
-**What it costs.** `meta` is source, and source is metered: a deploy pays `VM_DEPLOY_BASE + (code_bytes * VM_DEPLOY_PER_BYTE)`, so the block you add is priced at `VM_DEPLOY_PER_BYTE` per byte, on every deploy, forever. Measured over the 14 templates in the [`xchain-contracts`](https://github.com/XChain-Platform/xchain-contracts) library, the shipped block (the `meta` property plus the three-line comment above it) adds **568 to 675 bytes of source, median 605**, which is **760 to 900 bytes on the wire** once the source is base64-encoded into the DEPLOY action. The property on its own, with no comment, is 321 to 428 bytes (median 358). Against templates of 5 KB to 30 KB that is roughly 2% to 4% of the deploy fee; against a one-line contract it is most of it. A tight description is cheaper than a long one, and it is the line a user reads before they deposit into your contract, so spend the bytes on being clear rather than on being brief.
+**What it costs.** `meta` is source, and source is metered. An inline deploy bills `VM_DEPLOY_PER_BYTE` for each decoded UTF-8 source byte. A chunked deploy bills that rate for each base64 character carried in its DEPLOY v4 `CODE_PART` actions, so source on the chunked path costs about 4/3 as much per byte. Measured over the 14 templates in the [`xchain-contracts`](https://github.com/XChain-Platform/xchain-contracts) library, the shipped block (the `meta` property plus the three-line comment above it) adds **568 to 675 bytes of source, median 605**, which is **760 to 900 bytes on the wire** once the source is base64-encoded into the DEPLOY action. The property on its own, with no comment, is 321 to 428 bytes (median 358). Against templates of 5 KB to 30 KB that is roughly 2% to 4% of the deploy fee; against a one-line contract it is most of it. A tight description is cheaper than a long one, and it is the line a user reads before they deposit into your contract, so spend the bytes on being clear rather than on being brief.
 
 ### Minimal Contract
 
@@ -184,6 +184,14 @@ So arithmetic keeps its result in string form, which is what avoids precision
 loss, while the predicates are usable directly in `if` and
 `xchain.require(...)`. Do not compare a predicate against a string
 (`xchain.math.gt(a, b) === 'true'` is always false).
+
+`compare`, `gt`, `gte`, `lt`, `lte`, `eq`, `min`, and `max` are
+tolerance-based: values within max(1e-12 times the larger magnitude, 1e-15)
+compare as equal. Arithmetic and `isZero` are exact. A positivity check against
+`'0'` may use the tolerant predicates, but threshold, custody, cap, and payment
+guards must use `isAtLeastExact`: `a >= b` is
+`isAtLeastExact(xchain, a, b)` and `a <= b` reverses those arguments. See
+[Deterministic Math](../concepts/smart-contracts.md#deterministic-math).
 
 ## State Management
 
@@ -345,7 +353,7 @@ The CLI runs the **full** validator including the V8 syntax check, so a clean re
 
 > **Indexed `for` loops cost 2 gas per iteration, not 1.** The gas meter injects a control-flow charge at the top of the loop body *and* a second charge into the update expression (`for (…; i++)` is metered as `for (…; (__gas(1), i++))`). So a `for` loop running N iterations costs `2 × N` computation gas. `while`, `do-while`, `for-in`, and `for-of` loops have no update expression and cost 1 gas per iteration. Budget indexed `for` loops accordingly.
 
-The gas ceiling is **1,000,000** per execution. Deployment gas is calculated as `VM_DEPLOY_BASE + (code_bytes * VM_DEPLOY_PER_BYTE)`, plus constructor gas if a constructor runs.
+The gas ceiling is **1,000,000** per execution. Inline deployment gas is `VM_DEPLOY_BASE + (decoded_source_bytes * VM_DEPLOY_PER_BYTE)`. Chunked deployment gas is `VM_DEPLOY_BASE + (total_base64_CODE_PART_characters * VM_DEPLOY_PER_BYTE)`, because each v4 carrier pays for its base64 slice and the v2/v3 assembler pays the base. Constructor gas is added on either path.
 
 ## Debugging
 
@@ -446,7 +454,7 @@ Two providers ship in the initial release. Governance can add more over time.
 | `http_get` | Fetches an HTTPS URL and returns the response body | URL string | Exact byte-equality across validators |
 | `llm` | Sends a prompt to an approved language model | JSON `{prompt, max_tokens?, temperature?, system?}` | Judge-model semantic equivalence |
 
-For `llm` payload fields, approved models, and provider-specific limits, see [`protocol/providers/llm.md`](../protocol/providers/llm.md). For the full protocol-level lifecycle, see [`protocol/actions/ATTEST.md`](../protocol/actions/attest.md).
+For `llm` payload fields, approved models, and provider-specific limits, see [`protocol/providers/llm.md`](../protocol/providers/llm.md). For the full protocol-level lifecycle, see [`protocol/actions/attest.md`](../protocol/actions/attest.md).
 
 ### Patterns
 
@@ -503,7 +511,7 @@ xchain.contract.slash(signingPubkey, 'XCHAIN', '50');
 - The slash can only target stakers of **this** contract; authorization is implicit; you cannot accidentally slash someone else's contract's stakers.
 - Slashed tokens go to the destination you set at deploy time.
 - The slash reaches a staker's currently-active stake first; if there is still a remainder, it pulls from the cooldown-locked balance the staker has already begun withdrawing. (Stakers cannot escape an imminent slash by initiating an unstake.)
-- Over-slash is silently capped at the staker's available balance. No error is thrown when you ask for more than they have.
+- Over-slash is silently capped at the staker's available balance. Asking for more than the available balance does not throw, but malformed arguments do; see [Throws and argument validation](../protocol/contract-staking.md#throws-and-argument-validation).
 - Atomic with the calling EXECUTE: if the calling method reverts, the slash rolls back too.
 
 Slash costs `VM_EMISSION` (500) gas.
@@ -512,6 +520,22 @@ Slash costs `VM_EMISSION` (500) gas.
 
 ```javascript
 // Deploy with: COOLDOWN_BLOCKS=50, SLASH_DESTINATION=BURN, CONSTRUCTOR_PARAMS=<owner address>
+// Return true when a >= b exactly, by the sign of the exact subtract ('-0' is zero).
+// xchain.math.gt/gte/lt/lte/eq/compare treat values within max(1e-12 relative, 1e-15) as
+// equal, so custody, cap and payment guards use this; `a <= b` is isAtLeastExact(xchain, b, a).
+// A non-finite difference ('Infinity', '-Infinity', 'NaN') returns false, so the guard fails closed.
+function isAtLeastExact(xchain, a, b) {
+    var diff = String(xchain.math.subtract(a, b));
+    var neg = diff.charAt(0) === '-';
+    var nonzero = false;
+    for (var i = neg ? 1 : 0; i < diff.length; i++) {
+        var c = diff.charAt(i);
+        if (c >= '1' && c <= '9') nonzero = true;
+        else if (c !== '0' && c !== '.') return false;
+    }
+    return !(neg && nonzero);
+}
+
 module.exports = {
     meta: {
         name:        'Bonded Service',
@@ -529,7 +553,7 @@ module.exports = {
     // Anyone can check: does this pubkey hold at least 100 XCHAIN against this contract?
     isQualified: function(xchain) {
         var pubkey = xchain.getInputParam(0);
-        return xchain.math.gte(xchain.contract.getStake(pubkey, 'XCHAIN'), '100') ? '1' : '0';
+        return isAtLeastExact(xchain, xchain.contract.getStake(pubkey, 'XCHAIN'), '100') ? '1' : '0';
     },
 
     // Owner-only: slash a misbehaving staker.
@@ -540,12 +564,13 @@ module.exports = {
         );
         var pubkey = xchain.getInputParam(0);
         var amount = xchain.getInputParam(1);
+        // Malformed values throw here; catch the exception if this method should continue.
         xchain.contract.slash(pubkey, 'XCHAIN', amount);
     }
 };
 ```
 
-For the full protocol-level spec: wire format, isolation between contract and capability staking, cooldown sweep behavior, the `slash_events` table (see [`protocol/Contract_Staking.md`](../protocol/contract-staking.md).
+For the full protocol-level spec, including slash argument validation, wire format, isolation between contract and capability staking, cooldown sweep behavior and the `slash_events` table, see [`protocol/contract-staking.md`](../protocol/contract-staking.md).
 
 ## Calling Other Contracts: `emit.execute`
 
@@ -605,9 +630,9 @@ const callId = xchain.emit.crossExecute({
     method: 'onArrival',          // must be in the target's crossCallable allowlist
     params: ['order-7', '250'],   // optional string args (max 32, 1024 bytes each, no "|")
     gasLimit: 50000,              // gas the remote run gets (5,000 – 200,000; NOT refunded)
-    callbackMethod: 'onResult',   // REQUIRED: every call ends in exactly one callback
-    callbackParams: ['ctx'],      // optional strings echoed back to you
-    deadlineBlocks: 400           // optional; your-chain blocks before a local 'expired' callback
+    callbackMethod: 'onResult',   // REQUIRED; max 64 UTF-8 bytes and no "|"
+    callbackParams: ['ctx'],      // optional; String()-coerced JSON array max 1024 bytes total
+    deadlineBlocks: 400           // optional, default 400; allowed range 10 to 4000
 });
 ```
 
@@ -652,7 +677,8 @@ This allowlist is the security boundary: the federation's signed dispatch can on
 
 - **Pre-paid, no refunds:** `crossExecute` charges `VM_EMISSION (500) + 2,000 (request) + gasLimit + 20,000 (callback ceiling)` to your budget at emit time. Unused remote gas is **not** refunded; size `gasLimit` to the work, not generously.
 - **Hop budget is 2:** your call is hop 1; the remote contract calling back (or onward) is hop 2; further cross-chain calls from that context throw. `xchain.getCrossHops()` reports the current count.
-- **Failures are delivered, not thrown:** a remote revert/out-of-gas/missing contract rolls back the remote state and your callback receives the failure status. If nothing comes back before `deadlineBlocks`, you get a deterministic `expired` callback; your contract always hears exactly one outcome.
+- **Remote failures are delivered, not thrown:** a remote revert/out-of-gas/missing contract rolls back the remote state and your callback receives the failure status. If nothing comes back before `deadlineBlocks`, you get a deterministic `expired` callback; your contract always hears exactly one outcome.
+- **Invalid arguments throw at emit time:** an out-of-range `gasLimit` or `deadlineBlocks`, an oversized method or callback method, callback params whose complete serialized JSON exceeds 1024 bytes, and other invalid inputs synchronously throw before an XCALL is emitted. Contract code can catch the exception and continue. If it is not caught, the calling method fails and its changes roll back.
 - **No value transfer:** params and a return payload only. Move tokens with the cross-chain DEX, not calls.
 - Not available from constructors.
 

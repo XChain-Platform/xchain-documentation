@@ -307,7 +307,7 @@ At and above `ATTEST_ZERO_CONF_ACTIVATION`, keyed on the request's own block, a 
 - The optional `FEE_TICK`/`FEE_AMOUNT` request fee is live. The separate `gas_escrow` (callback-gas) field remains stubbed at `'0'`; real callback-gas escrow is Phase 3 economic work, independent of the request fee.
 - Publishing a v5/v6 batch pays no reward of its own; it is a durability measure, not a service the protocol compensates separately.
 - Which path answers a given request (on-chain broadcast or the hub mirror) is fixed for that request the moment it is admitted, by `ATTEST_RESPONSE_MIRROR_ACTIVATION` in [`protocol/constants.js`](../constants.js) checked against the request's own block, so a request is never admitted under one rule and answered under the other.
-- See [`EXECUTE.md`](./execute.md) for the system-synthesized EXECUTE that delivers attestation callbacks and for the cross-contract call mechanics that share the same emission and savepoint patterns.
+- See [`execute.md`](./execute.md) for the system-synthesized EXECUTE that delivers attestation callbacks and for the cross-contract call mechanics that share the same emission and savepoint patterns.
 
 ---
 

@@ -227,3 +227,67 @@ test('the deploy-lint guards fail on a stale claim, a dropped height or a miscou
         assert.notEqual(inert, activation, 'falsification fixture did not rewrite the destructure note');
         assert.throws(() => assertActivationRow(inert), /LINT_DESTRUCTURE_ACTIVATION/);
     });
+
+// The seven mainnet-null VM maps the activation page's xchain-vm row groups under one lead-in.
+const ARMED_TESTNET_MAPS = {
+    LINT_SYNTAX_DEPTH_ACTIVATION: 'src/index/lint_syntax_depth_heights.js',
+    GAS_CEILING_EXHAUSTED_ACTIVATION: 'src/index/gas_ceiling_exhausted_heights.js',
+    RESOURCE_FAULT_SIGNAL_ACTIVATION: 'src/index/resource_fault_signal_heights.js',
+    HOST_ERROR_STACK_STRIP_ACTIVATION: 'src/index/host_error_stack_strip_heights.js',
+    JSON_STRINGIFY_REENTRY_ACTIVATION: 'src/index/json_stringify_reentry_heights.js',
+    HOST_FAULT_HALT_ACTIVATION: 'src/index/host_fault_halt_heights.js',
+    NATIVE_STACK_TERMINAL_ACTIVATION: 'src/index/native_stack/activation.js',
+};
+const vmArmed = sibling('xchain-vm', Object.values(ARMED_TESTNET_MAPS));
+
+// The row must name every map, say the clause is mainnet-null with testnet armed, and never call testnet null.
+function assertArmedTestnetRow(markdown) {
+    const row = markdown.split('\n').find((line) => line.startsWith('| `xchain-vm` |'));
+    assert.ok(row, 'protocol activation page is missing the xchain-vm service row');
+    for (const name of Object.keys(ARMED_TESTNET_MAPS))
+        assert.ok(row.includes(`\`${name}\``), `xchain-vm row omits ${name}`);
+    assert.doesNotMatch(row, /(?:null|unarmed|inert) on every mainnet and testnet/, 'xchain-vm row calls a testnet-armed map null on testnet');
+    const lead = row.slice(row.indexOf('and seven maps'), row.indexOf('`LINT_SYNTAX_DEPTH_ACTIVATION`'));
+    assert.match(lead, /null on every mainnet chain/, 'seven-map clause lost its mainnet-null statement');
+    assert.match(lead, /armed on testnet/, 'seven-map clause omits the testnet arming');
+    const halt = row.match(/`HOST_FAULT_HALT_ACTIVATION`[^(]*\(([^)]*)\)/);
+    assert.ok(halt, 'xchain-vm row has no note for HOST_FAULT_HALT_ACTIVATION');
+    assert.match(halt[1], /armed on testnet/, 'HOST_FAULT_HALT_ACTIVATION note omits the testnet arming');
+}
+
+// Slots of one frozen map body that carry a number, by `COIN:network` key.
+function armedSlots(root, rel) {
+    const body = fs.readFileSync(path.join(root, rel), 'utf8');
+    const slots = new Map();
+    for (const m of body.matchAll(/'([A-Z]+:(?:mainnet|testnet))':\s*(null|\d+)/g)) slots.set(m[1], m[2] === 'null' ? null : Number(m[2]));
+    return slots;
+}
+
+test('the activation page states the testnet arming of the seven mainnet-null VM maps', () => {
+    assertArmedTestnetRow(read('protocol/protocol-activation.md'));
+});
+
+test('the seven VM maps the activation row groups are null on mainnet and armed on every testnet chain',
+    { skip: vmArmed.skip }, () => {
+        for (const [name, rel] of Object.entries(ARMED_TESTNET_MAPS)) {
+            const slots = armedSlots(vmArmed.root, rel);
+            assert.equal(slots.size, 6, `${name} no longer carries three mainnet and three testnet slots`);
+            for (const [key, height] of slots) {
+                const armed = key.endsWith(':testnet');
+                assert.equal(height !== null, armed,
+                    `${name} ${key} changed arming; update the xchain-vm row of protocol/protocol-activation.md`);
+            }
+        }
+    });
+
+test('the testnet-arming row guard fails on the old null-on-testnet wording', () => {
+    const activation = read('protocol/protocol-activation.md');
+    const stale = activation.replace("null on every mainnet chain until an operator arms them, armed on testnet at each chain's own height,",
+        'null on every mainnet and testnet chain until an operator arms them,');
+    assert.notEqual(stale, activation, 'falsification fixture did not rewrite the seven-map lead-in');
+    assert.throws(() => assertArmedTestnetRow(stale), /calls a testnet-armed map null/);
+    const halt = activation.replace("null on every mainnet chain and armed on testnet at each chain's own height, later than the other six,",
+        'null on every mainnet chain,');
+    assert.notEqual(halt, activation, 'falsification fixture did not rewrite the HOST_FAULT_HALT note');
+    assert.throws(() => assertArmedTestnetRow(halt), /HOST_FAULT_HALT_ACTIVATION note omits/);
+});

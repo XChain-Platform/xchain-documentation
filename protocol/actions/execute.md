@@ -66,7 +66,7 @@ Status values (`xchain.getInputParam(2)`): `ok` (response payload valid), `timeo
 
 Callback execution is wrapped in its own savepoint: if the callback method throws, runs out of gas, or otherwise fails, the v1 response row in the `attests` table is still durably recorded (so the validator network isn't asked to redo the work), and the contract's own state changes from the callback roll back. The v0 → v1 → callback chain is atomic for the v1 record but graceful-degrade for the callback's side effects.
 
-See [`ATTEST.md`](./attest.md) for the wire-level lifecycle.
+See [`attest.md`](./attest.md) for the wire-level lifecycle.
 
 ## Contract-Emitted EXECUTE (cross-contract calls and DEPLOY constructors)
 A contract may emit an `EXECUTE` targeting another (or the same) deployed contract via `xchain.emit.execute({contractIndex, method, params, gasLimit})`. Like all emissions this never appears on the wire (the only on-chain transaction is the original top-level EXECUTE) but it produces a real action row and a `contract_executions` record, processed through this same handler.

@@ -79,6 +79,45 @@ function scheduleValue(src, name, where) {
     return m[1];
 }
 
+function networkAddress(src, network, name, where) {
+    const start = src.indexOf(`${network}: {`);
+    const next = src.indexOf(`${network === 'mainnet' ? 'testnet' : 'regtest'}: {`, start);
+    assert.ok(start >= 0 && next > start, `${network} block not found in ${where}`);
+    const m = new RegExp(`\\b${name}\\s*:\\s*'([^']+)'`).exec(src.slice(start, next));
+    assert.ok(m, `${network} ${name} address not found in ${where}`);
+    return m[1];
+}
+
+function assertGasRegistryClaims(keyTerms) {
+    const gas = keyTerms.split('\n').find((line) => line.startsWith('**GAS address**:')) || '';
+    const xchain = keyTerms.split('\n').find((line) => line.startsWith('**XCHAIN**:')) || '';
+    assert.doesNotMatch(keyTerms, /configurable per deployment|defined in each indexer's configuration/);
+    assert.match(gas, /bundled coin registry/);
+    assert.match(gas, /consensus config pin/);
+    assert.match(xchain, /GAS_PRICE/);
+    assert.match(xchain, /coordinated activation/);
+}
+
+test('the glossary identifies gas parameters as bundled consensus values', () => {
+    assertGasRegistryClaims(readDoc('getting-started/key-terms.md'));
+});
+
+test('the glossary gas guard rejects the old local-configuration claims', () => {
+    const doc = readDoc('getting-started/key-terms.md');
+    assert.throws(() => assertGasRegistryClaims(doc.replace('pinned in the bundled coin registry',
+        "defined in each indexer's configuration")), /defined in each indexer's configuration/);
+});
+
+test('the documented BTC GAS address matches the bundled mainnet coin registry',
+    { skip: noCoins }, () => {
+        const src = fs.readFileSync(COIN_JS[0][1], 'utf8');
+        const expected = networkAddress(src, 'mainnet', 'GAS', 'xchain-indexer/src/coins/BTC.js');
+        const row = readDoc('components/indexer/configuration.md').split('\n')
+            .find((line) => line.includes('`ADDRESS.GAS`')) || '';
+        assert.match(row, new RegExp('`' + expected + '`'));
+        assert.throws(() => assert.match(row, /`not-the-bundled-address`/));
+    });
+
 test('the ownership-escrow premium the fee docs quote matches the gas schedule',
     { skip: noCoins }, () => {
         const escrow = new Map();

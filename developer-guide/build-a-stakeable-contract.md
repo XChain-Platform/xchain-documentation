@@ -7,13 +7,13 @@ A stakeable contract is a smart contract that anyone can lock tokens against. Th
 
 Contract staking is a **general-purpose developer primitive**. It is separate from the network's own validator staking; the two systems share no state. Any contract on **Bitcoin, Litecoin, or Dogecoin** can be stakeable.
 
-This tutorial walks through deploying a stakeable contract, locking tokens against it, reading and slashing stakes from inside the contract, and unstaking. It assumes you have already worked through [Build_Your_First_Token.md](build-your-first-token.md) and ideally also [Smart_Contract_Development.md](smart-contract-development.md).
+This tutorial walks through deploying a stakeable contract, locking tokens against it, reading and slashing stakes from inside the contract, and unstaking. It assumes you have already worked through [build-your-first-token.md](build-your-first-token.md) and ideally also [smart-contract-development.md](smart-contract-development.md).
 
 ---
 
 ## Prerequisites
 
-- SDK connected to a regtest or testnet stack (see [Regtest_Development.md](regtest-development.md))
+- SDK connected to a regtest or testnet stack (see [regtest-development.md](regtest-development.md))
 - A token you control with enough supply for stakers to lock up: `MYTOKEN` in the examples below. If you don't have one yet, issue one now.
 - Two funded addresses: the **contract author** (who will deploy) and at least one **staker** (who will lock tokens against the contract).
 - Enough native coin on the deploying chain to cover transaction fees.
@@ -40,6 +40,22 @@ Stakeable contracts use the same JavaScript runtime as any other XChain smart co
 Here is a small example: a contract whose `getSecret` method reports whether a given signing pubkey has staked at least 100 `MYTOKEN`, and that allows an admin address to slash a misbehaving staker.
 
 ```js
+// Return true when a >= b exactly, by the sign of the exact subtract ('-0' is zero).
+// xchain.math.gt/gte/lt/lte/eq/compare treat values within max(1e-12 relative, 1e-15) as
+// equal, so custody, cap and payment guards use this; `a <= b` is isAtLeastExact(xchain, b, a).
+// A non-finite difference ('Infinity', '-Infinity', 'NaN') returns false, so the guard fails closed.
+function isAtLeastExact(xchain, a, b) {
+    var diff = String(xchain.math.subtract(a, b));
+    var neg = diff.charAt(0) === '-';
+    var nonzero = false;
+    for (var i = neg ? 1 : 0; i < diff.length; i++) {
+        var c = diff.charAt(i);
+        if (c >= '1' && c <= '9') nonzero = true;
+        else if (c !== '0' && c !== '.') return false;
+    }
+    return !(neg && nonzero);
+}
+
 module.exports = {
     // Contract identity. `name` and `description` are required at/after the
     // CONTRACT_META_REQUIRED flag day, so a deploy without them is rejected at
@@ -68,7 +84,7 @@ module.exports = {
     getSecret: function(xchain) {
         var pubkey = xchain.getInputParam(0);  // staker's 64-hex Ed25519 signing pubkey
         var staked = xchain.contract.getStake(pubkey, 'MYTOKEN');
-        if (xchain.math.gte(staked, '100')) {
+        if (isAtLeastExact(xchain, staked, '100')) {
             return 'the secret handshake';
         }
         return 'not eligible';
@@ -96,6 +112,7 @@ module.exports = {
             return 'unauthorized';
         }
 
+        // Malformed values throw here; catch the exception if this method should continue.
         xchain.contract.slash(pubkey, 'MYTOKEN', amount);
         return 'slashed';
     }
@@ -106,10 +123,11 @@ A few things to notice:
 
 - **Two identity spaces, and they never mix.** Method callers, admins, and `SLASH_DESTINATION` are **base-chain addresses**; `xchain.getSourceAddress()` returns one. Stakers are identified by their **Ed25519 signing pubkey**, which is what `getStake`, `slash`, and `STAKE v3` are keyed on. Passing a caller address to `getStake` returns `'0'` for every real staker. Because a contract can only authenticate a caller by address, admin identity must be stored as an address, never as a pubkey: the VM exposes no caller-pubkey accessor, so caller-bound stake gating is not expressible.
 - The contract reads stakes with `xchain.contract.getStake(pubkey, tick)`. The `pubkey` is the Ed25519 signing key the staker used (passed in via `STAKE v3`). Stakers are identified by pubkey, not by address.
+- The threshold uses `isAtLeastExact` because [`xchain.math` comparisons are tolerance-based](../concepts/smart-contracts.md#deterministic-math).
 - `xchain.contract.slash(pubkey, tick, amount)` is the *only* way tokens leave a staker's balance other than them calling `UNSTAKE`. It can only target stakers of **this** contract, you cannot slash someone else's contract's stakers.
 - `getStakers` returns the top 1000 stakers by amount. If you expect more than 1000, don't design rules that require iterating all of them in one call.
 
-For the full `xchain.contract.*` reference, see [Smart_Contract_Development.md](smart-contract-development.md#contract-targeted-staking-xchaincontract).
+For the full `xchain.contract.*` reference, see [smart-contract-development.md](smart-contract-development.md#contract-targeted-staking-xchaincontract).
 
 ---
 
@@ -230,7 +248,7 @@ A few things to know about slashing:
 
 - **Authorization is implicit and per-contract.** A contract can only slash its own stakers, you cannot accidentally drain someone else's contract's stakers.
 - **Slash reaches active stake first, then cooldown-locked stake.** A staker cannot dodge a slash by initiating an unstake; the protocol pulls from the cooldown queue if the active stake isn't enough.
-- **Over-slash is silently capped.** If you ask to slash 100 but the staker only has 30 locked, it slashes 30 and continues without throwing.
+- **Over-slash is silently capped.** If you ask to slash 100 but the staker only has 30 locked, it slashes 30 without an over-slash error. Malformed pubkey, token or amount arguments throw before a SLASH emission is added. Contract code can catch the exception; an uncaught exception fails the EXECUTE. See [Throws and argument validation](../protocol/contract-staking.md#throws-and-argument-validation).
 - **The destination is permanent.** Slashed tokens go to whatever `SLASH_DESTINATION` you set at deploy time: `BURN` (the chain's burn address), or a regular address.
 
 ---
@@ -315,7 +333,7 @@ Once the revoke takes effect, the delegated key stops owning the stake: the stak
 
 **Validator-style services on top of XChain.** A contract runs its own internal validator set (for a sidechain bridge, a relay, a federated oracle) gated by stake. The contract itself decides who can sign on its behalf based on stake weight.
 
-For more examples, see [user-guide/Use_Cases.md#native-multi-chain-staking](../user-guide/use-cases.md#native-multi-chain-staking).
+For more examples, see [user-guide/use-cases.md#native-multi-chain-staking](../user-guide/use-cases.md#native-multi-chain-staking).
 
 ---
 
@@ -331,10 +349,10 @@ For more examples, see [user-guide/Use_Cases.md#native-multi-chain-staking](../u
 
 ## Next Steps
 
-- [Smart_Contract_Development.md](smart-contract-development.md): full reference for the `xchain.contract.*` accessor and the rest of the VM API.
-- [user-guide/Use_Cases.md#native-multi-chain-staking](../user-guide/use-cases.md#native-multi-chain-staking): more concrete contract-staking applications.
-- [protocol/Contract_Staking.md](../protocol/contract-staking.md); the protocol-level specification.
-- [Batch_Operations.md](batch-operations.md): bundle STAKE v3 with EXECUTE (or other actions) into a single broadcast.
+- [smart-contract-development.md](smart-contract-development.md): full reference for the `xchain.contract.*` accessor and the rest of the VM API.
+- [user-guide/use-cases.md#native-multi-chain-staking](../user-guide/use-cases.md#native-multi-chain-staking): more concrete contract-staking applications.
+- [protocol/contract-staking.md](../protocol/contract-staking.md); the protocol-level specification.
+- [batch-operations.md](batch-operations.md): bundle STAKE v3 with EXECUTE (or other actions) into a single broadcast.
 
 ---
 

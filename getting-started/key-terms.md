@@ -123,7 +123,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **ledger**: The indexer's record of all credits and debits for every address and token. The current balance is computed from the sum of all ledger entries.
 
-**sanity check**: A validation step in the indexer that verifies an action is consistent with the current ledger state before applying it (e.g., confirming the sender has sufficient balance before processing a SEND).
+**sanity check**: The supply invariant the indexer enforces after processing every block. For each token touched in that block, it checks that recorded supply equals both the net ledger total and balances plus escrows. A mismatch rolls back the block and halts the indexer because it indicates an indexer bug. This is distinct from per-action validation, which records an ACTION that fails its own checks as `invalid` and continues indexing. See [Block-Level Sanity Checks](../concepts/ledger.md#block-level-sanity-checks).
 
 ---
 
@@ -151,7 +151,7 @@ A reference glossary of XChain terminology, organized by category.
 
 ## Validator and System Actions
 
-These five ACTIONs are written by the validator federation or synthesized by the indexer. They are not user-broadcast and are not exposed in the SDK.
+These five wire-decoded ACTIONs are not exposed in the SDK. ANCHOR, ATTEST, and NODEPROOF are validator-broadcast or system-synthesized; ROLLCALL and SLASH may be published by anyone holding the required signed material.
 
 **ANCHOR**: A validator-broadcast ACTION that commits a quorum-signed state checkpoint (per-block ledger, actions, and contract hash triple) to the anchor chain (DOGE on all networks). The checkpoint bundle also carries each chain's SPV light-client roots, and the archive versions record the signed cross-chain match records on-chain. ANCHOR is what allows light clients to verify indexer state against a threshold of validator signatures without trusting a single operator.
 
@@ -159,9 +159,13 @@ These five ACTIONs are written by the validator federation or synthesized by the
 
 **NODEPROOF**: A validator-broadcast ACTION that records a quorum-signed verdict proving which validators correctly answered a periodic block-data possession challenge, confirming they operate a real coin full node rather than relying on mirrored databases. Valid on BTC only (with extension to other chains planned).
 
+**ROLLCALL**: A validator liveness roll call published on Dogecoin. Validators sign a message bound to a Bitcoin epoch block's ledger hash, proving they were live after that block existed. Any party may publish signatures, and the present set is the union of every valid ROLLCALL for the epoch. A validator absent for two consecutive rolled epochs is evicted by deactivating its stake, which is refunded after cooldown and never burned.
+
 **SLASH**: A permissionless ACTION that burns an equivocating validator's entire capability bond. Anyone who catches a validator signing two conflicting values for the same consensus slot can submit the two signed messages as a SLASH proof. If the proof is valid, the offender's stake is burned in place; the submitter receives a governance-configured bounty from the burned amount.
 
-**XCALL**: A VM-emitted ACTION that lets a smart contract on one chain call a method on a contract deployed on a different chain, then receive the result through a callback method. The cross-chain relay is performed by the validator federation with no extra on-chain transaction. Version 2 is system-synthesized when the call expires before a result arrives.
+XCALL is a related but separate case: it is mirror-injected rather than one of the five wire-decoded ACTIONs above.
+
+**XCALL**: A mirror-injected, VM-emitted ACTION that lets a smart contract on one chain call a method on a contract deployed on a different chain, then receive the result through a callback method. The cross-chain relay is performed by the validator federation with no extra on-chain transaction. Version 2 is system-synthesized when the call expires before a result arrives.
 
 ---
 
@@ -175,9 +179,9 @@ These five ACTIONs are written by the validator federation or synthesized by the
 
 **coin**: The native currency of an underlying blockchain: BTC on Bitcoin, LTC on Litecoin, DOGE on Dogecoin. Coins pay miner fees and can pay XChain protocol fees; they are distinct from tokens, which are created and tracked by the XChain protocol itself.
 
-**GAS address**: A designated address (per chain, defined in each indexer's configuration) that is authorized to issue the XCHAIN gas token. The GAS address is exempt from the reserved ticker restriction that would otherwise block `XCHAIN` issuance.
+**GAS address**: The address authorized to issue the XCHAIN gas token for a chain and network. It is pinned in the bundled coin registry (`src/coins/<COIN>.js`) and covered by the consensus config pin, not set through an indexer's environment or local configuration. The GAS address is exempt from the reserved ticker restriction that would otherwise block `XCHAIN` issuance.
 
-**XCHAIN**: The platform gas token. Actions that write to the indexer database charge fees in XCHAIN. The fee amount and GAS address are configurable per deployment.
+**XCHAIN**: The platform gas token. Actions that write to the indexer database charge fees in XCHAIN. Fee parameters such as `GAS_PRICE` and the gas schedule, together with the GAS address, are consensus-critical values pinned in the bundled coin registry. They change only through a coordinated activation; changing them on one public-network node would fork it from the network. See [Gas and Fees](../concepts/gas.md).
 
 **reorg (chain reorganization)**: A blockchain event where a previously confirmed block is replaced by a competing chain of greater proof-of-work. The XChain decoder and indexer detect reorgs and roll back their state to the reorg block before re-indexing from that point.
 

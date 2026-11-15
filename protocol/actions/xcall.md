@@ -14,9 +14,9 @@ This action lets a smart contract on one chain call a method on a contract deplo
 | `METHOD`                | String  | Method to call; must be in the target contract's `crossCallable` allowlist  |
 | `PARAMS_JSON`           | String  | JSON array of up to 32 strings (each ≤ 1024 bytes) passed to `METHOD`        |
 | `GAS_LIMIT`             | Integer | Target-side execution ceiling, pre-paid by the caller                       |
-| `CALLBACK_METHOD`       | String  | Method on the calling contract that receives the result (required)          |
-| `CALLBACK_PARAMS`  | String  | JSON array of strings echoed back to the callback                           |
-| `DEADLINE_BLOCKS`       | Integer | Source-chain blocks to wait before the call expires                         |
+| `CALLBACK_METHOD`       | String  | Required callback method; non-empty, at most 64 UTF-8 bytes, and no `|`     |
+| `CALLBACK_PARAMS`       | String  | JSON array echoed back to the callback; serialized array at most 1024 UTF-8 bytes total |
+| `DEADLINE_BLOCKS`       | Integer | Source-chain blocks to wait before expiry; caller API default 400           |
 | `CROSS_HOPS`            | Integer | Host-derived hop counter, capped at `XCALL_MAX_HOPS`                         |
 
 ## Formats
@@ -45,8 +45,9 @@ System-synthesized when the deadline passes with no result; flips the request to
 - `METHOD` is ≤ 64 bytes and must be exported in the target contract's `crossCallable` allowlist; the target contract's existence is checked on `TARGET_CHAIN`, not the calling chain
 - `PARAMS_JSON` is a JSON array of ≤ 32 strings, each ≤ 1024 bytes, with no `|`
 - `GAS_LIMIT` is an integer in `[XCALL_MIN_GAS, XCALL_MAX_GAS]` (5,000 to 200,000), pre-paid by the caller
-- `CALLBACK_METHOD` is required: every call ends in exactly one callback
-- `DEADLINE_BLOCKS` is an integer in `[10, 4000]` source-chain blocks
+- `CALLBACK_METHOD` is required, non-empty, at most 64 UTF-8 bytes, and must not contain `|`; every call ends in exactly one callback
+- `CALLBACK_PARAMS` defaults to `[]`. Entries are converted with `String()`, then the complete serialized JSON array, including brackets, separators, quotes and escapes, must be at most 1024 UTF-8 bytes. This is one total-array limit, not the per-entry limit used by `PARAMS_JSON`
+- `DEADLINE_BLOCKS` is an integer in `[10, 4000]` source-chain blocks. When `deadlineBlocks` is omitted, the VM caller API fills in 400; 400 is a caller default, not a protocol bound
 - `CROSS_HOPS` is derived by the host (the caller's hop count plus one), capped at `XCALL_MAX_HOPS` (2), and is never trusted from the VM
 - Effective dispatches apply in `(snapshot_block, call_id)` order, up to `XCALL_MAX_CALLS_PER_BLOCK` (25) per block; any overflow carries forward to the next block
 - Exactly-once callback: result delivery and deadline expiry share the request's status column, so whichever reaches a terminal state first wins and the loser records itself as skipped. Both are driven by block height, never wall-clock time

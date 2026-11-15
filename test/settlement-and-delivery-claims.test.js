@@ -41,11 +41,11 @@
  *      royalty/fee legs to it, so a buyer of a controller-bound token pays
  *      part of the escrowed price to the legs' addresses.
  *   7. The cross-chain guide dismissed bridges and never named XBRIDGE. Its
- *      bridge section says XCHAIN-only, off on mainnet, and hub-trusted, each
- *      true only while the activation gates it cites stay where they are.
+ *      bridge section says XCHAIN-only, off on mainnet, and checkpoint-proven;
+ *      the scope claims stay tied to the activation gates it cites.
  *   8. The intro page said XBRIDGE had no custodian and that the federation
  *      never gates a balance, and three pages stated XCHAIN-only as a property
- *      of XBRIDGE. The credit is a hub-trusted mint and v3 to v5 bridge any
+ *      of XBRIDGE. The credit needs two quorum checks, and v3 to v5 bridge any
  *      opted-in token once TOKEN_BRIDGE_ACTIVATION arms. The scope page also
  *      denied the federation ever settles a balance.
  *
@@ -415,8 +415,8 @@ test('the cross-chain guide covers the bridge with its scope and trust stated', 
     const bridge = section(crossChain, '## Moving a Token to Another Chain (XBRIDGE)', 'cross-chain.md');
     assert.match(bridge, /not active on mainnet/,
         'cross-chain.md bridge section no longer says the bridge is off on mainnet');
-    assert.match(bridge, /hub-trusted mint/,
-        'cross-chain.md bridge section no longer states the hub-trusted mint assumption');
+    assert.match(bridge, /signed ANCHOR checkpoint/,
+        'cross-chain.md bridge section no longer states the checkpoint proof requirement');
     assert.match(bridge, /cannot be undone or redirected/,
         'cross-chain.md bridge section no longer says an applied credit is final');
 });
@@ -427,9 +427,9 @@ test('the intro pages state the bridge trust model instead of denying it', () =>
     const noConsensus = section(intro, '### No New Consensus', 'what-is-xchain.md');
     assert.ok(!/no wrapped asset and no custodian|chains you already trust/.test(noBridge),
         'what-is-xchain.md again says XBRIDGE has no custodian and trusts only the base chains; '
-        + 'the destination credit is a hub-trusted mint (protocol/xchain-bridge.md#trust-model)');
-    assert.match(noBridge, /hub-trusted mint/,
-        'what-is-xchain.md bridge paragraph no longer names the hub-trusted mint');
+        + 'the destination credit depends on two validator quorums (protocol/xchain-bridge.md#trust-model)');
+    assert.match(noBridge, /signed checkpoint/,
+        'what-is-xchain.md bridge paragraph no longer names the checkpoint proof');
     assert.match(noBridge, /xchain-bridge\.md#trust-model/,
         'what-is-xchain.md bridge paragraph no longer links the bridge trust model');
     assert.match(noBridge, /not active on mainnet/,
@@ -438,8 +438,8 @@ test('the intro pages state the bridge trust model instead of denying it', () =>
         'what-is-xchain.md again says the federation never gates a balance; it authorizes every XBRIDGE credit');
     const overview = readDoc('getting-started/overview.md');
     const bullet = overview.split('\n').find((l) => l.startsWith('**Cross-chain, inside the protocol.**')) || '';
-    assert.match(bullet, /hub-trusted mint/,
-        'overview.md "Cross-chain, inside the protocol" bullet no longer says the XBRIDGE credit is a hub-trusted mint');
+    assert.match(bullet, /signed checkpoint/,
+        'overview.md "Cross-chain, inside the protocol" bullet no longer says the XBRIDGE credit is checkpoint-proven');
 });
 
 test('the XCHAIN-only bridge limit reads as today\'s state, not a property of XBRIDGE', () => {
@@ -490,7 +490,7 @@ test('the scope page states the XBRIDGE exception to the hub\'s role', () => {
     assert.doesNotMatch(scope, /limited to swaps and references/,
         'scope-and-non-goals.md again limits cross-chain functionality to swaps and references, omitting XBRIDGE and XCALL');
     for (const [needle, what] of [
-        [/hub-trusted mint/, 'name the hub-trusted mint'],
+        [/signed checkpoint/, 'name the signed checkpoint proof'],
         [/not active on mainnet/, 'say the bridge is off on mainnet'],
         [/xchain-bridge\.md#trust-model/, 'link the bridge trust model'],
     ]) {
@@ -506,4 +506,20 @@ test('the bridge page describes credits as quorum-signed and proven against the 
         'xchain-bridge.md trust model no longer names bridge_checkpoint_check.js');
     assert.doesNotMatch(bridge, /Closing that trust boundary is a stated follow-on/,
         'xchain-bridge.md again presents the checkpoint cross-check as a future follow-on');
+    assert.doesNotMatch(bridge, /Other guide pages still describe that earlier model/,
+        'xchain-bridge.md still claims the guide pages describe the earlier model');
+
+    const stale = /a hub-trusted mint, not a trustless one|hub-trusted lock-and-mint|Milestone 1 is therefore a|arms nowhere before the checkpoint cross-check|until each credit must also agree/i;
+    for (const rel of [
+        'protocol/actions/xbridge.md',
+        'protocol/token-bridge.md',
+        'user-guide/cross-chain.md',
+        'concepts/scope-and-non-goals.md',
+        'getting-started/overview.md',
+        'getting-started/what-is-xchain.md',
+        'whitepaper.md',
+    ]) {
+        assert.doesNotMatch(readDoc(rel), stale,
+            `${rel} again presents the earlier hub-trusted model or checkpoint check as current`);
+    }
 });

@@ -55,7 +55,7 @@ Stake 250 MYTOKEN against contract at action_index 500, signing as abc123...def 
 - Works on any chain (BTC, LTC, DOGE). Contract staking is a developer primitive; each contract defines its own staking semantics.
 - `TARGET_CONTRACT_INDEX` must be a positive integer pointing at a stakeable contract (deployed with `COOLDOWN_BLOCKS` + `SLASH_DESTINATION`). Contracts that lack those fields reject with `invalid: TARGET_CONTRACT_INDEX (contract is not stakeable)`.
 - `TICK` must be a known token; broadcasting address must hold at least `AMOUNT` of `TICK`.
-- New-vs-topup is auto-detected by `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK, SOURCE)`. If an active row exists owned by `SOURCE`, this STAKE adds to it; otherwise it creates a new row. There is no separate VERSION for top-up.
+- New-vs-topup is auto-detected by `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK, SOURCE)`. If a valid row exists for `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK)` owned by `SOURCE`, even one since unstaked, this STAKE adds to it; a valid row owned by another source refuses the STAKE, and otherwise it creates a new row. There is no separate VERSION for top-up.
 - A pubkey can have separate v3 stakes per `(contract, tick)` pair; they do not collide with v1/v2 capability stakes or with each other.
 - If the staked `TICK` binds a `stake`-class controller (or the catch-all `all`), the contract's `guard` runs before a v3 stake settles and may `revert` it; `SOURCE` pays the bounded guard gas. v1/v2 (XCHAIN-only capability) stakes are never controller-gated. See [Controller-Bound Tokens](../controller-bound-tokens.md).
 
@@ -72,7 +72,9 @@ The protocol uses a capability model: a v1/v2 stake auto-qualifies for every cap
 
 A 5,000 XCHAIN stake qualifies for all five capabilities. A 500 XCHAIN stake qualifies only for `oracle_publish`. Minimums are governance-tunable.
 
-A capability becomes active on a hub when all three conditions hold: (a) stake qualifies, (b) per-capability `selfTest()` passes, (c) operator has not added it to `disabled_capabilities`. Sub-features (chains for `cross_chain`, fiats for `price`, providers for `attestation`) live in operator hub config and are not on-chain.
+Capability qualification is not the whole stake requirement for `attestation`. At and above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, each provider also has a governance-set `min_stake_xchain` floor: by default 10,000 XCHAIN for `http_get` and 25,000 XCHAIN for `llm`. The floor is checked against the staking source's aggregate `attestation` stake, not each delegated key, when the responsible set is selected. A source below the floor keeps the capability but receives no requests for that provider. One 25,000 XCHAIN stake therefore clears every capability and every default provider floor. See [ATTEST: Responsible-set selection](./attest.md#responsible-set-selection) and [Attestation Providers](../providers/README.md).
+
+A capability becomes active on a hub when all three conditions hold: (a) stake qualifies, (b) per-capability `selfTest()` passes, (c) operator has not added it to `disabled_capabilities`. Chains for `cross_chain` and fiats for `price` live in operator hub config. Attestation provider definitions, including `min_stake_xchain`, are governance-controlled, tied to activation blocks, and identical across the federation.
 
 ## Activation Delay
 - Stakes do not become active until **6 BTC blocks** after confirmation.

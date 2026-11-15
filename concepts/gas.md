@@ -61,7 +61,7 @@ The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` value f
 |---|---|---|---|
 | **EXECUTE base fee** | 1,000 | 0.01 | Minimum to invoke any contract |
 | **DEPLOY base fee** | 100,000 | 1.0 | Permanent state: on par with ISSUE |
-| **DEPLOY per byte** | 10 | None | 10KB = 100,000 extra gas; 64KB max |
+| **DEPLOY per byte** | 10 | None | Inline deploys bill each decoded source byte. Chunked deploys bill each base64 character in every carrier's `CODE_PART`, about 13.3 gas per source byte. 64KB source max |
 | **State read** | 100 | 0.001 | Single indexed DB lookup |
 | **State write** | 200 | 0.002 | 2x read |
 | **State delete** | 100 | 0.001 | Same as read |
@@ -71,7 +71,7 @@ The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` value f
 | **Attestation request** | 5,000 | 0.05 | Covers off-chain data request overhead (`attestation.request`) |
 | **Cross-chain call request** | 2,000 | 0.02 | Additional fee on top of action emission for `emit.crossExecute()`; the federation relay work. The call also pre-pays its remote `gasLimit` plus the cross-chain callback ceiling, with no refund of unused remote gas |
 | **Cross-chain callback ceiling** | 20,000 | 0.2 | Fixed gas ceiling the result/expiry callback runs against on the source chain, pre-paid at `emit.crossExecute()` time |
-| **Computation** | 1/instruction | None | Metered by isolated-vm; one charge per control-flow point |
+| **Computation** | 1 per metered unit | None | AST-based metering: the VM parses source with acorn and injects charges for control flow, calls and selected size-dependent operations |
 | **Controller-guard ceiling** (`VM_GUARD_GAS_CEILING`) | 200,000 | 2.0 | Fixed ceiling the controller guard runs against on every chain, billed against `SOURCE` from the `CONTROLLER_GUARD` flag day. On BTC the full ceiling fee is reserved up front; on other chains no reservation is taken and the charge is capped at `SOURCE`'s `XCHAIN` balance, so it can be zero (see [Controller-Bound Tokens](../protocol/controller-bound-tokens.md#gas)). Consensus-critical: it is committed into the ledger and contract hashes, so an indexer whose schedule omits or mistypes it throws at the guard-fee site rather than billing a phantom default |
 
 > **Indexed `for` loops are charged twice per iteration.** The gas meter injects a control-flow charge at the top of the loop body and a second charge into the update expression, so a `for` loop of N iterations costs `2 × N` computation gas. `while`, `do-while`, `for-in`, and `for-of` loops have no update expression and cost 1 per iteration. Account for the doubled cost when budgeting a gas ceiling for contracts that use indexed `for` loops.
@@ -89,7 +89,7 @@ The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` value f
 
 Contract execution is bounded by two independent mechanisms operating at different tiers:
 
-1. **Gas exhaustion (primary).** Every instruction and every host operation (state reads/writes, oracle reads, action emissions) consumes gas, metered by isolated-vm. When a contract's gas budget is depleted, execution halts immediately. This is the enforced limit that governs the common case: a normally-behaving contract terminates here, typically in well under 1 second of wall-clock time. Gas is the spam and resource-abuse deterrent, see the Hard Caps and fee schedule above.
+1. **Gas exhaustion (primary).** AST-injected charges cover control flow, calls and selected size-dependent operations, and host operations such as state reads/writes, oracle reads and action emissions charge the same VM gas tracker. `isolated-vm` supplies the sandbox, memory limit and wall-clock timeout; it does not meter instructions. When a contract's gas budget is depleted, execution halts immediately. This is the enforced limit that governs the common case: a normally-behaving contract terminates here, typically in well under 1 second of wall-clock time. Gas is the spam and resource-abuse deterrent, see the Hard Caps and fee schedule above.
 
 2. **Wall-clock timeout (secondary safety net).** A 30-second wall-clock limit backstops gas metering. It only fires when the gas ceiling fails to terminate execution in real time, for example, a contract engineered to maximize wall-clock time per unit of gas (calling host operations that are cheap in gas terms but slow in wall-clock terms). Under normal operation this limit is never reached; it exists solely to guarantee an execution cannot run unbounded if gas accounting is somehow outpaced.
 
@@ -116,7 +116,10 @@ A create that gives **ownership** still pays the flat 50,000-gas ownership-escro
 | 1-year ORDER | 151,250 | ~1.51 | $1.51 |
 | AIRDROP to 1,000 recipients | 100,000 | 1.0 | $1.00 |
 | Simple contract call | ~2,600 | 0.026 | $0.026 |
-| Deploy 10KB contract | 200,000 | 2.0 | $2.00 |
+| Deploy 10KB contract inline (10,000 decoded source bytes) | 200,000 | 2.0 | $2.00 |
+| Deploy 10KB contract chunked (13,336 base64 carrier characters) | 233,360 | ~2.33 | ~$2.33 |
+
+Inline deployment gas is `VM_DEPLOY_BASE + decoded_source_bytes * VM_DEPLOY_PER_BYTE`. Chunked deployment gas is `VM_DEPLOY_BASE + total_base64_CODE_PART_characters * VM_DEPLOY_PER_BYTE`, plus constructor gas in either case. See the [DEPLOY carrier gas rule](../protocol/actions/deploy.md#chunk-carrier-rules-v4).
 
 ## Fee Collection and Distribution
 
@@ -139,7 +142,7 @@ XCHAIN is a standard XChain token issued via ISSUE on the **BTC chain only**; it
 **Validator rewards** are paid from a dedicated, pre-funded **reward pool address**. Never by minting. The pool is seeded by the operator after the mint window opens (Step 2 of the [XCHAIN Genesis](../operations/xchain-genesis.md) runbook, since supply is zero at genesis) and topped up manually over time. When the pool cannot cover a pending reward, the `COLLECT` is rejected and the reward stays claimable until the pool is replenished (see [COLLECT](../protocol/actions/collect.md)).
 
 XCHAIN's value is driven by:
-- **Staking demand**: validators must stake XCHAIN (1,000 for oracle, 5,000 for cross-chain)
+- **Staking demand**: validators must stake XCHAIN to qualify for capabilities, from 500 for `oracle_publish` up to 5,000 for `cross_chain` (see [capability stake floors](../getting-started/running-a-validator.md#capabilities-and-their-stake-floors))
 - **Fixed, capped supply**: no inflation; rewards are paid from a finite pool, and the burn bucket is deflationary
 
 ## Oracle Price Validation

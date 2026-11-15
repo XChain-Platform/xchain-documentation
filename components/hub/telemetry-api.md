@@ -3,10 +3,10 @@
 
 # XChain Platform Hub: Telemetry REST API
 
-Unlike the JSON-RPC methods in [API.md](./api.md), the hub's telemetry endpoints are
+Unlike the JSON-RPC methods in [api.md](./api.md), the hub's telemetry endpoints are
 plain **REST routes** served on the same hub HTTP port (`HUB_PORT`, e.g. `10000` locally;
 `https://hub.xchain.io` in production). They collect and expose the anonymous node-operator
-usage census described in [operations/TELEMETRY.md](../../operations/telemetry.md).
+usage census described in [operations/telemetry.md](../../operations/telemetry.md).
 
 There are three routes:
 
@@ -23,7 +23,7 @@ hub has telemetry disabled, `POST /telemetry` returns `{"status":"disabled"}` an
 > **Privacy:** the raw connecting IP is never stored. At ingest the hub derives a coarse
 > `country`/`region` and an optional one-way keyed hash (`ip_hash`, only when
 > `TELEMETRY_IP_SALT` is set) from the connection, then discards the IP. See
-> [operations/TELEMETRY.md](../../operations/telemetry.md) for the full data policy and the
+> [operations/telemetry.md](../../operations/telemetry.md) for the full data policy and the
 > collector-side env vars (`TELEMETRY_ENABLED`, `TELEMETRY_RETENTION_DAYS`,
 > `TELEMETRY_IP_SALT`, `TELEMETRY_ADMIN_KEY`).
 
@@ -167,7 +167,7 @@ never public consumption.
 **Auth:** required. Send the hub's `TELEMETRY_ADMIN_KEY` value in the `x-api-key` header.
 If `TELEMETRY_ADMIN_KEY` is unset on the hub, or the header does not match, the route
 returns `401`. (Set `TELEMETRY_ADMIN_KEY` on the hub to enable this endpoint, see
-[operations/TELEMETRY.md](../../operations/telemetry.md).)
+[operations/telemetry.md](../../operations/telemetry.md).)
 
 **Query parameters:**
 

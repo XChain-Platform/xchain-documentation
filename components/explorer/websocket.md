@@ -1013,7 +1013,7 @@ sequenceDiagram
 
 ## Configuration
 
-See [CONFIGURATION.md](configuration.md) for the `WS_*` environment variables that control the WebSocket server.
+See [configuration.md](configuration.md) for the `WS_*` environment variables that control the WebSocket server.
 
 | Variable | Default | Description |
 |---|---|---|

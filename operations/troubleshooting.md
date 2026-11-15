@@ -133,7 +133,7 @@ This document covers common problems, their symptoms, and how to diagnose and re
 
 **Fix:** find what stopped and restart it. Verify with `/{COIN}/api/status`, which is exempt from the gate and reports `tip_age_seconds`.
 
-**On dev and regtest stacks this is expected**, because blocks are mined on demand and an idle chain ages out. Mine a block to clear it, or disable the gate for that coin with `EXPLORER_TIP_MAX_AGE_S_<COIN>=0`. See [Regtest Development](../developer-guide/regtest-development.md#keeping-an-idle-chain-available).
+**On dev and regtest stacks this is expected only when the miner heartbeat is disabled, mining is paused, or the miner is down.** The default heartbeat mines an empty block every 60 seconds, so a stale regtest coin otherwise means blocks are not being produced. Check that the regtest miner is running and not paused, and inspect its `IDLE_MINE_INTERVAL_MS` setting. Mine a block to clear the stale state, or disable the gate for a deliberately idle coin with `EXPLORER_TIP_MAX_AGE_S_<COIN>=0`. See [Regtest Development](../developer-guide/regtest-development.md#keeping-an-idle-chain-available).
 
 ### Slow API Responses
 

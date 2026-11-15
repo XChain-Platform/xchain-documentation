@@ -54,7 +54,7 @@ The refusal is static (see [`getExportedMeta`](#sdkcontractsgetexportedmetasourc
 
 A single DEPLOY action on the script-output lanes (`OP_RETURN`, `MULTISIGN`, `P2SH`, `P2WSH`) can carry at most 8,192 bytes of compiled action data. Contracts whose base64-encoded source exceeds that ceiling (roughly 6 KB of raw source) require the chunked deploy workflow. Use `sdk.deployContract(wif, deployParams, deposits?, opts?)` rather than `sdk.deploy()` directly: it calls `chunkHelper.planDeploy()` to decide which path to take.
 
-**Single-shot path (fits in one action):** `sdk.deployContract` falls through to a normal `sdk.deploy()` call. DEPLOY v0 (no constructor) or v1 (with constructor) are emitted inline.
+**Single-shot path (fits in one action):** `sdk.deployContract` falls through to a normal `sdk.deploy()` call. DEPLOY v0 (standard, with or without constructor params) or v1 (stakeable, adding `COOLDOWN_BLOCKS` and `SLASH_DESTINATION`) is emitted inline.
 
 **Chunked path (6 KB to 64 KB raw source):** two phases are submitted on-chain:
 
@@ -91,7 +91,7 @@ flowchart TD
     SIZE{"base64 source size?"}
     TOO_BIG["Reject: needs more than 16 slices, planDeploy throws before any carrier transaction is submitted"]
     SINGLE["Single-shot path: sdk.deploy()"]
-    SINGLE_EMIT["Emit DEPLOY v0 (no constructor) or v1 (with constructor)"]
+    SINGLE_EMIT["Emit DEPLOY v0 (standard, constructor params optional) or v1 (stakeable: COOLDOWN_BLOCKS + SLASH_DESTINATION)"]
     CHUNK_SPLIT["Split base64 source into ordered slices of up to 7,800 bytes each (max 16 slices)"]
     CARRIER["Carrier phase: broadcast each slice as a DEPLOY v4 carrier action, wait for each individually"]
     ASSEMBLE["Assemble phase: broadcast DEPLOY v2, or v3 for staking contracts, carrying CODE_HASH"]

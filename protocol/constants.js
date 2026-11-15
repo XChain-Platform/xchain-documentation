@@ -318,11 +318,12 @@ const BATCH_WEIGHT_BUDGET = 250;
 // one invalid row, roughly constant whatever the action. Two classes cost
 // more and are weighted for different reasons:
 //
-//   - FAN-OUT (AIRDROP, DIVIDEND): one sub-command writes a row PER
-//     RECIPIENT. The weight is a FLAT 25 rather than `1 + recipients`
-//     because the recipient count is not on the wire, and resolving it would
-//     re-run each handler's own list resolution and filtering before the
-//     batch is even known to be valid.
+//   - FAN-OUT (AIRDROP, DIVIDEND): the table base is 25 because the
+//     recipient count is not on the wire. DIVIDEND stays flat. At or above
+//     BATCH_AIRDROP_LEG_WEIGHT_ACTIVATION, AIRDROP multiplies this base by
+//     the leg count already present in its wire params; below it AIRDROP is
+//     flat. The multiplier lives in the weighing code on both sides, never
+//     in this vendored table.
 //   - VM (DEPLOY, EXECUTE, XEXEC): contract code runs. 30 is the smallest
 //     round weight at which a full batch of worst-case VM sub-commands stays
 //     under the 250 ordinary-equivalent bound at every measured cost ratio.
@@ -1792,8 +1793,8 @@ const TRAIN_ACTIVATION = {
     // a floor above genesis would leave the pre-floor range resolving to nothing.
     '1.0.0': { mainnet: 0, testnet: 0, regtest: 0 },
     // The XCHAIN bridge rule set, armed at the v0.19.0 cut. Mainnet holds the house
-    // sentinel: the mainnet arm is the next milestone and nothing arms there before the
-    // checkpoint cross-check lands, so no mainnet node ever reaches this boundary.
+    // sentinel until a release train sizes the mainnet arm. The checkpoint cross-check
+    // is already enforced on every network where the bridge is armed.
     // Testnet: SIZED 2026-09-16, re-cut 16:33Z, from chain_tip TBTC 152,716 + 71 blocks,
     // which is ceil(10 h / 508.8 s per block measured over the preceding 99 blocks), about
     // 10.0 h. The first sizing (11:53Z, 152,716 itself) was overrun by the chain while the
@@ -1915,9 +1916,9 @@ const SWEEP_ZERO_LEG_ACTIVATION = {
 // 67,889,993 measured 2026-09-12), so one testnet number is already passed on two of them at
 // boot and unreachable on the third.
 //
-// Mainnet is the house sentinel on every key: bridge milestone 1 is a hub-trusted mint (a
-// compromised hub supplies both the transfer record and the roster that verifies it), so
-// nothing arms on mainnet before the ANCHOR-checkpoint cross-check of the lock is built.
+// Mainnet is the house sentinel on every key until a release train sizes the mainnet arm.
+// The destination already checks every credit against the origin chain's quorum-signed
+// ANCHOR checkpoint on each network where the bridge is armed.
 // Testnet is SIZED AT THE v0.19.0 CUT, one dated instant per chain, from the three chain tips
 // and their last-99-block cadences read in one sitting (2026-09-16 16:33Z, the re-cut after
 // the 11:53Z sizing was overrun: TBTC 152,716 at 508.8 s per block, TLTC 4,887,644 at 141.8 s,

@@ -10,7 +10,7 @@ A reference for terms used throughout the wallet's design and user-facing surfac
 
 **core** - The shared `@xchain-wallet/core` package. It contains schemas, validators, flows, storage, software and remote signer support, shared routes and components, i18n, and build metadata. The bridge contract is a separate `@xchain-wallet/bridge-spec` package, while Ledger and Trezor implementations live in their own signer packages. See [Wallet Architecture](architecture.md).
 
-**shell** - One of the wallet's end-user packages: a Chromium MV3 extension, a browser SPA, an Electron desktop app for Windows, macOS, and Linux, or a Capacitor wrapper around the web build. Android is shipped; the iOS package exists but its App Store release is pending. Each shell wires shared flows to its storage, messaging, and signer boundaries.
+**shell** - One of the wallet's end-user packages: a Chromium MV3 extension, a browser SPA, an Electron desktop app for Windows, macOS, and Linux, or a Capacitor wrapper around the web build. The macOS and Linux desktop builds are shipped; the Windows desktop build is not yet published. Android is shipped; the iOS package exists but its App Store release is pending. Each shell wires shared flows to its storage, messaging, and signer boundaries.
 
 **vault** - The shared encrypted persistent-state facade. It exposes typed collections for wallets, accounts, addresses, contacts, connected sites, signers, pending work, watchlists, alerts, multisig and co-signer state, gated keys, autopay state, and one settings record. Shells supply storage backends such as IndexedDB, `chrome.storage.local`, an Electron file store, or a native mobile vault.
 

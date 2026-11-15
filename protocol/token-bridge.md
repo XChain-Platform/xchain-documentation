@@ -113,10 +113,11 @@ issuer can close a door but never strand anyone on the other side of it.
 ## What does not generalize
 
 - **Trust.** [Cross-Chain Bridge: Trust model](./xchain-bridge.md#trust-model) applies
-  unchanged, and matters more here: XCHAIN's milestone-1 hub-trusted mint is a statement about
-  the platform's own token. A third-party issuer bridging real value should read that section
-  before opting in. This spec arms nowhere before the checkpoint cross-check described there is
-  built and armed on that network.
+  unchanged, and matters more here: every general-token credit needs both the `cross_chain`
+  quorum's signature and proof against the origin chain's quorum-signed ANCHOR checkpoint
+  before any effect. This replaces the earlier milestone-1 hub-trusted mint, but still assumes
+  the two quorums did not both lie. A third-party issuer bridging real value should read that
+  section before opting in. Mainnet remains off until its activation height is armed.
 - **Reorg finality.** An applied mint is final and the origin escrow can drop on a reorg (see
   [Reorgs and finality](./xchain-bridge.md#reorgs-and-finality)). For a third-party token that is
   the issuer's own unbacked liability, not the platform's; `MIN_DEPTH` is the issuer's own price

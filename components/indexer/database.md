@@ -114,7 +114,7 @@ The indexer creates and manages all tables in this database. SQL schema files li
 | `rollcall_absences` | Responsible-set members that did not sign a rolled epoch: `(epoch_height, source_id)` PK, `close_block`, and `evicted` (1 = this absence completed a K-streak and evicted the source at that close) |
 | `rollcall_actions` | One row per valid ROLLCALL action on the DOGE side, so an explorer can list an action whose every pubkey was already landed (rollcall_signers keeps only first-seen pubkeys): `action_index` PK, `block_index`, `epoch_height`, `ledger_hash` as carried, `publisher`, `gates` (the v1 GATES field, NULL on v0), `carried_count` (verified signatures carried) and `first_seen_count` (of those, pubkeys new to the epoch). It decides nothing: the BTC close still reads rollcall_signers only |
 | `rollcall_gates` | The consensus-gate list each verified signer re-signed in a ROLLCALL v1 at a rolled epoch: `(epoch_height, pubkey)` PK, `close_block`, and `gates_json` (a sorted JSON array of `<module>.<EXPORT>` keys). Written by the epoch close from `ROLLCALL_GATES_ACTIVATION` on and read by the rules-aware attestation set filter, which selects an epoch by `close_block` so a replay reads exactly what the live run read |
-| `gated_files` | FILE v1 token-gated metadata: `gate_ticker`, `encryption_method`, `key_hash` (groups pack members), and `raw_data` (ciphertext bytes) |
+| `gated_files` | Token-gated FILE metadata (format 0): `gate_ticker`, `encryption_method`, `key_hash` (groups pack members), and `raw_data` (ciphertext bytes) |
 | `pubkeys` | Address-to-public-key mapping, populated from the decoder at index time. Keyed by `address_id` |
 | `icons` | Token icon cache: source URL, fetch/generation status, and generated PNG hash. Keyed by `token_id`; managed by the icon-fetch pipeline, not by block processing |
 
@@ -168,7 +168,7 @@ Contract-targeted staking (STAKE v3 / UNSTAKE v1 / DELEGATE v1) is a developer p
 
 Two slashing systems produce distinct table families.
 
-**Contract-targeted slashing** (triggered by a VM EXECUTE that calls `xchain.stake.slash`):
+**Contract-targeted slashing** (triggered by a VM EXECUTE that calls `xchain.contract.slash`):
 
 | Table | Purpose |
 |---|---|

@@ -273,7 +273,7 @@ block **after** the one where it was applied; the same one-block visibility rule
 | `xchain.contract.getStake(pubkey, token)` | 100 | Sum of active stake for `(pubkey, token)` targeting this contract. Returns `'0'` if none. |
 | `xchain.contract.getTotalStaked(token)` | 100 | Total active stake of `token` across all stakers of this contract. |
 | `xchain.contract.getStakers(token)` | 100 | Top stakers of `token` on this contract: `[{pubkey, amount}, ...]`, sorted descending, capped at 1000. |
-| `xchain.contract.slash(pubkey, token, amount)` | 500 | Slash `amount` of `token` from one staker on this contract. Routed to the deploy-time `SLASH_DESTINATION`. Authorization is implicit. |
+| `xchain.contract.slash(pubkey, token, amount)` | 500 | Slash `amount` of `token` from one staker on this contract. Routed to the deploy-time `SLASH_DESTINATION`. Authorization is implicit; malformed arguments throw. See [argument validation](../protocol/contract-staking.md#throws-and-argument-validation). |
 
 ## Deterministic Execution
 
@@ -433,7 +433,7 @@ Provider-level limits the contract should know about:
 - **Body encoding on response.** `RESPONSE_PAYLOAD` travels **base64-encoded** on the wire in ATTEST v1. The indexer decodes it to UTF-8 for storage and delivers it to the callback as a UTF-8 string. Binary content round-trips correctly as long as it is valid UTF-8 after decoding; arbitrary binary is not a supported use case.
 - **`getResponse(requestId)` is read-only.** It returns the previously-stored response after the callback has already fired, useful for contracts that want to revisit a past answer from a different method.
 
-For the wire-level lifecycle see [`protocol/actions/ATTEST.md`](../protocol/actions/attest.md); for provider-specific payloads see [`protocol/providers/`](../protocol/providers/).
+For the wire-level lifecycle see [`protocol/actions/attest.md`](../protocol/actions/attest.md); for provider-specific payloads see [`protocol/providers/`](../protocol/providers/).
 
 ## Stakeable Contracts
 
@@ -477,7 +477,7 @@ xchain.contract.slash(pubkey, 'XCHAIN', '50');
 - The slash can only target stakers of **this** contract. The accessor is scoped to the executing contract; cross-contract slashing isn't possible.
 - Slashed tokens go to the destination locked at deploy time.
 - The slash reaches active stakes first; if there's a remainder, it pulls from any cooldown-queued balance the staker has already begun withdrawing. (Stakers can't escape an imminent slash by unstaking.)
-- Over-slash is silently capped at the staker's available balance. No error if you ask for more than they have.
+- Over-slash is silently capped at the staker's available balance. Asking for more than the available balance does not throw, but malformed arguments do; see [Throws and argument validation](../protocol/contract-staking.md#throws-and-argument-validation).
 - Atomic with the calling EXECUTE: if the method reverts after the slash, the slash rolls back too.
 
 ### What This Enables
@@ -489,7 +489,7 @@ xchain.contract.slash(pubkey, 'XCHAIN', '50');
 - **Conditional escrow with teeth**: two parties stake against a deal; an arbitrator (or [an AI judge](#asking-the-outside-world-the-attestation-framework)) decides if the deal was kept and slashes accordingly.
 - **DAO membership locks**: members stake to participate; the DAO's contract slashes for spam or rule-breaking.
 
-For the wire format, isolation rules, cooldown sweep behavior, and the on-chain `slash_events` table, see [`protocol/Contract_Staking.md`](../protocol/contract-staking.md).
+For the wire format, isolation rules, cooldown sweep behavior, and the on-chain `slash_events` table, see [`protocol/contract-staking.md`](../protocol/contract-staking.md).
 
 ## Error Handling
 

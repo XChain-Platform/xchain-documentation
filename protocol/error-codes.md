@@ -85,6 +85,8 @@ Errors are JSON objects:
 | `MIRROR_NOT_CONFIGURED` | 503 | Hub-mirror self-sync is configured for this coin but no hub endpoint is set, so consensus data is refused rather than served stale | No: operator configuration |
 | `MIRROR_NOT_BOOTSTRAPPED` | 503 | The hub mirror has not completed its initial bootstrap, so consensus data is unavailable rather than served empty | Yes: with backoff |
 | `MIRROR_STALE` | 503 | The hub mirror is stale beyond its configured lag and fail-closed is set | Yes: with backoff |
+| `HUB_LOCAL_TABLE_NOT_MIRRORED` | 503 | A hub-local operational page (peers, consensus state, configs, telemetry pings) was requested for a coin whose hub mirror is self-synced; the mirror never replicates those tables, so the page is refused whatever the mirror's health | No: use an install that reads a co-located hub database |
+| `HUB_UNAVAILABLE` | 503 | A hub-served route could not read its table from the hub over JSON-RPC and no cached rows within the stale ceiling were available; the explorer's own database is fine | Yes: with backoff |
 | `VM_QUERY_DISABLED` | 503 | Contract simulation is disabled on this explorer | No: use another instance |
 | `VM_QUERY_VM_DRIFT` | 503 | Contract simulation is disabled because the deployed VM is not the canonical one | No: operator action |
 | `VM_MODULE_UNAVAILABLE` | 503 | Contract simulation: the VM module is not available on this host | No: use another instance |
@@ -97,6 +99,8 @@ Errors are JSON objects:
 | `INVALID_SORTORDER` | 400 | List routes, API and explorer feeds alike: `sortorder` is neither `asc` nor `desc` in any letter case | No: fix the request |
 | `INVALID_PAGE` | 400 | API list routes: `page` is not a whole number of at least 1 | No: fix the request |
 | `INVALID_START` | 400 | Explorer feeds: the `start` offset is not a whole number of at least 0 | No: fix the request |
+| `INVALID_SLASH_STATUS` | 400 | `GET /{COIN}/api/slash_proposals/{QUERY}/status` and the matching explorer feed: the status filter is not one of `pending`, `approved`, `rejected` or `expired` (case-sensitive); refused before any hub call | No: fix the request |
+| `INVALID_SLASH_PUBKEY` | 400 | `GET /{COIN}/api/slash_proposals/{QUERY}/pubkey` and the matching explorer feed: the validator pubkey filter is not 64 hexadecimal characters; refused before any hub call | No: fix the request |
 | `INVALID_TOTAL` | 400 | Explorer feeds: a supplied `total` is not a whole number of at least 0 (an empty or absent `total` is allowed and read as unknown) | No: fix the request |
 | `INVALID_TX_HASH` | 400 | Transaction lookups: the hash is neither a 64-character hex transaction id nor one of the synthetic forms the explorer serves (`GENESIS-*`, `XPOLICY-*`, `XBRIDGE*`, `LIST_SHARE*`) | No: fix the request |
 | `INVALID_TICK_REF` | 400 | Ticker routes: a `^` reference is not followed by a safe whole-number ticker id | No: fix the request |
@@ -199,4 +203,4 @@ A `-32010` error always carries `error.data.reason`, a stable string that is app
 - Hub OpenRPC: `https://hub.xchain.io/openrpc.json`
 - SDK API OpenRPC: served at `/openrpc.json` by `npm run api` (self-hosted)
 
-The SDK library (as opposed to its API server) throws typed error classes instead (see [components/sdk/ERRORS.md](../components/sdk/errors.md).
+The SDK library (as opposed to its API server) throws typed error classes instead (see [components/sdk/errors.md](../components/sdk/errors.md).

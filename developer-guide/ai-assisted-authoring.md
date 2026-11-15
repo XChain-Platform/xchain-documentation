@@ -115,7 +115,7 @@ if (result.ok) {
     console.log(result.contractJs);   // the exact JS the deploy gate accepted
     console.log(result.notes);        // model's explanation / differences (Solidity mode)
 } else {
-    console.error('did not converge:', result.gate.errors);
+    console.error('did not converge:', result.gate ? result.gate.errors : 'model returned no contract code');
 }
 ```
 
@@ -123,7 +123,9 @@ if (result.ok) {
 type-stripped if the model wrote TypeScript), the final gate result, the number
 of model calls (`attempts`), and the full `transcript` for auditing. Because the
 model client is injected, the harness is provider-agnostic and runs its own tests
-with no network access.
+with no network access. The final gate result is `null` when the last model reply
+contained no contract source, such as an empty response or empty code fence, so
+branch on `result.ok` and null-check `result.gate` before reading its errors.
 
 Lower-level building blocks are exported too: `buildAuthoringPrompt`,
 `buildRepairPrompt`, `extractContractCode`, and the canonical `KNOWLEDGE` base

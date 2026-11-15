@@ -361,7 +361,7 @@ GET /catalog
       "coin": "bitcoin",
       "network": "mainnet",
       "dbType": "indexer",
-      "db_name": "XChain_BTC_Indexer",
+      "db_name": "XChain_BTC_Mainnet_Indexer",
       "block_height": 893000,
       "table_count": 42,
       "data_bytes": 104857600,

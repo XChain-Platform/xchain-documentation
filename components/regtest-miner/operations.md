@@ -101,7 +101,7 @@ Return the current mining loop state for operator diagnostics and CI health chec
         "wallet_balance_at": 1718900003000,
         "mempool_size": 0,
         "mempool_size_at": 1718900004000,
-        "idle_mine_interval_ms": 0,
+        "idle_mine_interval_ms": 60000,
         "blocks_mined": 42,
         "last_mine_at": 1718900000000,
         "consecutive_errors": 0,
@@ -320,7 +320,7 @@ Use `generate_blocks` to JUMP a height window; use this to WAIT one out on a qui
 |---|---|---|---|
 | `interval_ms` | number | Yes | Milliseconds of empty mempool before mining one empty block. `0` disables. Otherwise 1,000 to 3,600,000. |
 
-The boot-time equivalent is the `IDLE_MINE_INTERVAL_MS` environment variable. The current value is reported as `idle_mine_interval_ms` by `status`.
+The boot-time equivalent is the `IDLE_MINE_INTERVAL_MS` environment variable. It defaults to `60000` when unset, so the mine-empty heartbeat is on by default; set it explicitly to `0` for a purely mempool-driven loop. The current value is reported as `idle_mine_interval_ms` by `status`.
 
 ### `generate_blocks`
 
@@ -438,7 +438,7 @@ bitcoin-cli -regtest getblockchaininfo
 If the miner is running but not mining, check:
 
 1. Is `keepMining` set to `false`? Call `continue_mining` to resume.
-2. Is the mempool empty? The miner only mines when transactions are present.
+2. Is the mine-empty heartbeat disabled? With the default `IDLE_MINE_INTERVAL_MS=60000`, an empty mempool still produces one block about every minute. Check `idle_mine_interval_ms` in `status`; a value of `0` means mining is purely mempool-driven. Re-enable it with `set_idle_mine_interval` or set `IDLE_MINE_INTERVAL_MS` at boot.
 3. Are the timers set to very large values? Call `set_default_mining_time` to reset.
 
 ### fillMempool fails or hangs

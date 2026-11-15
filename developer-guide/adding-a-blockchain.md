@@ -33,7 +33,7 @@ identically.
 ```mermaid
 flowchart TD
     A[("xchain-hub/src/coins/<br>canonical coin files")] --> B["sync-coins.sh"]
-    subgraph Consumers["8 consumer repos"]
+    subgraph Consumers["10 consumer repos"]
         C1["xchain-indexer"]
         C2["xchain-explorer"]
         C3["xchain-decoder"]
@@ -42,6 +42,8 @@ flowchart TD
         C6["xchain-sdk"]
         C7["xchain-sync"]
         C8["xchain-node"]
+        C9["xchain-e2e-test"]
+        C10["xchain-regtest-miner"]
     end
     B --> C1
     B --> C2
@@ -51,6 +53,8 @@ flowchart TD
     B --> C6
     B --> C7
     B --> C8
+    B --> C9
+    B --> C10
     D["CI drift guard<br>sync-coins.sh --check, in ci-all.sh"] -.->|"fails build if any copy<br>is not byte-identical"| Consumers
 ```
 
@@ -62,7 +66,12 @@ copy the canonical files into every consumer:
 ```
 xchain-indexer  xchain-explorer  xchain-decoder  xchain-encoder
 xchain-utxo-tracker  xchain-sdk  xchain-sync  xchain-node
+xchain-e2e-test  xchain-regtest-miner
 ```
+
+The authoritative roster is the `SERVICES` list in
+`xchain-hub/bin/sync-coins.sh`; `COIN_CONSUMERS` in `bin/ci-all.sh` mirrors it
+for the CI parity check.
 
 Each consumer keeps a thin adapter (for example
 `xchain-indexer/src/coins/BTC.js`, `xchain-decoder/src/chain/crypto_networks.js`) that reads
@@ -212,7 +221,7 @@ hash, and the matching pin in one commit).
 xchain-hub/bin/sync-coins.sh
 ```
 
-This copies the updated `src/coins/` (including the new `FOO.js`) into all eight
+This copies the updated `src/coins/` (including the new `FOO.js`) into all ten
 consumers. Confirm there is no drift:
 
 ```bash

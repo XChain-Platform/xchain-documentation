@@ -132,4 +132,4 @@ The ledger directory defaults to `<stateDir>/deposits/<COIN>/`; override via `op
 - Confirmed: `GET /{COIN}/api/sends/{payTo}/destination`, rows carry `source`, `tick`, `amount`, `memo`, `status`.
 - Dispenser scheme: `GET /{COIN}/api/balances/{payer}`.
 
-See also: [Token_Gated_Content.md](token-gated-content.md) (selling decryption keys through this flow), [Error_Codes.md](error-codes.md), and the plain-language guide at [../ai-agents/Charging_Agents.md](../ai-agents/charging-agents.md).
+See also: [token-gated-content.md](token-gated-content.md) (selling decryption keys through this flow), [error-codes.md](error-codes.md), and the plain-language guide at [../ai-agents/charging-agents.md](../ai-agents/charging-agents.md).

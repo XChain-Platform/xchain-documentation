@@ -104,7 +104,7 @@ Multisig is never auto-selected: it is the worst-density carrier (60 bytes per o
 
 Two properties of `AUTO` are worth knowing before using it. It can resolve to TAPROOT, which returns a **commit/reveal pair** instead of a single PSBT, which is exactly why it is opt-in rather than the default. And it will not select TAPROOT unless the caller affirms its signer can produce a tapscript script-path signature: the reveal has to be signable before the commit is broadcast, so guessing wrong there strands funds rather than returning an error.
 
-A format selection guide with size calculation details is available at [`../components/encoder/Format_Selection.md`](../components/encoder/format-selection.md).
+A format selection guide with size calculation details is available at [`../components/encoder/format-selection.md`](../components/encoder/format-selection.md).
 
 ## The PSBT Workflow
 

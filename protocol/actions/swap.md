@@ -68,6 +68,12 @@ This example swaps ownership of JDOG (BTC chain) for ownership of WOWPEPE (LTC c
 - `SWAP_ACTION_INDEX` must point to a valid `ACTION_INDEX` on the current `COIN` network
 - At or above the `MATCH_ORIGIN_OPEN_ACTIVATION` height, SWAP matching starts only from a swap whose latest status is `open`. A match dispatched from a swap that is already `complete`, `cancelled` or `expired` (a LIST rematch plan that reaches a swap its earlier step completed, or the match a SWAP cancel dispatches from the swap it has just cancelled) stops at the gate before any candidate is looked up, so escrow already settled or refunded is not settled again. Below the height the match runs as before. The height is unarmed on mainnet and testnet, and a regtest venue arms it with `XC_MATCH_ORIGIN_OPEN_REGTEST_ACTIVATION`.
 
+### Same-Token Offers
+
+At or above `SAME_TOKEN_OFFER_REFUSAL_ACTIVATION`, a same-chain Version 0 SWAP is refused with `invalid: cannot trade a token for itself` when `GIVE_TICK` and `GET_TICK` resolve to the same token id. Resolution happens before comparison, so different spellings such as a ticker and its caret `^id` form still identify the same token. Ownership offers are included; cross-chain swaps are outside this rule.
+
+The match handler applies the same gate at the matching block and stops selecting older offers whose resolved token ids are equal. Below the gate, creation and matching retain their earlier behavior. The rule is active from genesis on regtest, armed at a separate height for each testnet chain, and **UNARMED** on mainnet. See [Flag-Day Values](../flag-days.md) for current thresholds and [Protocol Activation](../protocol-activation.md) for how gates are evaluated.
+
 ### Token Ownership Sales
 - `GIVE_OWNERSHIP=1` requires SOURCE to be the current owner of `GIVE_TICK`; `GIVE_AMOUNT` must be empty; the ownership record moves into a protocol-held escrow state
 - `GET_OWNERSHIP=1` requires the matcher's SOURCE to be the current owner of `GET_TICK`; `GET_AMOUNT` must be empty

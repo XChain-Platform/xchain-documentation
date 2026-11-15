@@ -127,6 +127,7 @@ The capability snapshot proof is unarmed until the train cut; when armed, these 
 | `HUB_SYNC_BATCH_APPLY_ROWS` | Number of buffered `price_snapshots` rows a hub-mirror bootstrap drain collects before flushing them as one multi-row upsert statement. Values below `2` fall back to the default. | `2500` |
 | `HUB_SYNC_BOOTSTRAP_PROGRESS_MS` | Minimum interval between the "bootstrapping &lt;table&gt;: N row(s) fetched..." progress lines a hub-mirror table drain logs on startup, so a cold start shows the drain moving rather than only its final result. `0` silences the periodic line entirely (the drain still logs when it starts and finishes). | `15000` (15s) |
 | `HUB_PUSH_RETRY_INTERVAL_MS` | How often the push-queue poller wakes to drain due rows | `30000` |
+| `HUB_PUSH_DRAIN_CONTINUE_MS` | Delay before the next drain after a full batch was delivered in full; any other outcome waits `HUB_PUSH_RETRY_INTERVAL_MS`. Set it equal to the retry interval for the old fixed cadence. | `250` |
 | `HUB_PUSH_RETRY_BASE_MS` | Base backoff for a failed push. The wait grows as `base × 2^(attempts-1)`, capped at `HUB_PUSH_RETRY_MAX_MS`. | `30000` |
 | `HUB_PUSH_RETRY_MAX_MS` | Backoff ceiling for push retries | `600000` (10 min) |
 | `HUB_PUSH_MAX_ATTEMPTS` | Attempts before a push row is abandoned (about 30 minutes at the default backoff) | `10` |
@@ -146,7 +147,7 @@ The capability snapshot proof is unarmed until the train cut; when armed, these 
 
 | Variable | Description | Default |
 |---|---|---|
-| `STATE_TREE_METRIC_INTERVAL_MS` | Interval for the state-tree orphan-statistics sweep. Set `0` to disable. | `14400000` (4 h) |
+| `STATE_TREE_METRIC_INTERVAL_MS` | Interval for the state-tree orphan-statistics sweep. Set `0` to disable. Positive values are clamped to `60000` through `2147483647`; a value that is negative or not a whole decimal integer (for example `60000garbage`) uses the default; every adjustment logs a warning. | `14400000` (4 h) |
 | `STATE_TREE_METRIC_MAX_NODES` | Node ceiling for a single metric pass, bounding the sweep's cost on a large tree | `2000000` |
 | `INDEXER_SMT_TOUCH_AUDIT` | Set to `1` to audit, per block, the set of keys the state-commitment pass actually touched against the set the ledger rows say it should have, reporting the difference in both directions with the exact keys. That evidence cannot be recovered once the block is committed, which is why it is a flag rather than a post-hoc probe. Diagnostic only; off in normal operation. | _(unset, audit off)_ |
 | `INDEXER_TOUCH_GUARD` | Behaviour when the balances touched-set guard fails, meaning the ledger moved keys the commitment did not apply and `balances_root` would be committed incomplete. The default throws and stops the block. Set to `warn` to log and commit anyway; the node then **diverges from any node that full-rebuilds**, so this is a deliberate, temporary escape hatch rather than an operational setting. | _(unset, fails closed)_ |
@@ -352,10 +353,10 @@ Each supported blockchain has a configuration file at `src/coins/<COIN>.js` (BTC
 | `EXPIRATION_FEE_DEFAULT_DAYS` | Default listing duration | `90` (3 months) |
 | `EXPIRATION_FEE_FREE_DAYS` | Free listing duration | `182` (6 months) |
 | `EXPIRATION_FEE_PER_DAY` | XCHAIN fee per day beyond free period | `0.00547945` |
-| `ADDRESS.BURN` | Burn address (per network) | `1Muhahahahhahahahahahhahahauxh9QX` |
-| `ADDRESS.GAS` | Gas token issuer address (per network) | `1BTNSGASK5En7rFurDJ79LQ8CVYo2ecLC8` |
-| `ADDRESS.DONATE1` | Protocol development donation address | `1BTNSGASK5En7rFurDJ79LQ8CVYo2ecLC8` |
-| `ADDRESS.DONATE2` | Community development donation address | `1BTNSGASK5En7rFurDJ79LQ8CVYo2ecLC8` |
+| `ADDRESS.BURN` | Burn address (per network) | `1XChainBurnAddressXXXXXXXXXbRsd2N` |
+| `ADDRESS.GAS` | Gas token issuer address (per network) | `1XChain3M4uRwcHqt4XuhVBUQ8cL4qQsA` |
+| `ADDRESS.DONATE1` | Protocol development donation address | `1Donate1GERVKPW6GFQcnGeTa8dgL6Abyp` |
+| `ADDRESS.DONATE2` | Community development donation address | `1Donate2LkbBrsanwCVRPWZCXAqQcvcqGz` |
 | `ADDRESS.FEE_DESTINATION` | Native-coin fee collection address (per network), pinned in the bundled coin registry. Overridable at runtime via the `XCHAIN_FEE_DESTINATION_<COIN>_<NETWORK>` env var (e.g. `XCHAIN_FEE_DESTINATION_BTC_REGTEST`) on testnet/regtest only; a mainnet override is ignored with a warning, because fee acceptance is consensus and must not depend on operator environment. | _(coin registry)_ |
 | `ADDRESS.REWARD` | Validator reward pool: pre-funded, manually topped up, drained by `COLLECT` (**BTC only**; XCHAIN/COLLECT do not exist on LTC/DOGE, where the slot is unused) | _(set pre-launch)_ |
 

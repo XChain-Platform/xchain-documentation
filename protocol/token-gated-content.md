@@ -59,13 +59,13 @@ sequenceDiagram
 
     Note over Issuer: Single file
     Issuer->>Issuer: generate random 256-bit K, compute KEY_HASH = sha256(K)
-    Issuer->>Issuer: encrypt file plaintext with AES-256-GCM under K
+    Issuer->>Issuer: optionally deflate the plaintext (then set COMPRESSION=1),<br>then encrypt with AES-256-GCM under K
     Issuer->>Chain: BATCH(FILE with GATE_TICKER/KEY_HASH, MESSAGE v2 self-ECIES containing K)
     Note over Chain: single transaction, no window without the key recorded
 
     Note over Issuer: Pack of files, shared key
     Issuer->>Issuer: generate one K and KEY_HASH
-    Issuer->>Issuer: encrypt each file under K with a fresh nonce per file
+    Issuer->>Issuer: optionally deflate each file, then encrypt it under K<br>with a fresh nonce per file
     loop each file in the pack
         Issuer->>Chain: FILE|0|... action, same publisher, GATE_TICKER, KEY_HASH
     end
@@ -147,6 +147,7 @@ sequenceDiagram
     Wallet->>Wallet: parse plaintext as binary handoff payload,<br>validate leading version byte,<br>slice body into 32-byte candidate keys
     Wallet->>Wallet: for each candidate K, compute sha256(K)<br>and match against the file's KEY_HASH, skip mismatches
     Wallet->>Wallet: AES-256-GCM-decrypt the ciphertext<br>with the matched key
+    Wallet->>Wallet: if the FILE carries COMPRESSION=1, inflate the decrypted bytes<br>(deflate-raw) under the streamed 150:1 guard, on an invalid stream<br>or tripped guard show the decrypted bytes as stored-form with an explicit error
 ```
 
 No on-chain action is required to unlock. The holder can decrypt and re-decrypt as often as they like.

@@ -123,7 +123,7 @@ The decoder polls for new blocks every ~1 second. It waits for the coin node to 
 
 The indexer has a watchdog timeout (default 5 minutes). If a single block takes longer than this to process, the process exits and Docker restarts it. The watchdog is a safety net for stuck processing. Not expected under normal operation.
 
-Coin-specific configuration (gas fees, GAS address, protocol activation blocks) lives in `/XChainIndexer/src/configs/<COIN>.js` inside the container. These values are baked into the image and cannot be changed via environment variables.
+Coin-specific configuration (gas fees, GAS address, protocol activation blocks) lives in `/XChainIndexer/src/coins/<COIN>.js` inside the container. These values are baked into the image and cannot be changed via environment variables.
 
 ### Explorer
 

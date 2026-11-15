@@ -104,7 +104,7 @@ sequenceDiagram
     end
 ```
 
-For the full trust model, relay architecture, and lifecycle details, see [`../protocol/Cross_Chain_Calls.md`](../protocol/cross-chain-calls.md).
+For the full trust model, relay architecture, and lifecycle details, see [`../protocol/cross-chain-calls.md`](../protocol/cross-chain-calls.md).
 
 ## LINK: Cross-Chain Action References
 

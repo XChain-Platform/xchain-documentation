@@ -129,7 +129,7 @@ The VM classifies execution failures into six categories:
 | Stack depth exceeded | `out_of_stack: maximum call depth exceeded` | Intra-contract recursion hit the deterministic depth limit, injected by the host as `__DEPTH_LIMIT`: 512 by default, tightened to **256** once the Package 3 VM-sandbox bundle gate is active for that (network, coin). The gate is active unconditionally on testnet and regtest today, and on mainnet at/above the per-coin heights BTC 961000 / LTC 3154250 / DOGE 6319000. The metering-injected `__depth_enter`/`__depth_exit` hooks throw when this limit is reached, producing a deterministic fault instead of relying on V8's architecture-variable native stack limit. `gasUsed` is clamped to the ceiling. |
 | Runtime error | `error: <message>` | Any other JavaScript error (undefined variable, type error, etc.) |
 
-Errors thrown inside the V8 isolate lose their JavaScript class identity when crossing the isolate boundary. The VM uses a message-encoding scheme (see [ARCHITECTURE.md](architecture.md#json-bridge-protocol)) to preserve error type information.
+Errors thrown inside the V8 isolate lose their JavaScript class identity when crossing the isolate boundary. The VM uses a message-encoding scheme (see [architecture.md](architecture.md#json-bridge-protocol)) to preserve error type information.
 
 ## Atomicity Guarantees
 

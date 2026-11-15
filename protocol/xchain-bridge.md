@@ -118,8 +118,7 @@ The assumption is therefore "the `cross_chain` quorum and the checkpoint quorum 
 same assumption every validator action on the platform already rests on. A compromised hub that
 supplies both the record and the roster that verifies it can no longer mint on its own. This
 replaces the earlier **hub-trusted mint** (milestone 1), where the record and its verifying roster
-came from the same mirror and no checkpoint cross-check existed. Other guide pages still
-describe that earlier model and are tracked for a follow-up edit.
+came from the same mirror and no checkpoint cross-check existed.
 
 ## Reorgs and finality
 

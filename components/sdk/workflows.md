@@ -130,7 +130,7 @@ await sdk.delegateVote(wif, { tick: 'GOVTOKEN', delegateTo: 'bc1q...' });
 await sdk.clearVoteDelegation(wif, { tick: 'GOVTOKEN' });
 ```
 
-Poll finalization (VOTE v2) is system-synthesized at the poll's end block; there is no submit recipe for it. Read results back with `sdk.explorer.getPoll` / `getPollResults` (see [EXPLORER.md](./explorer.md)).
+Poll finalization (VOTE v2) is system-synthesized at the poll's end block; there is no submit recipe for it. Read results back with `sdk.explorer.getPoll` / `getPollResults` (see [explorer.md](./explorer.md)).
 
 ---
 
@@ -159,7 +159,7 @@ await sdk.workflows.resolveMarket(wif, { feedActionIndex: market.feedRef, outcom
 await sdk.workflows.cancelMarket(wif, { feedActionIndex: market.feedRef, memo: 'Event postponed' });
 ```
 
-Market closing (at the deadline) and expiry (when an oracle never resolves) are performed by the protocol at the end of a block; there is no submit recipe for either. Read markets back with `sdk.explorer.getBetFeed` / `getBets` (see [EXPLORER.md](./explorer.md)) and follow one live with `sdk.ws.subscribeBetFeed(index)`.
+Market closing (at the deadline) and expiry (when an oracle never resolves) are performed by the protocol at the end of a block; there is no submit recipe for either. Read markets back with `sdk.explorer.getBetFeed` / `getBets` (see [explorer.md](./explorer.md)) and follow one live with `sdk.ws.subscribeBetFeed(index)`.
 
 ```mermaid
 stateDiagram-v2

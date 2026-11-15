@@ -550,7 +550,8 @@ one addition for the section a v3's `WRAPPER_SECTION_INDEX` names; see
 - `CHECKPOINT_SEQ` must be ≥ any previously accepted seq for (`CHAIN`,`NETWORK`), replays of
   older checkpoints are recorded but flagged `stale`, never `valid`. Equal-seq records are
   accepted: an exact replay is signature-bound to identical content (harmless duplicate). The
-  same ≥ rule applies to `MATCH_BATCH_SEQ` on v1 and on a v3 that carries an archive section. The
+  same ≥ rule applies to `MATCH_BATCH_SEQ` on v1 and on a v3 that carries an archive section,
+  subject to the gated [archive batch identity](#archive-batch-identity) re-issue rule. The
   checkpoint replay watermark counts v0/v1/v3 together, per chain.
 - From `ANCHOR_CHECKPOINT_SEQ_BIND_ACTIVATION`, evaluated against the ANCHOR's own DOGE block
   height, with its status on [Flag-Day Values](../flag-days.md), every v0 section, every v3 fold
@@ -613,6 +614,10 @@ one addition for the section a v3's `WRAPPER_SECTION_INDEX` names; see
 - `BATCH_CRC32` must match the CRC32 of the uncompressed JSON (checked at reassembly when
   chunked).
 - `MATCH_BATCH_SEQ` must be ≥ any previously accepted batch seq for the network.
+- From `ARCHIVE_V1_REISSUE_REFUSAL_ACTIVATION`, a source address that already has a stored
+  archive under the same `MATCH_BATCH_SEQ` may repeat it only with the same `BATCH_CRC32` and
+  `MATCH_COUNT`; see [archive batch identity](#archive-batch-identity) and
+  [Flag-Day Values](../flag-days.md).
 - `PUBLISHER` is always present, and the attestation list (`APUBKEY_n`/`ASIG_n`) follows the v0
   rules verbatim, over the archive `XANCPUB` canonical: a SECOND quorum against the
   `oracle_publish` snapshot at `SNAPSHOT_BLOCK`. `ATTEST_SIG_COUNT` MAY be 0, which means the
@@ -650,14 +655,32 @@ one addition for the section a v3's `WRAPPER_SECTION_INDEX` names; see
 
 #### Archive batch identity
 
-`MATCH_BATCH_SEQ` is not unique: an equal seq is accepted (re-broadcast, failover
-double-publish), so more than one head can carry it. On every network an archive batch is
-identified by **(`MATCH_BATCH_SEQ`, head source address)**, not by the seq alone:
+`MATCH_BATCH_SEQ` is not globally unique, so heads from different source addresses can carry
+the same seq. On every network an archive batch is identified by **(`MATCH_BATCH_SEQ`, head
+source address)**, not by the seq alone:
 
 - a chunk's parent is the earliest head for that seq **authored by the same address**,
 - `TOTAL_CHUNKS`, slot occupancy and `BATCH_CRC32` reassembly are all evaluated within
   that publisher's own batch, and
 - a chunk whose publisher has no head for the seq is an orphan.
+
+The replay watermark still permits an equal seq. The author-scoped re-issue guard narrows that
+permission:
+
+- From `ARCHIVE_V1_REISSUE_REFUSAL_ACTIVATION`, a v1 head whose source address already has a
+  `valid` or `unverified` archive under the seq is an exact duplicate only when its
+  `BATCH_CRC32` matches case-insensitively and its `MATCH_COUNT` matches numerically.
+- For a v3 archive section, the same check runs when `ANCHOR_FOLD_ACTIVATION` is active. Its
+  lookup author is `PUBLISHER` below `ANCHOR_FOLD_REISSUE_SOURCE_AUTHOR_ACTIVATION` and the
+  transaction `SOURCE` from that gate onward; stored candidates are matched by transaction
+  source address.
+- A same-author non-duplicate is refused as
+  `invalid: MATCH_BATCH_SEQ (retry; this publisher already holds an archive under this seq)`.
+  A refused, stale or otherwise invalid head does not itself consume the seq for this check.
+
+These gates are evaluated against the ANCHOR's own DOGE block height; see
+[Flag-Day Values](../flag-days.md). A publisher whose archive content changes must allocate a
+fresh, higher `MATCH_BATCH_SEQ` instead of reusing one it has spent.
 
 Keying the batch on the seq alone would let anyone deny a batch by broadcasting a junk head
 at the next seq: its `TOTAL_CHUNKS` would invalidate every legitimate chunk, and its address
@@ -693,7 +716,9 @@ the same result under either key.
   verbatim: `MATCH_COUNT` must equal `matches.length` after decompression (checked at
   reassembly when chunked), `BATCH_CRC32` must match the CRC32 of the uncompressed JSON, and
   overflow rides v2 continuation chunks tied by `MATCH_BATCH_SEQ` to this v3 exactly as to a v1
-  head (including the [archive batch identity](#archive-batch-identity) rule above).
+  head. When `ANCHOR_FOLD_ACTIVATION` is active, the same archive re-issue check applies, using
+  `PUBLISHER` below `ANCHOR_FOLD_REISSUE_SOURCE_AUTHOR_ACTIVATION` and the transaction `SOURCE`
+  from that gate onward; see the [archive batch identity](#archive-batch-identity) rule above.
 - **Verdict scope is gated by `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION`**, evaluated at the
   same `SNAPSHOT_BLOCK` as `ANCHOR_FOLD_ACTIVATION`. Below it, a bad archive section (a
   reassembled archive that fails its CRC or `MATCH_COUNT` check, or a `WRAPPER_SECTION_INDEX`

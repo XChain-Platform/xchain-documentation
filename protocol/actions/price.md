@@ -210,7 +210,7 @@ To become an `oracle_publish` publisher, stake against a pubkey using the standa
 STAKE|1|<AMOUNT>|<SIGNING_PUBKEY>      # new stake
 STAKE|2|<AMOUNT>|<SIGNING_PUBKEY>      # top-up of existing pubkey
 ```
-See [STAKE.md](stake.md) for the full action spec.
+See [stake.md](stake.md) for the full action spec.
 
 **Publishing-chain wallet** (e.g. the DOGE wallet for broadcasting PRICE v0 to DOGE) is operator-side configuration on the hub; it is **not** recorded on-chain. Each `oracle_publish`-capable validator chooses its own publishing-chain address; the protocol simply verifies that the broadcasting `SOURCE` address owns a stake against a pubkey with the capability at the publishing BLOCK_INDEX.
 
@@ -218,7 +218,7 @@ See [STAKE.md](stake.md) for the full action spec.
 
 ### Data Flow: Validator Prices (v0)
 
-This mirrors the PRICE Oracle Data Flow diagram in [architecture/Data_Pipeline.md](../../architecture/data-pipeline.md), with the extra detail specific to v0.
+This mirrors the PRICE Oracle Data Flow diagram in [architecture/data-pipeline.md](../../architecture/data-pipeline.md), with the extra detail specific to v0.
 
 ```mermaid
 flowchart TD
