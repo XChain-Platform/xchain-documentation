@@ -14,11 +14,43 @@ const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
+const { sibling } = require('../helpers/sibling_checkout.js');
 
 const ROOT = path.join(__dirname, '..', '..');
+const NODE = sibling('xchain-node', [
+  'src/services/module_service/build_and_up.js',
+  'src/services/database_service/database_module.js',
+  'src/db/index.js',
+]);
+const SDK = sibling('xchain-sdk', ['package.json']);
 
 function read(relativePath) {
   return fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
+}
+
+function assertSharedExplorerTopology(markdown) {
+  assert.doesNotMatch(markdown, /runs its own[^.\n]*\bexplorer\b|one explorer per chain|decoder, indexer, explorer/i);
+  assert.match(markdown, /decoder, indexer, encoder, and UTXO tracker run once per chain\/network/i);
+  assert.match(markdown, /hub, explorer, and sync each run as a single shared instance/i);
+}
+
+function assertNodeDescription(componentMap, quickstart, regtest) {
+  const corpus = [componentMap, quickstart, regtest].join('\n');
+  assert.doesNotMatch(corpus, /downloads service images|service images from registry|downloads images, creates/i);
+  assert.match(componentMap, /module-to-container state in the `xchain_node` MariaDB database/i);
+  assert.match(componentMap, /clones service repositories and builds images locally/i);
+  assert.match(componentMap, /pulls the MariaDB base image from Docker Hub/i);
+  assert.match(quickstart, /clones service repositories[^\n]*builds the service and coin-node images locally/i);
+  assert.match(regtest, /clones service repos, builds images, creates containers/i);
+}
+
+function assertSdkBundler(componentMap, packageJson) {
+  const scripts = JSON.parse(packageJson).scripts;
+  assert.match(scripts.build, /\bbrowserify\b/);
+  assert.match(scripts.build, /\buglify-js\b/);
+  assert.match(scripts['build:dev'], /\bbrowserify\b/);
+  assert.match(componentMap, /browser bundle via browserify \(minified with uglify-js\)/i);
+  assert.doesNotMatch(componentMap, /browser bundle via webpack/i);
 }
 
 test('regtest miner operations document the default mine-empty heartbeat', () => {
@@ -89,4 +121,45 @@ test('supply sanity-check docs describe the post-block invariant', () => {
     'the glossary must define the post-block supply invariant');
   assert.match(glossary, /distinct from per-action validation.*`invalid`/,
     'the glossary must distinguish routine invalid actions from invariant failure');
+});
+
+test('supported-blockchain topology keeps the explorer shared', () => {
+  assertSharedExplorerTopology(read('concepts/blockchains.md'));
+});
+
+test('falsification: a per-chain explorer pipeline is rejected', () => {
+  const stale = 'Each blockchain runs its own pipeline (decoder, indexer, explorer, UTXO tracker).';
+  assert.throws(() => assertSharedExplorerTopology(stale));
+});
+
+test('node installation and storage descriptions agree', () => {
+  assertNodeDescription(
+    read('architecture/component-map.md'),
+    read('getting-started/quickstart-node-operator.md'),
+    read('developer-guide/regtest-development.md'),
+  );
+});
+
+test('falsification: registry-image and config-only node claims are rejected', () => {
+  const stale = '| **Storage** | Local config files |\n'
+    + '| **Communication** | Docker Engine API; downloads service images from registry |';
+  assert.throws(() => assertNodeDescription(stale, 'downloads service images', 'downloads images, creates'));
+});
+
+test('node docs match clone, build, MariaDB pull, and state source paths', { skip: NODE.skip }, () => {
+  const build = fs.readFileSync(path.join(NODE.root, 'src/services/module_service/build_and_up.js'), 'utf8');
+  const database = fs.readFileSync(path.join(NODE.root, 'src/services/database_service/database_module.js'), 'utf8');
+  const store = fs.readFileSync(path.join(NODE.root, 'src/db/index.js'), 'utf8');
+  assert.match(build, /execFile\('docker', \['build'/);
+  assert.match(database, /\['pull', 'mariadb:11\.8'\]/);
+  assert.match(store, /class MariaDbStore/);
+});
+
+test('component map names the SDK browser tools used by its scripts', { skip: SDK.skip }, () => {
+  assertSdkBundler(read('architecture/component-map.md'), fs.readFileSync(path.join(SDK.root, 'package.json'), 'utf8'));
+});
+
+test('falsification: a webpack SDK claim is rejected', () => {
+  const sdkPackage = JSON.stringify({ scripts: { build: 'browserify | uglify-js', 'build:dev': 'browserify' } });
+  assert.throws(() => assertSdkBundler('browser bundle via webpack', sdkPackage));
 });

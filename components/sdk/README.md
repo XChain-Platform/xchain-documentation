@@ -194,7 +194,7 @@ Require the SDK directly in your application. All action and explorer methods ar
 
 ```javascript
 const XChainSDK = require('@dankest-llc/xchain-sdk');
-// Zero-config: resolves to the public https://explorer.xchain.io/DOGE, etc.
+// Zero-config: uses the public explorer host; the client adds /DOGE/api itself.
 const sdk = new XChainSDK({ network: 'dogecoin-mainnet' });
 ```
 

@@ -195,7 +195,7 @@ Key technical details:
 - Discovers service endpoints via xchain-hub.
 - Implements retry with exponential backoff and connection pooling for all outbound calls.
 - Supports request hooks (pre/post processing middleware).
-- Three deployment modes: Node.js library, JSON-RPC microservice, browser bundle via webpack.
+- Three deployment modes: Node.js library, JSON-RPC microservice, browser bundle via browserify (minified with uglify-js).
 
 See [`../components/sdk/`](../components/sdk/) for full documentation.
 
@@ -239,12 +239,12 @@ See [`../components/hub/`](../components/hub/) for full documentation.
 | **Purpose** | CLI tool for installing, configuring, and managing all platform services as Docker containers |
 | **Inputs** | Operator CLI commands |
 | **Outputs** | Running Docker containers; status reports |
-| **Storage** | Local config files |
-| **Communication** | Docker Engine API; downloads service images from registry |
+| **Storage** | Local config files; module-to-container state in the `xchain_node` MariaDB database (`MariaDbStore`) |
+| **Communication** | Docker Engine API; clones service repositories and builds images locally; pulls the MariaDB base image from Docker Hub; downloads SHA-256-verified coin-node binaries from GitHub releases |
 
 Key technical details:
 
-- Downloads and configures coin nodes (bitcoind, litecoind, dogecoind) alongside all platform services.
+- Downloads verified coin-node binaries and builds local images for bitcoind, litecoind, and dogecoind alongside all platform services.
 - Creates Docker containers with a consistent naming scheme: per-chain services are `xchain-node-{coin}-{network}-{service}` (e.g. `xchain-node-bitcoin-mainnet-xchain-encoder`); shared services (database, hub, explorer, sync) are `xchain-node-{service}` (e.g. `xchain-node-xchain-hub`).
 - Each coin/network combination gets its own Docker bridge network (`xchain-node-{coin}-{network}`), giving DNS-based service discovery between that chain's containers. The database, hub and explorer are also connected to every coin/network network; sync stays on the base `xchain-node` network only. Each indexer also joins the networks of the other installed coins on the same network tier, for its cross-chain sibling reads.
 - Blessed TUI provides a real-time status dashboard in the terminal.

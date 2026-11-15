@@ -22,7 +22,7 @@ Regtest is a fully local, self-contained blockchain environment where you contro
 `xchain-node` is the CLI tool that installs and manages all services as Docker containers.
 
 ```bash
-# Install the regtest stack (downloads images, creates containers, starts everything)
+# Install the regtest stack (clones service repos, builds images, creates containers, starts everything)
 xchain-node install all bitcoin regtest
 
 # Start all services

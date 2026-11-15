@@ -10,7 +10,7 @@ This guide walks you through installing and running the full XChain platform sta
 - **Docker** (Engine 20.10+) and **Docker Compose**, all XChain services run as Docker containers
 - **Node.js** 22 (22.x LTS), required to run the `xchain-node` CLI. Node 18 fails on the `mariadb` ESM package (`ERR_REQUIRE_ESM`); Node 24 fails the Node ABI 127 consensus-runtime pin in `xchain-vm`. Node 22 is required.
 - **Disk space**: blockchain data is large; plan for at least 600 GB for Bitcoin mainnet, or use testnet/regtest for development
-- **Internet access**: the installer downloads service images and blockchain binaries from GitHub
+- **Internet access**: the installer clones service repositories and downloads blockchain binaries from GitHub, pulls the MariaDB base image from Docker Hub, and builds the service and coin-node images locally
 
 ---
 
