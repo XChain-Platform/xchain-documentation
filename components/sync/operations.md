@@ -451,8 +451,10 @@ GET /snapshot/indexer/bitcoin/mainnet
 - `X-Ledger-Hash: a1b2c3d4e5f6...` *(indexer only)*
 - `X-Actions-Hash: f6e5d4c3b2a1...` *(indexer only)*
 - `X-Contract-Hash: 1a2b3c4d5e6f...` *(indexer only)*
+- `X-Block-Hash: d4e5f6a1b2c3...` *(decoder only)*
 
 The response body is a gzip-compressed JSON stream containing all table data in dependency order.
+Hash headers are informational. The sync client verifies the snapshot against `/status` and its own hash recomputation, not against these headers.
 
 ### `GET /snapshot/:dbType/:chain/:network/since/:blockHeight`
 
@@ -758,7 +760,7 @@ Decoder responses carry a single `block_hash` in place of the three indexer hash
 |---|---|---|
 | Status response | `ledger_hash`, `actions_hash`, `contract_hash` | `block_hash` |
 | Block WebSocket event | `ledger_hash`, `actions_hash`, `contract_hash` | `block_hash` |
-| Incremental snapshot headers | `X-Ledger-Hash`, `X-Actions-Hash`, `X-Contract-Hash` | `X-Block-Hash` |
+| Snapshot headers (full and incremental) | `X-Ledger-Hash`, `X-Actions-Hash`, `X-Contract-Hash` | `X-Block-Hash` |
 
 Decoder data is fully deterministic from the coin node (there are no synthetic chain-of-state hashes) so the transparency log does not apply.
 

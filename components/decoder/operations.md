@@ -233,7 +233,7 @@ Two cases are deliberately not treated as a reorg:
 
 ### Deep reorg halt (REORG_HALT)
 
-Soft-expired dispensers are hard-purged once they are the safe depth deep (126 blocks, or 5006 on litecoin testnet; see [Database: dispensers](database.md#dispensers)). A rollback that crosses that window could not resurrect them, so the decoder stops the rollback at the ceiling and writes a durable marker: a row in the `events` table with `code = 'REORG_HALT'`. The decoder keeps parsing forward and reports `reorg_halted: true` on `health`, `GET /status` and `GET /live`; the next reorg refuses to roll back and stops the process. The marker survives restarts and is only ever superseded, never deleted. See [Troubleshooting](#decoder-halted-after-a-deep-reorg-reorg_halt) for recovery.
+Soft-expired dispensers are hard-purged once they are the safe depth deep (126 blocks, or 5006 on litecoin testnet; see [Database: dispensers](database.md#dispensers)). A rollback that crosses that window could not resurrect them, so the decoder stops the rollback at the ceiling and writes a durable marker: a row in the `events` table with `code = 'REORG_HALT'`. The decoder keeps parsing forward and reports `reorg_halted: true` on `health`, `GET /status` and `GET /live`; the next reorg refuses to roll back and parks the parse loop instead of exiting, while the process stays up and reports `reorg_halt_parked: true`. The marker survives restarts and is only ever superseded, never deleted. See [Troubleshooting](#decoder-halted-after-a-deep-reorg-reorg_halt) for recovery.
 
 ## Mempool Tracking
 

@@ -124,7 +124,7 @@ const issueAction = sdk.issue({
 - `maxSupply`: the hard ceiling. Once set and locked, can never increase.
 - `maxMint`: controls each MINT call's cap. If omitted, only the token owner can mint.
 - `decimals`: cannot be changed after any supply exists. Choose carefully.
-- `description`: up to 250 characters. No pipe `|` or semicolon `;` allowed. Typically a URL to an icon or JSON metadata file.
+- `description`: up to 249 UTF-16 code units. No pipe `|` or semicolon `;` allowed. Typically a URL to an icon or JSON metadata file.
 - `mintSupply`: instantly mints tokens to your address as part of the ISSUE transaction.
 
 ```js

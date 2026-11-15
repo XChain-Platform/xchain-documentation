@@ -49,7 +49,9 @@ transactions that die on arrival.
 {
   "flags":      { /* what each per-repo role flag means */ },
   "categories": { /* human-readable grouping (wire-user / validator / mirror-injected / lifecycle / explorer-legacy-render / settlement-anchor) */ },
-  "aliases":    { "TRANSFER": "SEND", ... },   // expanded to canonical before any gate
+  // Expanded after the compiled-size gate, which measures the wire/alias form,
+  // and before the ACTION-name gate.
+  "aliases":    { "TRANSFER": "SEND", ... },
   "actions": {
     "SEND": { "category": "wire-user", "wireDecoded": true, "indexerHandled": true, "userEncodable": true, "userEncodableVersions": [0, 1, 2, 3], "explorerRender": true, "walletForm": true }
     // one entry per action; only the TRUE flags are present

@@ -544,7 +544,7 @@ Create or update a token. Multiple update sub-formats allow targeted edits witho
 | maxSupply | string | No | Maximum total supply (0 to 1 sextillion) |
 | maxMint | string | No | Maximum per-mint amount |
 | decimals | integer | No | Decimal places (0–18) |
-| description | string | No | Token description (max 250 chars) |
+| description | string | No | Token description (max 249 UTF-16 code units) |
 | mintSupply | string | No | Supply minted immediately to the issuer at ISSUE (default `0`) |
 | transfer | string | No | Address authorized to transfer the issuance |
 | transferSupply | string | No | Amount of supply available for transfer |
@@ -1369,7 +1369,7 @@ The numeric part after `^` must be a valid integer.
 ### MEMO and DESCRIPTION text fields
 
 - Cannot contain `|` (pipe) or `;` (semicolon).
-- `DESCRIPTION` is additionally limited to **250 characters**.
+- `DESCRIPTION` is additionally limited to **249 UTF-16 code units**.
 
 ### MESSAGE fields (`PLAINTEXT_MESSAGE`, `ENCRYPTED_MESSAGE`, `ENCRYPTION_KEY`)
 

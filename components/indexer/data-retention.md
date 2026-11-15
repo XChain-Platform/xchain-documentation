@@ -142,8 +142,33 @@ superseded, so plan hub disk for steady growth. `price_snapshots`,
 `cross_chain_calls` and `bridge_transfers` are also served to peer hubs by
 id-paged catch-up (the mirrored table list in the hub's peer catch-up code),
 so a sweep on any of them would break that path. `attestations`,
-`reorg_attestations`, `swap_records` and `validator_rewards` are not mirrored;
-their retention is unbounded today and is not a recorded policy decision.
+`reorg_attestations`, `swap_records` and `validator_rewards` are not mirrored.
+They are kept in full: there is no age-based sweep, no size cap and no archival
+tier, and an age-based delete is not safe for any of them, for these reasons.
+
+- `swap_records` is keyed on `(source_chain, source_action_index)` and the
+  `getswap` call reads it by that key. Initiating a swap inserts a row as
+  `initiated`, so a pruned finished swap would read as "swap not found" and a
+  later initiate for the same action would start it over.
+- `attestations` is keyed on `attestation_id` and read by source action and by
+  id. A round for an already finalized attestation returns its stored row.
+- `reorg_attestations` is keyed on `reorg_id` and is the reorg audit history
+  that the reorg history call pages from, newest first.
+- `validator_rewards` is the reward ledger. The unique key
+  `(validator_pubkey, round_number, reward_type, round_qualifier)` is what stops
+  a re-delivered reward from being credited twice, the unclaimed and
+  all-time-distributed totals are sums over the whole table, and the next anchor
+  `batch_seq` is derived from the highest value any archived row holds. An
+  archived row is never deleted.
+
+Each table gains at most one row per validator per rewarded round or anchor
+(`validator_rewards`), per swap source action (`swap_records`), per
+cross-chain attestation (`attestations`) and per reorg (`reorg_attestations`),
+so growth is linear in network activity and plan hub disk for it. If disk ever
+calls for an archival tier, it has to move rows without losing the unique-key
+guard (a tombstone per key), roll `validator_rewards` up into per-validator
+totals that the two sums read, keep every archived `batch_seq`, and follow the
+hub's best-effort pattern with a `0` setting that disables it.
 
 | Table | Growth driver | Delete paths |
 |---|---|---|

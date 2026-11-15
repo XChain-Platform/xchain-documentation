@@ -14,7 +14,7 @@ This action creates or updates a `TICK`.
 | `MAX_SUPPLY`       | String | Maximum token supply                                                                       |
 | `MAX_MINT`         | String | Maximum amount of supply a `MINT` transaction can issue                                    |
 | `DECIMALS`         | String | Number of decimal places token should have (max: 18, default: 0)                           |
-| `DESCRIPTION`      | String | Description of token (249 chars max)                                                       |
+| `DESCRIPTION`      | String | Description of token (249 UTF-16 code units max)                                           |
 | `MINT_SUPPLY`      | String | Amount of token supply to mint in immediately (default:0)                                  |
 | `TRANSFER`         | String | Address to transfer ownership of the `TICK` to (owner can perform future actions on token) |
 | `TRANSFER_SUPPLY`  | String | Address to transfer `MINT_SUPPLY` to (mint initial supply and transfer to address)         |

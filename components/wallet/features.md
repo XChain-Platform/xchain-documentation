@@ -201,7 +201,7 @@ The pre-signing Linux desktop bundle is **Level-2 reproducible**:
 - Frozen lockfile (`pnpm install --frozen-lockfile`)
 - `SOURCE_DATE_EPOCH` derived from `git log -1 --pretty=%ct`
 - `RELEASE_HASHES.txt` SHA-256 manifest emitted by `packages/desktop/scripts/build.sh`
-- 18-rule static scaffolding audit (`packages/core/scripts/repro-build-audit.js`) gated on every commit
+- 19-rule static scaffolding audit (`packages/core/scripts/repro-build-audit.js`) run in CI
 
 See [Reproducible Builds](reproducible-builds.md) for the run-twice-and-compare verification protocol.
 

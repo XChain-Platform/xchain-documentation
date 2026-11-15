@@ -78,19 +78,26 @@ Deliberate choices:
 - **`protocol_handlers` (`web+xchain`).** Declares a browser-level handler for `web+xchain:` URIs that opens the popup with the URI in `popup.html?uri=%s`. No shipped build acts on it: the extension ships only for Chromium browsers, which ignore the key (Chrome warns of an unrecognized key at load), so a `web+xchain:` link does not reach the extension, and the key is kept for a future Firefox port. The popup's `?uri=` boot path is live regardless and treats its input as untrusted.
 - **Versioning split.** Chrome's `version` is integer-tuple-only and rejects semver prerelease tags like `1.0.0-rc.6`. The wallet derives a Chrome-valid tuple from the wallet semver via `packages/core/scripts/derive-extension-version.js`: stable `M.m.p` → `M.m.p`; prerelease `M.m.p-rc.N` → `0.M.m.N`. The leading `0` keeps prereleases strictly below stable tuples in Chrome's upgrade ordering. `version_name` carries the human-readable semver.
 
-The 11-rule manifest audit (`packages/core/scripts/extension-manifest-audit.js`) gates every commit:
+The 18-rule manifest audit (`packages/core/scripts/extension-manifest-audit.js`) runs in `pnpm test:smoke` as part of CI:
 
-- MV3 set
-- `version` CWS-valid
-- `version` equals `deriveExtensionVersion(root.version)`
+- MV3 set (`manifest_version` is 3)
+- `version` is CWS-valid (1 to 4 dot-separated integers, each 0 to 65535)
+- `version` equals `deriveExtensionVersion(root.version)`, including beta and respin ordering tuples
 - `version_name` mirrors `root.version`
 - `packages/extension/package.json` version matches root
 - `description` ≤ 132 chars
 - `homepage_url` set
-- 128-px icon present
-- Action toolbar icon set
+- Every generated icon size is declared
+- Icon source PNG exists and is large enough for every declared size
+- Action toolbar icons match the extension icons
+- Background is a module service worker
+- CSP is MV3-safe (no executable-string tokens)
 - Content scripts well-formed
-- No broad host permissions without justification
+- No broad host permissions without a recorded justification
+- `permissions` equals the pinned allowlist in `packages/extension/docs/manifest-freeze.json`
+- `host_permissions` equals the pinned allowlist
+- The content script's `matches` equals the pinned allowlist
+- Every `web_accessible_resources` entry's `matches` equals the manifest's own content-script `matches`
 
 ## Service worker
 
