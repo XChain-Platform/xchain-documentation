@@ -250,6 +250,14 @@ const LIST_UNION_MAX_MEMBERS = 16;
 // move together or the disagreement returns.
 const THRESHOLD_SCALE = 18;
 
+const MULTIPART_FILE_MAX_PARTS = 32;
+const MULTIPART_FILE_MAX_BYTES = 12000000;
+const FILE_MULTIPART_ACTIVATION_TIME = {
+    mainnet: null,
+    testnet: 1796083200,
+    regtest: 0,
+};
+
 // ── Chunked DEPLOY (DEPLOY v4 carriers + DEPLOY v2/v3 assemble) ─────────────
 // A contract whose base64(code) exceeds the single-tx budget is split across
 // ordered DEPLOY v4 carrier actions and reassembled by a DEPLOY v2/v3 keyed on
@@ -2519,6 +2527,9 @@ module.exports = {
     LIST_META_DESCRIPTION_MAX_BYTES,
     LIST_UNION_MAX_MEMBERS,
     THRESHOLD_SCALE,
+    MULTIPART_FILE_MAX_PARTS,
+    MULTIPART_FILE_MAX_BYTES,
+    FILE_MULTIPART_ACTIVATION_TIME,
     STAKE_WEIGHTED_QUORUM_ACTIVATION,
     EQUIV_HEADER_ACTIVATION,
     CANONICAL_REORG_BUFFER,
