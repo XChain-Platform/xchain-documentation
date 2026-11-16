@@ -62,6 +62,9 @@ The indexer creates and manages all tables in this database. SQL schema files li
 | `dispenses` | Individual dispense events triggered by sends. `get_amount` records the coin attributed to that specific event; when one payment fills several dispenses in the same transaction, each row's `get_amount` is its share of the payment rather than the payment's full amount. Testnet and regtest already behave this way; mainnet activates the change at `2026-08-16T00:00:00Z` |
 | `dividends` | DIVIDEND distribution records |
 | `files` | FILE upload metadata |
+| `file_manifests` | Multipart FILE manifests: one row per manifest action, with its source, file hash, declared part count and total bytes |
+| `file_parts` | Multipart FILE parts: one row per part action, with its source, file hash, part position, byte length, part digest and block |
+| `file_completions` | Multipart FILE assembly verdicts: one row per completing action, naming its manifest action; `complete` when the earliest part at every position matches the manifest hash and byte total, otherwise `mismatch` |
 | `issues` | ISSUE (token creation/update) records |
 | `links` | LINK cross-reference records |
 | `lists` | LIST definitions |
