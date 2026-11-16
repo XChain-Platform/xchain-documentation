@@ -1333,7 +1333,8 @@ const DISPENSER_CANCEL_GRACE_ACTIVATION = {
 // gate from DISPENSER_CANCEL_GRACE_ACTIVATION because capture eligibility and row
 // retention change independently.
 //
-// Mainnet and testnet remain unarmed so existing history is not reinterpreted.
+// Mainnet remains unarmed so existing history is not reinterpreted. Testnet is
+// armed at the cut's flag day under the ruling that every testnet gate arms.
 // Regtest is genesis-active so the grace-aware purge path is exercised there.
 const DISPENSER_PURGE_GRACE_ACTIVATION = {
     mainnet: 9999999999,
@@ -1347,9 +1348,9 @@ const DISPENSER_PURGE_GRACE_ACTIVATION = {
 // The earlier parent clock keeps the capture set open across the first block
 // past the indexer's close-delay boundary.
 //
-// Mainnet waits on the dispenser history re-measure ruled 2026-10-17, and
-// testnet remains unarmed so existing history is not reinterpreted. Regtest is
-// genesis-active so the parent-anchored floor is exercised there.
+// Mainnet waits on the dispenser history re-measure ruled 2026-10-17. Testnet is
+// armed at the cut's flag day under the ruling that every testnet gate arms.
+// Regtest is genesis-active so the parent-anchored floor is exercised there.
 const DISPENSER_CANCEL_GRACE_PARENT_FLOOR_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 1792454400,
@@ -1362,8 +1363,11 @@ const DISPENSER_CANCEL_GRACE_PARENT_FLOOR_ACTIVATION = {
 // This keeps one registration for values that resolve to the same table key and
 // avoids a duplicate-key insert selecting a different dispenser by accident.
 //
-// Mainnet and testnet remain unarmed so existing history is not reinterpreted.
-// Regtest is genesis-active so the address-id collapse path is exercised there.
+// Testnet is armed at its cut flag day and regtest is genesis-active. Mainnet
+// remains unarmed: from batch capture activation at 1786838400 until this gate
+// is armed, collation-equivalent raw spellings can select the first expiration
+// through a duplicate-key insert. Arming changes persisted rows and needs a
+// fleet flag day plus a historical audit.
 const DISPENSER_ADDRESS_ID_COLLAPSE_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 1792454400,

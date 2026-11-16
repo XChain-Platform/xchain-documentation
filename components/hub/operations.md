@@ -144,7 +144,7 @@ curl -X POST http://localhost:10000 \
 
 ### Authentication
 
-The API has three tiers when `HUB_API_KEY` is set. If no API key is configured, a standalone hub runs with all methods open (a warning is logged on startup), but a hub in **validator mode** (`P2P_VALIDATOR_ADDR` set) **refuses to boot**: unauthenticated write methods would let anyone drive consensus-affecting writes. Set `HUB_API_KEY`, or set `HUB_ALLOW_UNAUTHENTICATED=true` to explicitly run keyless (regtest/dev only).
+The API has three tiers when `HUB_API_KEY` is set. If no API key is configured, the hub **refuses to boot** in every mode, standalone or validator: unauthenticated write methods would let anyone corrupt the config oracle or drive consensus-affecting writes. Set `HUB_API_KEY`, or set `HUB_ALLOW_UNAUTHENTICATED=true` to explicitly run keyless (regtest/dev only); a hub declared that way runs with all methods open and logs a warning on startup.
 
 1. **Public reads** (no key): informational methods such as `getprice`, `getproposals`, `getvalidators`, `getvotes`, `getvalidatorcapabilities`, plus `GET /api/v1/chain-registry` and `GET /telemetry/summary`. Protected only by the per-IP rate limit.
 2. **Sensitive reads** (key required): `getallconfigs`, because its response carries every service's connection parameters including database credentials. The `/hub-db/snapshot/*` and `/hub-db/subscribe` mirror feed is keyed the same way. Emergency opt-out for a staged rollout: `HUB_SENSITIVE_READ_AUTH=0` reopens the sensitive reads while leaving writes keyed.

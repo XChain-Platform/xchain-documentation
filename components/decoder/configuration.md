@@ -87,12 +87,12 @@ These values are defined in source code. Most are fixed; the rows that name an e
 
 | Constant | Value | Location | Description |
 |---|---|---|---|
-| `CHECK_BLOCK_DELAY_MS` | `1000` | XChainDecoder.js | Delay between polling iterations (1 second) |
-| `BLOCKCHAIN_INFO_REFRESH_MS` | `30000` | XChainDecoder.js | During catch-up, the node tip (`getblockchaininfo`) is re-polled at least this often (30 seconds) so reported lag stays accurate |
-| `MEMPOOL_INTERVAL` | `60000` | XChainDecoder.js | Mempool update interval when synced (60 seconds) |
-| `MEMPOOL_BATCH_SIZE` | `1000` | XChainDecoder.js | Max transactions fetched per mempool batch |
-| `SYNCED_THRESHOLD` | `3` | XChainDecoder.js | Max blocks behind tip to be considered synced |
-| `MIN_VERIFICATION_PROGRESS_TO_PARSE` | `0.99` | XChainDecoder.js | Node sync progress required before parsing begins |
+| `CHECK_BLOCK_DELAY_MS` | `1000` | XChainDecoder/constants.js | Delay between polling iterations (1 second) |
+| `BLOCKCHAIN_INFO_REFRESH_MS` | `30000` | XChainDecoder/constants.js | During catch-up, the node tip (`getblockchaininfo`) is re-polled at least this often (30 seconds) so reported lag stays accurate |
+| `MEMPOOL_INTERVAL` | `60000` | XChainDecoder/constants.js | Mempool update interval when synced (60 seconds) |
+| `MEMPOOL_BATCH_SIZE` | `1000` | XChainDecoder/constants.js | Max transactions fetched per mempool batch |
+| `SYNCED_THRESHOLD` | `3` | XChainDecoder/constants.js | Max blocks behind tip to be considered synced |
+| `MIN_VERIFICATION_PROGRESS_TO_PARSE` | `0.99` | XChainDecoder/constants.js | Node sync progress required before parsing begins |
 
 ### Data Limits
 
@@ -100,15 +100,15 @@ These values are defined in source code. Most are fixed; the rows that name an e
 |---|---|---|---|
 | `MAX_ACTION_DATA_LENGTH` | `8192` | protocol/constants/action_size.js | Maximum **compiled** on-chain ACTION payload size in bytes for the legacy lanes (OP_RETURN, multisig, P2SH, P2WSH): the script push measured before decompile strips the OP_PUSHDATA prefix, so the decoded ACTION string is 1–3 bytes shorter. When a payload exceeds its lane's ceiling the decoder logs an error, counts a parse error and drops the ACTION. The tx is still stored with an empty ACTION if it carries dispense or payment outputs, and is skipped only if it carries neither. |
 | `ENVELOPE_MAX_PAYLOAD` | `390000` | protocol/constants/action_size.js | The Taproot envelope's payload ceiling, which replaces `MAX_ACTION_DATA_LENGTH` for that lane only. Measured on the reassembled envelope payload before parse, excluding the envelope's own push framing; derived from the standard transaction weight limit (see [Encoding](../../concepts/encoding.md)). The same drop-the-ACTION, keep-the-tx-if-it-has-outputs rule applies. |
-| `SATOSHIS_DECIMALS` | `8` | db.js | Decimal places for satoshi-to-coin conversion |
-| `DB_TRANSACTION_BLOCKS_QUANTITY` | `1` | XChainDecoder.js | Blocks per database transaction |
+| `SATOSHIS_DECIMALS` | `8` | db/constants.js | Decimal places for satoshi-to-coin conversion |
+| `DB_TRANSACTION_BLOCKS_QUANTITY` | `1` | XChainDecoder/constants.js | Blocks per database transaction |
 
 ### Connection Tuning
 
 | Constant | Value | Location | Description |
 |---|---|---|---|
 | DB connection pool size | `10` | db.js | Maximum concurrent MariaDB connections |
-| `queryTimeout` default | `30000` | db.js | MariaDB query execution timeout in milliseconds (30 seconds); overridable via `DB_QUERY_TIMEOUT` env var |
+| `queryTimeout` default | `30000` | db/constants.js | MariaDB query execution timeout in milliseconds (30 seconds); overridable via `DB_QUERY_TIMEOUT` env var |
 | RPC timeout (axios) | `30000` | blockchain_connector.js | HTTP timeout for all JSON-RPC calls (30 seconds); overridable via `NODE_RPC_TIMEOUT` env var |
 | RPC max retries | `10` | blockchain_connector.js | Maximum retry attempts for failed RPC calls |
 | RPC retry delay | `500` | blockchain_connector.js | Delay between retries in `getRawTransaction`, and (via `backoffOnTimeout()`) between timeout retries in the block-path RPC methods. Overridable via `RPC_TIMEOUT_RETRY_DELAY_MS`. Non-timeout failures in the block-path methods still retry without a sleep. |

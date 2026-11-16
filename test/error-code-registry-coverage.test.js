@@ -25,14 +25,14 @@
  * any row in that section that nothing emits unless the row is marked
  * historical, and any historical row whose code is still emitted.
  *
- * Collection is by emit shape rather than by a bare literal scan. Seven shapes
+ * Collection is by emit shape rather than by a bare literal scan. Eight shapes
  * are read: a `code:` line, so the ternary fallback form
  * (`code: cond ? x : 'READ_FAILED'`) is caught alongside the plain `code: 'X'`
  * form; a status-map row (`CODE: [409, 'message']`), which the proof routes
  * declare and then send by reference as `code: code`; a positional helper
  * call (`error(res, 503, 'message', 'CODE')`), which the bridge panel routes
- * use; a `VmQueryError('CODE', ...)` throw, which the contract simulation
- * route forwards to the client as `code: e.code`; a mirror-gate verdict
+ * use; a `VmQueryError('CODE', ...)` or `MultipartFileError('CODE', ...)` throw,
+ * which its route forwards to the client as `code: e.code`; a mirror-gate verdict
  * (`blocked: 'CODE'`), which the mirror gate sends by reference as
  * `code: blocked`; a message/code pair row (`key: ['message', 'CODE']`),
  * which src/explorer/request/validate_params.js keeps in INTEGER_PATH_TYPES
@@ -123,6 +123,9 @@ const STATUS_HELPER_CALL = /\(\s*res\s*,\s*[0-9]{3}\s*,/;
 // A contract simulation throw, `new VmQueryError('CODE', message, status)`.
 const VM_QUERY_THROW = /\bVmQueryError\(\s*'([A-Z][A-Z0-9_]{2,})'/g;
 
+// A multipart FILE refusal forwarded by processFileRawRequest as `code: e.code`.
+const MULTIPART_FILE_ERROR = /\bMultipartFileError\(\s*'([A-Z][A-Z0-9_]{2,})'/g;
+
 // A mirror-gate verdict, `{ blocked: 'CODE', annotate }`, sent later as `code: blocked`.
 const MIRROR_BLOCKED = /\bblocked\s*:\s*'([A-Z][A-Z0-9_]{2,})'/g;
 
@@ -212,6 +215,7 @@ function emittedCodes() {
             const emitted = line.replace(LOGGER_EVENT, '');
             for (const m of emitted.matchAll(STATUS_MAP_KEY)) record(m[1]);
             for (const m of emitted.matchAll(VM_QUERY_THROW)) record(m[1]);
+            for (const m of emitted.matchAll(MULTIPART_FILE_ERROR)) record(m[1]);
             for (const m of emitted.matchAll(MIRROR_BLOCKED)) record(m[1]);
             for (const m of emitted.matchAll(MESSAGE_CODE_PAIR)) record(m[1]);
             if (!line.includes('code:') && !STATUS_HELPER_CALL.test(line)) return;
@@ -305,7 +309,8 @@ test('the REST registry check fails on a dropped row or an unemitted row', { ski
     // The message/code pair rule reads a map row, never an HTTP method list.
     assert.equal(emitted.has('POST'), false, 'the message/code pair rule read a method list as a code');
     assert.ok(emitted.has('BAD_REQUEST'), 'BAD_REQUEST is no longer collected from the final error handler');
-    for (const code of ['VM_BUSY', 'MIRROR_STALE', 'INVALID_CURSOR', 'INVALID_TX_INDEX']) {
+    for (const code of ['VM_BUSY', 'MIRROR_STALE', 'INVALID_CURSOR', 'INVALID_TX_INDEX',
+        'FILE_PART', 'FILE_INCOMPLETE', 'FILE_ASSEMBLY_MISMATCH', 'FILE_PART_CORRUPT']) {
         assert.ok(emitted.has(code), `${code} is no longer collected from the explorer source`);
         const dropped = page.replace(new RegExp('^\\| `' + code + '` \\|.*\\n', 'm'), '');
         assert.notEqual(dropped, page, `falsification fixture did not drop the ${code} row`);

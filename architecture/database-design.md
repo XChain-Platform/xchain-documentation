@@ -57,7 +57,7 @@ The Hub DB is a local, read-only copy of cross-chain infrastructure tables synce
 
 - `price_snapshots`: deduplicated cross-chain validator COIN/FIAT prices (PRICE v0)
 - `oracle_prices`: cross-chain user TOKEN/FIAT oracle prices (PRICE v1) with 24-hour lock window
-- Cross-chain settlement: `cross_chain_matches`, `cross_chain_calls`, `capability_snapshots`, `bridge_transfers`, `policy_snapshots`, `list_snapshots`
+- Cross-chain settlement: `cross_chain_matches`, `cross_chain_calls`, `capability_snapshots`, `bridge_transfers`, `policy_snapshots`, `list_snapshots`, `remote_token_snapshots`
 - Federation state: `state_checkpoints`, `anchor_reward_attestations`, `attestation_responses`
 
 The staking tables (`stakes`, `delegations`, `validator_rewards`) are not mirrored: they are Indexer DB tables written during block processing.

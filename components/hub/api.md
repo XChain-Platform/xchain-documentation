@@ -279,6 +279,8 @@ Detailed status for a specific validator: info, unclaimed rewards, recent reward
 }
 ```
 
+`unclaimed_rewards` and `recent_rewards` come from the hub-local `validator_rewards` ledger ([Database](database.md#validator_rewards)). They are not collectable on-chain and do not reflect what a `COLLECT` can claim.
+
 ### `getstakesourcebypubkey` (indexer endpoint)
 
 > **Note:** this method lives on `xchain-indexer`, not the hub. It is documented here because the hub calls it internally; the archive builder and follower hubs use it to resolve the staking-source address that owned or delegated a signing pubkey at a specific block, so rewards can be attributed to the correct on-chain address.
@@ -593,7 +595,7 @@ This route is the exception to the snapshot response format described above: it 
 
 ### `GET /hub-db/subscribe` (WebSocket upgrade: requires `Authorization: Bearer <HUB_API_KEY>`)
 
-WebSocket channel for live updates to the hub DB tables indexers mirror: the price, cross-chain settlement and federation-state tables listed in [Database Design](../../architecture/database-design.md#hub-db-local-copy). The hub also broadcasts `remote_token_snapshots` rows on this channel; indexers do not mirror that table.
+WebSocket channel for live updates to the hub DB tables indexers mirror: the price, cross-chain settlement and federation-state tables listed in [Database Design](../../architecture/database-design.md#hub-db-local-copy). The channel also carries `remote_token_snapshots` rows, which indexers mirror too: they read the pinned remote token from that table for cross-chain orders, and its validity barrier is the hub's per-chain height watermark rather than the global seconds watermark.
 
 Indexers bootstrap by fetching the REST snapshots for each table (paginated by `since_id`), then subscribe to this WebSocket for live updates. Backpressure handling drops connections that exceed `WS_BACKPRESSURE_LIMIT` buffered messages. Unknown `type` values should be silently ignored for forward compatibility.
 

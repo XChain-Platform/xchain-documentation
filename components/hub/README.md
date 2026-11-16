@@ -27,7 +27,7 @@ The hub operates in two modes. In **standalone mode** (no `P2P_VALIDATOR_ADDR` s
 - **SWAP lifecycle tracking**: tracks cross-chain swaps through initiated → attested → executed → settled states
 - **Reorg propagation**: cross-chain reorg detection with PBFT consensus, hub state rollback, and downstream notification
 - **Governance**: off-chain PBFT voting for parameter changes with 7-day voting period, 2/3+ approval, 50% quorum
-- **Reward tracking**: per-round XCHAIN rewards distributed equally among participating oracle validators
+- **Reward tracking**: a hub-local ledger of the per-round XCHAIN split among participating oracle validators, kept for dashboards; no oracle round reward is minted by the chain and the ledger is not a `COLLECT` source (see [Database](database.md#validator_rewards))
 - **Offense detection** (`SlashDetector`): price deviation (>5%), repeated deviation (3+ in 24h), and non-participation (30+ missed rounds) monitoring. These are hub-local records; governance can suspend a validator, and on-chain stake is burned only by a SLASH proof of equivocation
 - **Multi-instance**: multiple hub instances against shared MariaDB with consumer fallback via `HUB_VALIDATORS`
 - **MariaDB storage**: relational schema auto-created from `src/sql/` (see [Database](database.md)), with connection pooling, circuit breaker, and exponential backoff
