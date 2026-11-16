@@ -70,7 +70,7 @@ Software signers use a Taproot envelope on Bitcoin and Litecoin when the source 
 
 Core 31's transaction-cluster policy is smaller than two full reveals, so pieces never spend unconfirmed change from another piece. The publisher first sends one funding transaction using `customOutputs`, with one output per piece back to the source. Each output covers its piece's quote from the existing upload-method estimator:
 
-- Envelope: `ceil(1.25 * rate * envelopePairVbytes) + 2 * outputFloor`.
+- Envelope: `max(ceil(1.25 * rate * envelopePairVbytes), 2 * outputFloor) + 2 * outputFloor`, plus one more `outputFloor` on Litecoin. The encoder floors both the commit fee and the reveal fee at the dust floor, and on Litecoin it adds a second reveal output to meet the minimum stripped size.
 - Standard: `ceil(1.25 * rate * standardPairBytes) + (k + 1) * outputFloor`, where `k = ceil(partBytes / 476)`.
 
 Here `rate` is the high fee estimate and `outputFloor` is 1,000,000 koinu on Dogecoin or the encoder's `dustThreshold` elsewhere. After the funding transaction has one confirmation, every piece may publish concurrently. Pieces use `compress: false` because stored bytes were prepared before slicing, and `feePerKb = rate * 1000`. An envelope piece uses `encoding: 'TAPROOT'`, pins its own funding output with `options.exactInputs: true`, and records envelope recovery data. A Standard piece uses `encoding: 'P2SH'` and pins its output for the commit, then records the signed commit hex and transaction id before broadcasting the reveal using that hex and `p2shHash`; it does not use `exactInputs` for the reveal. Piece publication does not use an indexer dry-run.
