@@ -91,6 +91,11 @@ test('against the real indexer ITER_SET_METER is unarmed on mainnet and armed on
     assertArmedOnTestnetOnly('ITER_SET_METER');
 });
 
+test('against the real indexer STATE_KEY_STORABLE is unarmed on mainnet and armed on testnet',
+    { skip: noIndexer }, () => {
+        assertArmedOnTestnetOnly('STATE_KEY_STORABLE');
+    });
+
 test('against the real indexer STAKE_SNAPSHOT_DECIMAL_STRINGS is unarmed on mainnet and armed on testnet',
     { skip: noIndexer }, () => {
         assertArmedOnTestnetOnly('STAKE_SNAPSHOT_DECIMAL_STRINGS');

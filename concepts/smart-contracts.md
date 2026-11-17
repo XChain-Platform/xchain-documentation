@@ -305,6 +305,8 @@ Every contract execution is bounded by hard limits:
 | Code size | 64 KB per contract |
 | Log entries | 100 per execution (1 KB each) |
 
+When `STATE_KEY_STORABLE_ACTIVATION` is active (testnet from 2026-11-17 00:00:00 UTC, regtest from genesis, and mainnet still unarmed), `state.set()` also refuses keys longer than 256 UTF-16 units or containing a code point above U+FFFF; `state.delete()` is unchanged.
+
 Gas is the primary execution bound. The wall-clock timeout exists only as a safety net for gas metering bugs; it should never trigger under normal operation.
 
 ## Asking the Outside World: The Attestation Framework
