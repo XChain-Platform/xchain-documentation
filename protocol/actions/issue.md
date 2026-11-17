@@ -38,7 +38,7 @@ This action creates or updates a `TICK`.
 | `COOLDOWN_BLOCKS`  | String | Drop-cooldown committed at bind time: blocks of friction before a later `UNBIND` takes effect. An integer in `[0, 4294967295]` written as plain digits; anything else refuses the bind as `invalid: COOLDOWN_BLOCKS (format)` |
 | `UNBIND`           | String | Only `1` drops the live binding for `ACTION_CLASS`; any other value binds                    |
 | `BRIDGE_CHAINS`    | String | Comma list of destination coins this `TICK` may bridge to via [`XBRIDGE`](./xbridge.md), or `-` for none; empty means unchanged |
-| `MIN_DEPTH`        | String | Confirmation depth the federation must honour for this `TICK`'s bridge locks, raise-only over the platform default; empty means unchanged |
+| `MIN_DEPTH`        | String | Minimum confirmation depth for this `TICK`'s bridge locks; the effective depth is the larger of the platform default and `MIN_DEPTH`. The owner may change it up or down until `LOCK_BRIDGE` freezes it. Each lock stamps the value in force at its own block; empty means unchanged |
 | `LOCK_BRIDGE`      | String | `1` permanently locks `BRIDGE_CHAINS` and `MIN_DEPTH`                                       |
 | `MEMO`             | String | An optional memo to include                                                                |
 

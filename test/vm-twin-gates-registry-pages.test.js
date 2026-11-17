@@ -19,6 +19,7 @@ const vm = sibling('xchain-vm', ['src/index.js', 'src/index']);
 const REQUIRED_VM_TWINS = Object.freeze([
     ['GAS_CEILING_SUCCESS_ACTIVATION', 'GAS_CEILING_SUCCESS'],
     ['ITER_SET_METER_ACTIVATION', 'ITER_SET_METER'],
+    ['STATE_KEY_STORABLE_ACTIVATION', 'STATE_KEY_STORABLE'],
 ]);
 
 function vmServiceRow(markdown) {

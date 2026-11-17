@@ -98,17 +98,17 @@ Bridgeability is a property the token owner sets on the origin row, **default of
 
 - `BRIDGE_CHAINS`: which destination chains a lock may target. Empty means unchanged, so a
   later format `7` can extend the list without restating it.
-- `MIN_DEPTH`: a confirmation depth the federation must honour for this token's locks, on top of
-  the platform default; raise-only, never lower.
+- `MIN_DEPTH`: the minimum confirmation depth the federation waits for on this token's locks. The
+  effective depth is the larger of the platform default and `MIN_DEPTH`. The owner can change it
+  up or down until `LOCK_BRIDGE` freezes it. Each lock stamps the value in force at its own block,
+  so a later change does not affect a transfer already in flight.
 - `LOCK_BRIDGE`: freezes both fields forever, the holder's assurance against the owner (and
   against a new owner after an ownership transfer, which inherits both fields).
 
 A lock checks the origin row's `BRIDGE_CHAINS` at its own block; a destination not on the list
-is refused with `invalid: TICK (not bridgeable to DEST_COIN)`. `MIN_DEPTH` is stamped onto the
-pending transfer at lock time and never re-read later, so an issuer raising it afterward can
-never make an already-accepted lock un-signable. Removing a chain from `BRIDGE_CHAINS` only
-stops new locks; it never touches balances already bridged, and burns are always allowed, so an
-issuer can close a door but never strand anyone on the other side of it.
+is refused with `invalid: TICK (not bridgeable to DEST_COIN)`. Removing a chain from
+`BRIDGE_CHAINS` only stops new locks; it never touches balances already bridged, and burns are
+always allowed, so an issuer can close a door but never strand anyone on the other side of it.
 
 ## What does not generalize
 

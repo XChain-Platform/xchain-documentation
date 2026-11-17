@@ -71,6 +71,8 @@ Context accessors (`getBlockHeight`, `getSourceAddress`, etc.), control flow (`r
 | Code size | `maxCodeSize` | 65,536 bytes | Maximum contract source code size (enforced at both deploy and execute) |
 | Block cache size | `maxBlockCacheSize` | 1,000 entries | Maximum compiled script entries cached per block |
 
+When `STATE_KEY_STORABLE_ACTIVATION` is active (testnet from 2026-11-17 00:00:00 UTC, regtest from genesis, and mainnet still unarmed), `state.set()` also refuses keys longer than 256 UTF-16 units or containing a code point above U+FFFF; `state.delete()` is unchanged.
+
 ### Consensus Wall-Clock Budget
 
 Wall-clock time is the one limit in the table above that is **not** a node setting. Gas is the deterministic meter, but gas does not bound wall time: a contract can spend seconds of real time inside a single native operation while its `gasUsed` stays low, and for those shapes the wall-clock net, not the gas ceiling, is what ends the execution.
