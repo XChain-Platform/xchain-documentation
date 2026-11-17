@@ -61,8 +61,8 @@ const ROOT = path.join(__dirname, '..');
 const CONSTANTS = require(path.join(ROOT, 'protocol', 'constants.js'));
 
 test('multi-part FILE limits and activation times are pinned', () => {
-  assert.strictEqual(CONSTANTS.MULTIPART_FILE_MAX_PARTS, 32);
-  assert.strictEqual(CONSTANTS.MULTIPART_FILE_MAX_BYTES, 12000000);
+  assert.strictEqual(CONSTANTS.MULTIPART_FILE_MAX_PARTS, 65535);
+  assert.strictEqual(CONSTANTS.MULTIPART_FILE_MAX_BYTES, 262140000000);
   assert.deepStrictEqual(CONSTANTS.FILE_MULTIPART_ACTIVATION_TIME, {
     mainnet: null,
     testnet: 1794787200,
