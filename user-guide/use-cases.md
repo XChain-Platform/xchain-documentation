@@ -27,6 +27,8 @@ Attach a piece of digital art or media to a token using on-chain file storage an
 
 XChain actions involved: ISSUE, FILE (to store the content), LINK (to associate it with the token).
 
+**Large files.** A file too large for one transaction can still be published. XChain splits it into parts, each its own transaction, and the network reassembles them byte-for-byte. A multi-part file is one manifest plus 2 to 32 parts, with a hard limit of 12,000,000 bytes (about 12 MB). The wallet's Publish file, Attach artwork and Gated publish forms offer it as an upload method.
+
 ### Token-Gated Encrypted Content and Packs
 
 Beyond public on-chain files, XChain supports **cryptographically secure token-gated publishing**. Encrypt a file (or a whole pack of files) and publish the ciphertext on-chain via the FILE action. Only holders of the gating token can decrypt; the symmetric key is delivered to each holder via an ECIES MESSAGE that the sender batches with a direct SEND. Anyone can see that the ciphertext exists; only holders who have been given the key can read it.
