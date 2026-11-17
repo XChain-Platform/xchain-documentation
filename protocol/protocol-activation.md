@@ -368,6 +368,12 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
   [Flag-Day Values](./flag-days.md)):
   - `STATE_KEY_STORABLE`, the indexer twin of the VM's `STATE_KEY_STORABLE_ACTIVATION`, which makes
     `state.set()` refuse keys that cannot fit the indexer's `contract_state.state_key` column.
+- **One more time-keyed rule is not genesis-active on testnet**: it arms testnet at an instant of its
+  own, while mainnet keeps it unarmed until an operator arms it (the instant and status are on
+  [Flag-Day Values](./flag-days.md)):
+  - `ORDER_GET_ADDRESS_COIN`, which checks a cross-chain ORDER's `GET_ADDRESS` against the address
+    format of `GET_COIN`'s network, as SWAP does; before it the local chain's format applies (see
+    [ORDER](./actions/order.md)).
 - **Cohort C (state commitment) is armed at future _per-chain_ heights on testnet, not from genesis**
   (`STATE_COMMITMENT_ACTIVATION`: `BTC:testnet 145000`, `LTC:testnet 4805000`,
   `DOGE:testnet 67000000`), because it gates on each chain's own local block height rather than a

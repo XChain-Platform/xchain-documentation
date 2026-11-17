@@ -96,6 +96,11 @@ test('against the real indexer STATE_KEY_STORABLE is unarmed on mainnet and arme
         assertArmedOnTestnetOnly('STATE_KEY_STORABLE');
     });
 
+test('against the real indexer ORDER_GET_ADDRESS_COIN is unarmed on mainnet and armed on testnet',
+    { skip: noIndexer }, () => {
+        assertArmedOnTestnetOnly('ORDER_GET_ADDRESS_COIN');
+    });
+
 test('against the real indexer STAKE_SNAPSHOT_DECIMAL_STRINGS is unarmed on mainnet and armed on testnet',
     { skip: noIndexer }, () => {
         assertArmedOnTestnetOnly('STAKE_SNAPSHOT_DECIMAL_STRINGS');
