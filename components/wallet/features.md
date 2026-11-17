@@ -85,7 +85,7 @@ Pubkey lookup is automatic, the SDK queries the explorer for the recipient's mos
 
 ## Large files
 
-The Publish file, Attach artwork and Gated publish forms offer a multi-part upload method for a file too large for one transaction. The wallet splits the file into parts, each its own transaction, which the network reassembles byte-for-byte. A multi-part file is one manifest plus 2 to 32 parts, up to 12,000,000 bytes (about 12 MB). The review screen shows the number of parts and transactions and the total fee, and one approval covers the funding and all part transactions. Artwork is linked only after the last part confirms. The explorer serves the reassembled file, identical to the original, at `/api/file/<manifest action index>/raw`. See [Multi-part files](../../protocol/actions/file.md#multi-part-files-versions-1-and-2).
+The Publish file, Attach artwork and Gated publish forms offer a multi-part upload method for a file too large for one transaction. The wallet splits the file into parts, each its own transaction, which the network reassembles byte-for-byte. A multi-part file is one manifest plus its parts. The review screen shows the number of parts and transactions and the total fee, and one approval covers the funding and all part transactions. Artwork is linked only after the last part confirms. The explorer serves the reassembled file, identical to the original, at `/api/file/<manifest action index>/raw`. See [Multi-part files](../../protocol/actions/file.md#multi-part-files-versions-1-and-2). The size limit is 2 to 32 parts and 12,000,000 bytes (about 12 MB) per file.
 
 ## Smart contracts
 

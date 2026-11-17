@@ -61,7 +61,7 @@ None of these hand an override to XChain, to its validators, or to any company. 
 
 ### Can I publish a file that is too large for one transaction?
 
-Yes, up to about 12 MB. XChain can publish a large file by splitting it into parts, each its own transaction, which the network reassembles byte-for-byte. A multi-part file is one manifest plus 2 to 32 parts, and the hard limits are 32 parts and 12,000,000 bytes. The wallet's Publish file, Attach artwork and Gated publish forms offer it as an upload method: the review screen shows the number of parts and transactions and the total fee, one approval covers the funding and every part transaction, and artwork is linked only after the last part confirms. The explorer serves the reassembled file, identical to the original, at `/api/file/<manifest action index>/raw`. See [Multi-part files](../protocol/actions/file.md#multi-part-files-versions-1-and-2) for the wire format.
+Yes. XChain can publish a large file by splitting it into parts, each its own transaction, which the network reassembles byte-for-byte. A multi-part file is one manifest plus its parts. The wallet's Publish file, Attach artwork and Gated publish forms offer it as an upload method: the review screen shows the number of parts and transactions and the total fee, one approval covers the funding and every part transaction, and artwork is linked only after the last part confirms. The explorer serves the reassembled file, identical to the original, at `/api/file/<manifest action index>/raw`. See [Multi-part files](../protocol/actions/file.md#multi-part-files-versions-1-and-2) for the wire format. The size limit is 2 to 32 parts and 12,000,000 bytes (about 12 MB) per file.
 
 ### Can I sell encrypted content as a token?
 
