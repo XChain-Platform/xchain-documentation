@@ -45,7 +45,7 @@ A gated file that does not fit in one transaction uses the FILE version 1 manife
 
 The gated manifest carries `GATE_TICKER`, `ENCRYPTION_METHOD`, `KEY_HASH`, `GATE_MIN_AMOUNT`, and `COMPRESSION`, but no raw bytes. It may share a `BATCH` with the self-addressed MESSAGE v2 that commits the recoverable key. Each version 2 part must be published outside a `BATCH`. The gated file joins its pack at the manifest's action index even before assembly completes, but its raw bytes remain unavailable until every part is present and the group completes with matching hash and length. A holder's raw request receives the assembled ciphertext, never plaintext and never a partial file; pending and mismatched assemblies are not treated as empty content.
 
-On unlock, the wallet waits for completion, fetches the assembled ciphertext using the manifest action index, verifies and decrypts it exactly as for format 0, and only then inflates when `COMPRESSION=1`. The 150:1 inflation guard is additionally capped at 12,000,000 bytes. The manifest action index is also the pack member and the only valid `LINK` target; part indexes are not files.
+On unlock, the wallet waits for completion, fetches the assembled ciphertext using the manifest action index, verifies and decrypts it exactly as for format 0, and only then inflates when `COMPRESSION=1`. The 150:1 inflation guard is additionally capped at 67,108,864 bytes (64 MiB), the gated-file bound. The manifest action index is also the pack member and the only valid `LINK` target; part indexes are not files.
 
 ### Pack of files (shared key)
 

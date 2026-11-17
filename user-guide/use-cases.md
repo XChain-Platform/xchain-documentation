@@ -27,7 +27,7 @@ Attach a piece of digital art or media to a token using on-chain file storage an
 
 XChain actions involved: ISSUE, FILE (to store the content), LINK (to associate it with the token).
 
-**Large files.** A file too large for one transaction can still be published. XChain splits it into parts, each its own transaction, and the network reassembles them byte-for-byte. A multi-part file is one manifest plus its parts. The wallet's Publish file, Attach artwork and Gated publish forms offer it as an upload method. The size limit is 2 to 32 parts and 12,000,000 bytes (about 12 MB) per file.
+**Large files.** A file too large for one transaction can still be published. XChain splits it into parts, each its own transaction, and the network reassembles them byte-for-byte. A multi-part file is one manifest plus its parts. The wallet's Publish file, Attach artwork and Gated publish forms offer it as an upload method. A file can have up to 65,535 parts and 262,140,000,000 bytes (about 262 GB), so the practical limit is the cost of its transactions. A gated file is limited to 64 MiB (67,108,864 bytes).
 
 ### Token-Gated Encrypted Content and Packs
 

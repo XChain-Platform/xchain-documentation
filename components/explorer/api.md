@@ -2110,7 +2110,7 @@ GET /{COIN}/api/file/{actionIndex}/raw
 Returns the raw bytes for a FILE action.
 
 - **Gated file**: returns the AES-256-GCM ciphertext (12-byte nonce || 16-byte GCM tag || ciphertext) as `application/octet-stream`. Holders decrypt client-side after receiving the symmetric key via an ECIES MESSAGE.
-- **Multi-part file**: use the manifest's action index. The endpoint serves the reassembled file, identical to the original bytes; a file is one manifest plus its parts. The size limit is 2 to 32 parts and 12,000,000 bytes (about 12 MB) per file.
+- **Multi-part file**: use the manifest's action index. The endpoint serves the reassembled file, identical to the original bytes; a file is one manifest plus its parts. A file can have up to 65,535 parts and 262,140,000,000 bytes (about 262 GB), so the practical limit is the cost of its transactions.
 - **Non-gated file**: returns the stored bytes from the colocated decoder DB, served inline for safe media MIME types (image, audio, video, PDF, JSON). Unsafe types (HTML, SVG, XML, scripts, unknown) are forced to download as `application/octet-stream`. This is the resolution target for TIS `data_ref` entries using the `action:<index>` scheme, enabling NFT artwork to render directly in the browser.
 
 Returns HTTP 404 when the `actionIndex` or coin is unknown, HTTP 400 for a non-numeric `actionIndex`, and HTTP 500 `SERVER_ERROR` when an unexpected decoder read fails. Multipart FILE requests can also return 404 `FILE_PART`, 409 `FILE_INCOMPLETE` (with `parts_received` and `total_parts`), 422 `FILE_ASSEMBLY_MISMATCH`, or 500 `FILE_PART_CORRUPT`; see the [error-code registry](../../protocol/error-codes.md) for meaning and retry guidance.
