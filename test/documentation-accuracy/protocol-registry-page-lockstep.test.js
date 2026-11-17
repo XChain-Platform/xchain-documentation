@@ -26,6 +26,7 @@ const SOURCE_PATHS = [
     'src/explorer/mount.js',
     'src/http/api_boot/json_body.js',
     'src/explorer/multipart_file.js',
+    'src/explorer/multipart_stream.js',
 ];
 const explorer = sibling('xchain-explorer', SOURCE_PATHS);
 
@@ -65,7 +66,7 @@ function assertBodyClaim(row, preflightLimit, contractLimit) {
 
 function multipartErrors(sourceText) {
     const found = new Map();
-    for (const match of sourceText.matchAll(/new MultipartFileError\('([A-Z][A-Z0-9_]+)',\s*(\d+)/g)) {
+    for (const match of sourceText.matchAll(/new (?:\w+\.)?MultipartFileError\('([A-Z][A-Z0-9_]+)',\s*(\d+)/g)) {
         if (!found.has(match[1])) found.set(match[1], Number(match[2]));
     }
     return found;
@@ -105,7 +106,12 @@ test('BODY_TOO_LARGE matches every explorer parser ceiling', { skip: explorer.sk
 });
 
 test('multipart FILE refusals keep their registry statuses and API references', { skip: explorer.skip }, () => {
-    const emitted = multipartErrors(source('src/explorer/multipart_file.js'));
+    // The raw-route refusals moved into multipart_stream.js (FILE_PART_CORRUPT), so a
+    // code counts when either explorer file emits it.
+    const emitted = new Map([
+        ...multipartErrors(source('src/explorer/multipart_stream.js')),
+        ...multipartErrors(source('src/explorer/multipart_file.js')),
+    ]);
     const expected = new Map([
         ['FILE_PART', 404],
         ['FILE_INCOMPLETE', 409],
