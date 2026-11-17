@@ -101,6 +101,16 @@ test('against the real indexer ORDER_GET_ADDRESS_COIN is unarmed on mainnet and 
         assertArmedOnTestnetOnly('ORDER_GET_ADDRESS_COIN');
     });
 
+test('against the real indexer STATE_VALUE_ASTRAL_ESCAPE is unarmed on mainnet and armed on testnet',
+    { skip: noIndexer }, () => {
+        assertArmedOnTestnetOnly('STATE_VALUE_ASTRAL_ESCAPE');
+    });
+
+test('against the real indexer LINT_REGEX_GROUP_DEPTH is unarmed on mainnet and armed on testnet',
+    { skip: noIndexer }, () => {
+        assertArmedOnTestnetOnly('LINT_REGEX_GROUP_DEPTH');
+    });
+
 test('against the real indexer STAKE_SNAPSHOT_DECIMAL_STRINGS is unarmed on mainnet and armed on testnet',
     { skip: noIndexer }, () => {
         assertArmedOnTestnetOnly('STAKE_SNAPSHOT_DECIMAL_STRINGS');
