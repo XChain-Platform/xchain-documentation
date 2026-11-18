@@ -116,7 +116,7 @@ Each connection's messages are measured as a leaky bucket that holds `limits.max
 
 | Param | Type | Description |
 |---|---|---|
-| `types` | string[] | Only receive events matching these action types. Omit for all. |
+| `types` | string[] | Only receive events matching these action types. Omit for all. It narrows action and lifecycle frames only: `NEW_BLOCK`, `NETWORK_STATS` and the entity updates (`ADDRESS_UPDATE`, `TOKEN_UPDATE`, `MARKET_UPDATE`, `DISPENSER_UPDATE`) always pass it, so one `types` list can be shared by `blocks`, `actions` and entity channels in a single request. With `once`, a state frame on an `address` or `dispenser` subscription does not count as the match. |
 | `statuses` | string[] | **Not supported. Do not use.** Accepted for backward compatibility, deliberately not evaluated on any channel, and echoed under SUBSCRIBED `ignored_filters`. It is absent from WELCOME `features` and SUBSCRIBED `active_filters`. |
 | `ticks` | string[] | **Not an event filter.** With the global `actions` channel it is accepted, deliberately not evaluated, and echoed under SUBSCRIBED `ignored_filters`. Its supported use is the batch form of the `token` channel's `tick` entity param; token-only confirmations do not call it ignored. |
 | `fields` | string[] | Only include these keys in the `data` payload. Envelope fields always included. |
@@ -285,6 +285,10 @@ Emitted with each new block.
 
 Channel: `address`
 
+Sent to each subscribed address an action names as its `source` or in its `destinations`, and to
+each one whose balance the action's credit, debit or escrow rows moved, which covers the parties of
+actions the indexer mints itself (matches, expiries, dividends, airdrops).
+
 ```json
 {
   "type": "ADDRESS_UPDATE",
@@ -375,7 +379,9 @@ and `BET_EXPIRE` (the system refund pass's minted action).
 
 `feed_action_index` is the parent market's `action_index` (null if it cannot be resolved).
 `action_format` is the discriminator the single `BET` type needs: 0 create, 1 cancel, 2 place a bet,
-3 resolve. It is null only for `BET_EXPIRE`, which its own type already identifies.
+3 resolve. It is null only for `BET_EXPIRE`, which its own type already identifies. A `BET_EXPIRED`
+frame has `source: null` and names the market's creator in `destinations`, which also routes it to
+that creator's `address` channel.
 
 One event on this channel has no action row behind it:
 
@@ -444,9 +450,17 @@ the `BET_CLOSED` cursor is.
 ### Order Lifecycle Events
 
 These fire on the `actions` channel and on the `address` channel of each address the frame's
-`data` names: its `source`, or on `COINPAY_REQUIRED` its `payer_address` and `payee_address`.
-A lifecycle frame does not carry the `destinations` a `NEW_ACTION` lists, and it is not sent to
-their `address` channels.
+`data` names: its `source`, its `destinations`, or on `COINPAY_REQUIRED` its `payer_address` and
+`payee_address`.
+
+The indexer mints `ORDER_MATCH`, `ORDER_EXPIRE`, `COINPAY_EXPIRE`, `SWAP_MATCH`, `SWAP_EXPIRE`,
+`DISPENSER_CLOSE`, `DISPENSER_EXPIRE` and `BET_EXPIRE` itself, so their frames have `source: null`
+and name their parties in `destinations` instead: the addresses that placed the two matched orders
+or swaps, the expired order, swap or dispenser, the market a `BET_EXPIRED` refunds (its creator
+only; each refunded bettor gets `ADDRESS_UPDATE`), or the payer and payee of an expired coin
+payment. Royalty and fee recipients are not parties. `destinations` is absent on other lifecycle
+frames, and absent on these when the party lookup fails. These actions' `NEW_ACTION` frames still
+have `source: null` and `destinations: []` and go to the `actions` channel only.
 
 #### ORDER_MATCH
 
@@ -457,8 +471,9 @@ their `address` channels.
     "action_index": "45700",
     "settlement_type": "coinpay",
     "status": null,
-    "source": "1abc...",
-    "tx_hash": "def456..."
+    "source": null,
+    "destinations": ["1MakerAddr...", "1TakerAddr..."],
+    "tx_hash": null
   }
 }
 ```
@@ -502,7 +517,8 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
   "type": "COINPAY_EXPIRED",
   "data": {
     "action_index": "45730",
-    "source": "1BotAddr...",
+    "source": null,
+    "destinations": ["1BotAddr...", "1SellerAddr..."],
     "status": null
   }
 }
@@ -515,7 +531,8 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
   "type": "ORDER_EXPIRED",
   "data": {
     "action_index": "45740",
-    "source": "1abc...",
+    "source": null,
+    "destinations": ["1abc..."],
     "status": null
   }
 }
@@ -530,7 +547,8 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
   "type": "SWAP_MATCH",
   "data": {
     "action_index": "45850",
-    "source": "1abc...",
+    "source": null,
+    "destinations": ["1abc...", "1def..."],
     "status": null
   }
 }
@@ -543,7 +561,8 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
   "type": "SWAP_EXPIRED",
   "data": {
     "action_index": "45860",
-    "source": "1abc...",
+    "source": null,
+    "destinations": ["1abc..."],
     "status": null
   }
 }
@@ -581,11 +600,15 @@ action index. A subscriber following more than one dispenser must correlate on
   "data": {
     "action_index": "45900",
     "dispenser_action_index": "45700",
-    "source": "1OwnerAddr...",
+    "source": null,
+    "destinations": ["1OwnerAddr..."],
     "status": null
   }
 }
 ```
+
+Both also reach the dispenser owner's `address` channel through `destinations`, as the system
+actions under Order Lifecycle Events do.
 
 ### Mempool Events
 

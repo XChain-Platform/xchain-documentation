@@ -418,7 +418,7 @@ EQUIV|XCHECKPOINT|XANCPUB|archive|NETWORK|MATCH_BATCH_SEQ|SNAPSHOT_BLOCK|0||XANC
 ```
 
 These bytes are byte-identical across the hub producer (`StateAnchorPublisher.attestationCanonical`),
-the indexer verifier (`actions/anchor/index.js` `rewardCanonical`) and this spec; a divergence forks the
+the indexer verifier (`consensus/anchor_reward_derive.js` `rewardCanonical`) and this spec; a divergence forks the
 derived reward row. An `ASIG_n` counts only if its pubkey is in the SAME `oracle_publish` snapshot at
 `SNAPSHOT_BLOCK` used for the root quorum **and** the Ed25519 signature verifies.
 
@@ -467,9 +467,11 @@ exact bytes):
   Before co-signing, a hub signature-verifies each group whose `consensus_proof` is a non-empty
   signature array against the archived `price` capability group at `reference_block`. For an
   object-form batch proof or an empty proof array, the hub instead requires every row to
-  byte-match a row it holds. Recovery signature-verifies both non-empty signature-array groups
-  and object-form batch proofs; a batch proof is checked over its complete signed round range
-  against the `price` group at its `btc_block_height`. An empty-array `skipped` row has no
+  byte-match a row it holds. Recovery signature-verifies non-empty signature-array groups and
+  rejects the archive when one fails. It checks an object-form batch proof only when the archive
+  holds the batch's complete signed round range and the `price` group at its `btc_block_height`;
+  a batch group it cannot prove is skipped and logged, its rows are not written, and the rest of
+  the archive is restored. An empty-array `skipped` row has no
   per-row signatures to verify, so recovery shape-checks it and relies on the archive wrapper
   quorum. A `disputed` row follows the rule for the proof shape it carries.
 - `price_tombstones[]` is sorted by `(round_number, coin_pair)` ascending.

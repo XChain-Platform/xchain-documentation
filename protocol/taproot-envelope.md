@@ -11,7 +11,7 @@ It is available on **Bitcoin and Litecoin**. Dogecoin has no SegWit and therefor
 
 Two transactions, mirroring the fund/reveal pattern the chunk lanes already use:
 
-1. **Commit.** One P2TR output whose script tree contains a single data leaf (the envelope), with an internal key owned by the sender. Any native fee-destination outputs ride this transaction.
+1. **Commit.** One P2TR output whose script tree contains the envelope as a tapscript leaf, with an internal key owned by the sender. The shipped encoder builds a single-leaf tree, but other leaves may share the tree and do not affect recognition. Any native fee-destination outputs ride this transaction.
 2. **Reveal.** Spends that output through the script path, exposing the envelope in the witness. **The reveal is the transaction the action belongs to**: its block and txid are the action's identity, exactly as a chunk-lane action is identified by its reveal.
 
 An unrevealed commit is not an action. It is an ordinary P2TR output, indistinguishable from any other until it is spent.
@@ -75,6 +75,7 @@ An envelope whose format byte is not `0x00` is **not recognized at all** - invis
 These are consensus-relevant: every implementation must agree, or the fleet forks. All of them activate at the network's recognition height (`ENVELOPE_RECOGNITION_ACTIVATION`), and below that height a transaction parses exactly as it always did. The one exception is the payload-free carrier case of the mixed-carrier rule, which has a second height of its own (`ENVELOPE_CARRIER_RECOGNITION_ACTIVATION`), described in that bullet below. Both maps are listed on [Flag-Day Values](./flag-days.md#canonical-activation-maps), and their values are in [`constants.js`](./constants.js).
 
 - The witness is read **from the end** of the stack (control block last, script second-to-last), per BIP341.
+- **The control block must identify a tapscript leaf at any tree depth.** Its first byte, with the parity bit masked off (`byte & 0xfe`), must be `0xc0`, so both `0xc0` and `0xc1` qualify while any other leaf version does not. Its length must be `33 + 32m` bytes for some `m >= 0`; any other length is not an envelope. The merkle path may contain any consensus-valid number of hashes, so a multi-leaf tree is recognized like a single-leaf tree. Recognition does not recompute the path or parity because consensus has already checked them. These cases are pinned by the `control_block` vectors in [`test-vectors/taproot_envelope.json`](./test-vectors/taproot_envelope.json).
 - A reveal carrying a **BIP341 annex is never an envelope.** Policy rejects annexes today but consensus does not, so a miner-included annexed reveal must not be able to split implementations.
 - The envelope input must be **input 0**. Anywhere else, it is not an action.
 - **Two or more envelope inputs** in one transaction: not an action.

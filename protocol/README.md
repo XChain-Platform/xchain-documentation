@@ -33,8 +33,8 @@ This section is the canonical reference for the XChain Protocol; ACTION command 
 | [Activation Module Catalogue](./activation-catalogue.md) | Discovery index for modules referenced by the indexer's protocol-change registry |
 | [Upgrade Notice Policy](./upgrade-notice-policy.md) | Minimum lead time between a release carrying consensus activation values and the moment they fire |
 | [Consensus Reference Implementations](./reference-impl/consensus/stake_weighted_quorum.js) | Byte-identity targets for [equivocation headers](./reference-impl/consensus/equivocation_header.js), the [gate registry](./reference-impl/consensus/gate_registry.js), and [snapshot reorg handling](./reference-impl/consensus/snapshot_reorg_buffer.js) |
-| [Conformance Test Vectors](./test-vectors/stake_weighted_quorum.json) | Canonical fixtures for [equivocation headers](./test-vectors/equivocation_header.json), [activation predicates](./test-vectors/activation_predicates.json), [anchors](./test-vectors/anchor_canonical.json), [roll calls](./test-vectors/rollcall_canonical.json), [Taproot envelopes](./test-vectors/taproot_envelope.json), [responsible sets](./test-vectors/responsible_set.json), and [list sharing](./test-vectors/list_share.json) |
-| [JSON Schemas](./json/) | Machine-readable schemas for ACTION payloads and API responses |
+| [Conformance Test Vectors](./test-vectors/stake_weighted_quorum.json) | Canonical fixtures for [equivocation headers](./test-vectors/equivocation_header.json), [activation predicates](./test-vectors/activation_predicates.json), [anchors](./test-vectors/anchor_canonical.json), [roll calls](./test-vectors/rollcall_canonical.json), [Taproot envelopes](./test-vectors/taproot_envelope.json), [responsible sets](./test-vectors/responsible_set.json), [list sharing](./test-vectors/list_share.json), [checkpoints](./test-vectors/checkpoint_canonical.json), and [multipart FILE reassembly](./test-vectors/multipart_file.json) |
+| [JSON Schemas](./json/) | Machine-readable JSON Schemas and worked examples for the [Token Information Standard](./token-information-standard.md) (current v1.1.2 plus frozen v1.0.0 through v1.1.1) |
 
 ---
 

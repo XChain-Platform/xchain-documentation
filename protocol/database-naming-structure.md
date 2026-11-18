@@ -3,7 +3,7 @@
 
 # XChain Platform - Database Naming Structure
 
-The XChain Platform follows the following database naming structure :
+The per-chain databases (one Decoder and one Indexer database per chain and network) follow this naming structure:
 
 XChain_`{CHAIN}`\_`{NETWORK}`\_`{COMPONENT}`
 
@@ -55,6 +55,10 @@ XChain_`{CHAIN}`\_`{NETWORK}`\_`{COMPONENT}`
 - `XChain_DOGE_Mainnet_Indexer`
 - `XChain_DOGE_Testnet_Indexer`
 - `XChain_DOGE_Regtest_Indexer`
+
+## Non-chain databases
+
+The hub keeps its state in a single cross-chain database, so its name has no chain or network segment and does not follow the structure above. The name is set by the required `HUB_DB_NAME` variable, and the xchain-node installer provisions `XChain_Hub`. Other cross-chain schemas an operator configures, such as the explorer's checkpoint mirror, are named in that service's config.
 
 ## Column and Field Naming
 

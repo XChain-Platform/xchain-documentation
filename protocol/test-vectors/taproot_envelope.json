@@ -26,6 +26,52 @@
     "commit_address_btc_mainnet": "bc1pzdu69x7yhan5rrru4dl2q2eudrp0jgupavwv6h60kvzg7hd0eg3qeyq98z",
     "control_block_hex": "c079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
   },
+  "control_block": {
+    "description": "Recognition varies only the control block after consensus has validated the script path. The masked first byte must be 0xc0 and the byte length must be 33 + 32m. Merkle path depth does not otherwise affect recognition.",
+    "witness": "64-byte dummy signature, envelope_grammar.envelope_script_hex, then control_block_hex",
+    "vectors": [
+      {
+        "name": "odd_parity_leaf_version",
+        "description": "The parity bit is set, so the first byte is 0xc1 and masks to the tapscript leaf version 0xc0.",
+        "control_block_hex": "c179be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+        "expect": "recognized"
+      },
+      {
+        "name": "two_leaf_tree_65_bytes",
+        "description": "A coherent two-leaf tree with the golden envelope beside a key-check recovery leaf. This is the same one-hash path length used by a co-signer envelope leaf.",
+        "sibling_script_hex": "2079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798ac",
+        "sibling_tapleaf_hash": "763e9da064b9dc0471fb0f3c8fa2c84b4b84d2ca992497c12d2274386795aa8e",
+        "merkle_root": "218acee4eb1c7ccf84cbfe8e5588bbc4bb094ee791cbafd3a294d16ca98f047b",
+        "commit_scriptPubKey_hex": "5120633a226b566038eccb1b4f8de01056e831543b3498c887807a92de5e49a73a87",
+        "control_block_hex": "c079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798763e9da064b9dc0471fb0f3c8fa2c84b4b84d2ca992497c12d2274386795aa8e",
+        "expect": "recognized"
+      },
+      {
+        "name": "three_level_path_97_bytes",
+        "description": "A recognition-only two-hash path pins that depth is not restricted to zero or one. Consensus validity of the path is outside recognition.",
+        "control_block_hex": "c079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f8179800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "expect": "recognized"
+      },
+      {
+        "name": "unknown_leaf_version_c2",
+        "description": "Leaf version 0xc2 remains 0xc2 after masking and is not an envelope.",
+        "control_block_hex": "c279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+        "expect": "not_recognized"
+      },
+      {
+        "name": "control_block_32_bytes",
+        "description": "A control block shorter than the 33-byte base form is not an envelope.",
+        "control_block_hex": "c079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f817",
+        "expect": "not_recognized"
+      },
+      {
+        "name": "control_block_64_bytes",
+        "description": "A 64-byte control block is one byte short of the next valid 65-byte form.",
+        "control_block_hex": "c079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f8179800000000000000000000000000000000000000000000000000000000000000",
+        "expect": "not_recognized"
+      }
+    ]
+  },
   "envelope_chunking": {
     "description": "1,253-byte compiled payload split into 520-byte pushes, in order; reassembly by concatenation is byte-identical.",
     "payload_generation": "action \"FILE|0|chunks.bin|application/octet-stream|||||||\" + 1200 rawData bytes where byte[i] = (i*7+13) & 0xff",

@@ -14,7 +14,7 @@
 
 ### Server Mode
 
-Server mode is used on an xchain-node alongside authoritative indexers. The service polls indexer databases for new blocks and serves them to remote clients.
+Server mode is used on an xchain-node alongside authoritative indexers and decoders. The service polls indexer and decoder databases for new blocks and serves them to remote clients.
 
 ```bash
 # Set environment variables

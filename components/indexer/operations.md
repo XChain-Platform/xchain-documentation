@@ -458,7 +458,7 @@ The indexer creates tables automatically on first startup. If this error occurs,
 Check the error details in the console output. The block will be retried on the next polling cycle. Persistent failures on the same block indicate a bug in an action handler.
 
 **Block processing timeout**
-If a block consistently takes longer than `BLOCK_PROCESS_TIMEOUT` (default 5 minutes), it may contain an unusually large number of transactions. The timeout can be increased via the config, but investigate the root cause first.
+If a block consistently takes longer than `BLOCK_PROCESS_TIMEOUT` (default 5 minutes), it may contain an unusually large number of transactions. The timeout can be increased via the config, but investigate the root cause first. Each timeout rolls the block back and retries the same block in-process, with no container restart.
 
 ### Data inconsistency
 

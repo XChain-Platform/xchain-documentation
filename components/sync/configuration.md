@@ -187,7 +187,7 @@ A separate MariaDB connection pool is created per chain/network/dbType.
 
 ## Database Naming
 
-The sync service uses the same database naming convention as the rest of the platform:
+The sync service connects only to the per-chain decoder and indexer databases, so it uses the same per-chain database naming convention as those components:
 
 ```
 XChain_{TICKER}_{Network}_{Component}

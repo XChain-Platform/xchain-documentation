@@ -489,14 +489,14 @@ const CHECKPOINT_COMMITMENT_ACTIVATION = {
 // verification (the signed preimage changes), so hubs and every verifier (indexers, SDK, explorer,
 // sync) must run the new code before the armed height.
 //
-// Mainnet is unpinned (null). Testnet ships on the UNARMED sentinel until the cut after the fleet
-// roll arms one BTC height. Regtest is 0 so the rail drill exercises it.
+// Mainnet is unpinned (null). Testnet is armed per chain by the <COIN>:testnet keys; the bare
+// testnet key is only the fallback. Regtest is 0 so the rail drill exercises it.
 const CHECKPOINT_SUPERSEDE_ACTIVATION = {
     mainnet: null,
-    'BTC:testnet': 158557, // UNARMED: the next cut sets it
-    'LTC:testnet': 4949697, // UNARMED: the next cut sets it
-    'DOGE:testnet': 68035864, // UNARMED: the next cut sets it
-    testnet: 9999999999,       // UNARMED: the next cut sets it
+    'BTC:testnet': 158557,
+    'LTC:testnet': 4949697,
+    'DOGE:testnet': 68035864,
+    testnet: 9999999999,
     regtest: 0,
 };
 
@@ -710,14 +710,14 @@ const ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION = {
 // where stake-weighted quorum is active. Consensus-relevant (it moves the archive head and
 // wrapper-section quorum verdicts), so hubs must run the new code before the armed height.
 //
-// Mainnet is unpinned (null). Testnet ships on the UNARMED sentinel until the cut after the
-// fleet roll arms one BTC height. Regtest is 0: with no rolled epoch the set equals oracle_publish.
+// Mainnet is unpinned (null). Testnet is armed per chain by the <COIN>:testnet keys; the bare
+// testnet key is only the fallback. Regtest is 0: with no rolled epoch the set equals oracle_publish.
 const ARCHIVE_ROLLCALL_PRESENCE_ACTIVATION = {
     mainnet: null,
-    'BTC:testnet': 158557, // UNARMED: the next cut sets it
-    'LTC:testnet': 4949697, // UNARMED: the next cut sets it
-    'DOGE:testnet': 68035864, // UNARMED: the next cut sets it
-    testnet: 9999999999,       // UNARMED: the next cut sets it
+    'BTC:testnet': 158557,
+    'LTC:testnet': 4949697,
+    'DOGE:testnet': 68035864,
+    testnet: 9999999999,
     regtest: 0,
 };
 
@@ -2436,7 +2436,7 @@ const ADMIT_CHAIN_MARGIN_ACTIVATION = Object.freeze({
     'DOGE:mainnet': null,
     'DOGE:testnet': 67989993,
     'LTC:mainnet':  null,
-    'LTC:testnet':  4949697, // UNARMED: the next cut sets it
+    'LTC:testnet':  4949697,
     regtest:        0,
 });
 

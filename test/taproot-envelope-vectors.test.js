@@ -11,9 +11,11 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { test } = require('node:test');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const VECTORS = require('../protocol/test-vectors/taproot_envelope.json');
 const SPEC = fs.readFileSync(path.resolve(__dirname, '../protocol/taproot-envelope.md'), 'utf8');
+const DECODER = sibling('xchain-decoder', ['src/XChainDecoder/envelope_recognition.js']);
 const CHUNK = 520;
 const CHUNKING_RECIPE = 'action "FILE|0|chunks.bin|application/octet-stream|||||||" '
     + '+ 1200 rawData bytes where byte[i] = (i*7+13) & 0xff';
@@ -65,6 +67,55 @@ function tapleafHash(script) {
     assert.ok(script.length < 0xfd + 0xffff, 'script too long for a 3-byte compact size');
     const size = script.length < 0xfd ? Buffer.from([script.length]) : Buffer.from([0xfd, script.length & 0xff, script.length >> 8]);
     return sha256(Buffer.concat([tag, tag, Buffer.from([0xc0]), size, script]));
+}
+
+function taggedHash(tag, payload) {
+    const tagHash = crypto.createHash('sha256').update(tag).digest();
+    return crypto.createHash('sha256').update(Buffer.concat([tagHash, tagHash, payload])).digest();
+}
+
+function tapBranch(leftHex, rightHex) {
+    const nodes = [Buffer.from(leftHex, 'hex'), Buffer.from(rightHex, 'hex')]
+        .sort(Buffer.compare);
+    return taggedHash('TapBranch', Buffer.concat(nodes)).toString('hex');
+}
+
+function acceptsControlBlock(controlBlock) {
+    return controlBlock.length >= 33
+        && (controlBlock.length - 33) % 32 === 0
+        && (controlBlock[0] & 0xfe) === 0xc0;
+}
+
+function controlBlockWitness(vectors, vector) {
+    return [Buffer.alloc(64), Buffer.from(vectors.envelope_grammar.envelope_script_hex, 'hex'),
+        Buffer.from(vector.control_block_hex, 'hex')];
+}
+
+function assertControlBlockVectors(vectors) {
+    const section = vectors.control_block;
+    assert.ok(section && Array.isArray(section.vectors), 'control_block vectors are missing');
+    const coverage = { odd: false, deep: false, version: false, length: false };
+    for (const vector of section.vectors) {
+        const witness = controlBlockWitness(vectors, vector);
+        const controlBlock = witness[witness.length - 1];
+        const expected = vector.expect === 'recognized';
+        assert.equal(witness[witness.length - 2].toString('hex'),
+            vectors.envelope_grammar.envelope_script_hex, vector.name + ' changed the script');
+        assert.equal(acceptsControlBlock(controlBlock), expected, vector.name);
+        coverage.odd ||= expected && controlBlock[0] === 0xc1;
+        coverage.deep ||= expected && controlBlock.length > 33;
+        coverage.version ||= !expected && (controlBlock[0] & 0xfe) !== 0xc0;
+        coverage.length ||= !expected && (controlBlock.length < 33
+            || (controlBlock.length - 33) % 32 !== 0);
+    }
+    assert.deepEqual(coverage, { odd: true, deep: true, version: true, length: true });
+    const twoLeaf = section.vectors.find((vector) => vector.name === 'two_leaf_tree_65_bytes');
+    assert.ok(twoLeaf, 'two-leaf control-block vector is missing');
+    assert.equal(tapBranch(vectors.envelope_grammar.tapleaf_hash,
+        twoLeaf.sibling_tapleaf_hash), twoLeaf.merkle_root);
+    assert.match(SPEC, /byte\s*&\s*0xfe/);
+    assert.match(SPEC, /33\s*\+\s*32m/);
+    assert.match(SPEC, /control_block/);
 }
 
 function chunkingPayload() {
@@ -138,6 +189,22 @@ test('the rebalance covers exactly 0x01-0x10 and 0x81', () => {
     for (const byte of [0x00, 0x11, 0x80, 0x41]) assert.deepEqual(rebalanceLengths(1041, byte), [520, 520, 1]);
 });
 
+test('control-block vectors pin leaf version, length, and tree depth', () => {
+    assertControlBlockVectors(VECTORS);
+});
+
+test('the decoder agrees with every published control-block vector', {
+    skip: DECODER.skip,
+}, () => {
+    const recognition = require(path.join(DECODER.root,
+        'src/XChainDecoder/envelope_recognition.js'));
+    for (const vector of VECTORS.control_block.vectors) {
+        const witness = controlBlockWitness(VECTORS, vector);
+        assert.equal(recognition.detectEnvelopeWitness(witness) !== null,
+            vector.expect === 'recognized', vector.name);
+    }
+});
+
 test('the vector guards fail on a drifted hash, length or split', () => {
     const tapleaf = clone(VECTORS);
     tapleaf.envelope_chunking.tapleaf_hash = tapleaf.envelope_chunking.tapleaf_hash.replace(/^./, (c) => (c === '0' ? '1' : '0'));
@@ -154,4 +221,7 @@ test('the vector guards fail on a drifted hash, length or split', () => {
     const outside = clone(VECTORS);
     outside.chunk_rebalance.final_byte = '0x11';
     assert.throws(() => assertRebalanceVector(outside));
+    const controlBlock = clone(VECTORS);
+    controlBlock.control_block.vectors[0].expect = 'not_recognized';
+    assert.throws(() => assertControlBlockVectors(controlBlock));
 });

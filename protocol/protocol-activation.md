@@ -221,8 +221,8 @@ and `FEE` with no leading zero and within the length caps `PRICE_V1_VALUE_MAX_LE
 the operator arms it, is armed on BTC, LTC and DOGE testnet at an instant of its own, and regtest
 is genesis-active. That testnet instant is in the registry row
 `price_scale_activation.PRICE_V1_CANONICAL_ACTIVATION`
-(`xchain-indexer/src/protocol_changes/shared_rows_2.js`). [Flag-Day Values](./flag-days.md) reads
-only the mainnet slot of a registry row like this one, so it lists the gate once mainnet is armed.
+(`xchain-indexer/src/protocol_changes/shared_rows_2.js`). [Flag-Day Values](./flag-days.md) lists its
+testnet instant among the testnet arms and adds the gate to the mainnet table once mainnet is armed.
 
 `ANCHOR_FOLD_ACTIVATION` gates [ANCHOR](./actions/anchor.md) version 3, the folded bundle that
 carries every checkpointed chain section plus at most one archive section in one transaction. It
@@ -387,6 +387,20 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
   - `LINT_REGEX_GROUP_DEPTH`, the indexer twin of the VM's `LINT_REGEX_GROUP_DEPTH_ACTIVATION`, which
     makes the deploy linter and the execute-time lint refuse a regex literal whose groups nest more
     than 64 deep.
+- **Five more time-keyed rules are not genesis-active on testnet**: each arms BTC, LTC and DOGE
+  testnet at an instant of its own through a per-chain key, which the indexer prefers over the bare
+  testnet key, while mainnet keeps them unarmed until an operator arms it (the instant and status are
+  on [Flag-Day Values](./flag-days.md)):
+  - `AMOUNT_REPRESENTABILITY_ACTIVATION`, which requires an amount to be a plain unsigned decimal
+    numeral whose integer part fits the ledger's DECIMAL(60,18) capacity.
+  - `DISPENSER_FRESHNESS_PROVEN_USE_ACTIVATION`, under which the local fresh-address verdict counts
+    only activity that proves use of the dispenser's `GET_ADDRESS`.
+  - `DISPENSER_SETTLEMENT_PRICE_ACTIVATION`, which rejects a FIAT dispenser create or refill that
+    has no price a payment at that block could settle against.
+  - `LIST_EDIT_REMOVE_ACTIVATION`, which lets a Version 2 DISPENSER, ORDER or SWAP edit carry `0` in
+    `ALLOW_LIST` or `BLOCK_LIST` to remove that list.
+  - `PRICE_V1_CANONICAL_ACTIVATION`, which requires the canonical PRICE v1 `VALUE` and `FEE` form
+    (see [PRICE](./actions/price.md)).
 - **Cohort C (state commitment) is armed at future _per-chain_ heights on testnet, not from genesis**
   (`STATE_COMMITMENT_ACTIVATION`: `BTC:testnet 145000`, `LTC:testnet 4805000`,
   `DOGE:testnet 67000000`), because it gates on each chain's own local block height rather than a

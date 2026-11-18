@@ -156,7 +156,7 @@ Except for `getSupportedChains`, read methods require an existing connected-site
 | `getAddresses(chainId)` | `Address[]` | Vault addresses on the granted chain and in the granted accounts. |
 | `getBalances(chainId, address)` | `Balance[]` | Native coin and token balances for one granted address. The current explorer reads supply confirmed amounts only, so both unconfirmed fields are returned as `"0"`. |
 | `getSupportedChains()` | `ChainDescriptor[]` | The current registry catalogue. This is the only read allowed before `connect`, but blocked origins cannot call it. |
-| `getActiveChains()` | `ChainId[]` | Chain IDs with seeded settings, filtered to the wallet's active network kind. |
+| `getActiveChains()` | `ChainId[]` | Chain IDs with seeded settings, filtered to the wallet's active network kind and to the connected site's chain grant (an empty grant means all), so every returned ID is accepted by the per-chain methods. |
 
 `ChainDescriptor` exposes `id`, `coin`, `displayName`, `networkKind`, `color`, a web-loadable `icon` URL, `addressTypes`, `defaultAddressType`, `supportedActions`, and `uriScheme`. It omits endpoints, fee strategy, and derivation templates. The bundled registry contains Bitcoin, Litecoin, and Dogecoin on mainnet, testnet, and regtest. Verified remote descriptors and valid Developer Mode custom chains can extend the live catalogue.
 
@@ -254,7 +254,7 @@ Requests the wallet's passive half of a stored 2-of-2 MuSig2 co-signer account. 
 }
 ```
 
-The co-signer account must exist, be enabled, and belong to an account in the site's connect grant. `coSign` always opens an approval, decodes the PSBT, checks policy, and asks for the password. A successful single-input or multi-input response has `{ ok: true, approved: true, ...signature fields }`. A policy refusal is a successful protocol response shaped `{ ok: true, approved: false, reason, detail? }`; transport, permission, and approval failures use `{ ok: false, error }`.
+The co-signer account must exist, be enabled, and belong to an account in the site's connect grant. `coSign` always opens an approval, decodes the PSBT, checks policy, and asks for the password. A successful response has `{ ok: true, approved: true, signatures, action? }`, where `signatures` holds one `{ index, publicNonce, sig, msg }` per co-signed input, so a single-input request gets a one-element array. Only `sighashType` 0 (the default) is accepted: a non-integer fails with `INVALID_PARAMS`, and any other integer is refused with reason `SIGHASH_TYPE_NOT_ALLOWED`. A policy refusal is a successful protocol response shaped `{ ok: true, approved: false, reason, detail? }`; transport, permission, and approval failures use `{ ok: false, error }`.
 
 ### `signIn(params) → Promise<SignInResult>`
 

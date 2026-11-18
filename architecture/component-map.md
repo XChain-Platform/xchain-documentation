@@ -66,7 +66,7 @@ Key technical details:
 - Processes expirations after each block: open orders and active dispensers whose expiration timestamp is past the block's own time are closed automatically. Token-weighted governance polls (`VOTE`) are finalized the same way, by a deterministic sweep at each poll's end block.
 - All writes for a block are wrapped in a single MariaDB transaction. Either the full block commits or it rolls back entirely.
 - On reorg, rolls back across 80+ tables in a single transaction, then re-processes from the reorg block.
-- Watchdog timer (5-minute default) restarts the indexer if it hangs during block processing.
+- Watchdog timer (5-minute default) aborts a block that hangs during processing, rolls its transaction back and retries the same block.
 - Runs as one instance per chain/network combination.
 
 See [`../components/indexer/`](../components/indexer/) for full documentation.
@@ -106,17 +106,17 @@ See [`../components/explorer/`](../components/explorer/) for full documentation.
 
 | | |
 |---|---|
-| **Purpose** | Replicates indexer databases to validators and consumers for lightweight chain verification |
-| **Inputs** | Indexer MariaDB (SQL polling per chain/network), xchain-hub (JSON-RPC config discovery) |
+| **Purpose** | Replicates the decoder and indexer databases to validators and consumers for lightweight chain verification |
+| **Inputs** | Indexer and decoder MariaDB (SQL polling per chain/network), xchain-hub (JSON-RPC config discovery) |
 | **Outputs** | REST API (snapshots, status, transparency log), WebSocket (real-time block and reorg streaming) |
-| **Storage** | MariaDB (95 replicated indexer tables; one replica DB per chain/network) |
-| **Communication** | Inbound REST + WebSocket from validators/consumers; outbound JSON-RPC to hub; outbound SQL reads from indexer DBs |
+| **Storage** | MariaDB (indexer replica: 95 replicated indexer tables; decoder replica: 8 of 11 decoder tables, no `sync_meta`; one replica DB per chain/network/dbType) |
+| **Communication** | Inbound REST + WebSocket from validators/consumers; outbound JSON-RPC to hub; outbound SQL reads from indexer and decoder DBs |
 
 Key technical details:
 
-- Runs as a single instance serving all chains/networks on the node, discovers installed indexers by calling the hub's `getallconfigs` method.
-- Operates in two modes: **server mode** (polls indexer databases and serves data) and **client mode** (replicates from remote sync servers).
-- Polls each indexer database for new blocks every 3 seconds (configurable). Builds a complete block payload from all affected tables and broadcasts to WebSocket subscribers.
+- Runs as a single instance serving all chains/networks on the node, discovers installed indexers and decoders by calling the hub's `getallconfigs` method.
+- Operates in two modes: **server mode** (polls indexer and decoder databases and serves data) and **client mode** (replicates from remote sync servers).
+- Polls each indexer and decoder database for new blocks every 3 seconds (configurable). Builds a complete block payload from all affected tables and broadcasts to WebSocket subscribers.
 - Full snapshots are streamed as gzip-compressed JSON for bootstrapping new validators.
 - Incremental snapshots provide deltas since a given block height for catch-up after downtime.
 - Indexer block payloads carry the indexer's three per-block chained SHA256 hashes (ledger, actions, contracts) plus a fourth, replication-only `state_hash` covering the in-place mutations and backdated refund credits those three cannot see; decoder payloads carry a single `block_hash`.

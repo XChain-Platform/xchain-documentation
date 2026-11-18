@@ -1122,8 +1122,10 @@ before staking on one of their markets.
 GET /{COIN}/api/oracle/{address}
 ```
 
-**Response includes:** address, total_feeds, active_feeds (open plus closed), counts per lifecycle
-status, fees_earned per token (tick, resolves, amount), and a `reputation_caveat` string.
+**Response includes:** address, total_feeds (markets that opened, equal to the sum of the lifecycle
+counts), rejected_feeds (creates the indexer rejected, kept out of total_feeds), active_feeds (open
+plus closed), counts per lifecycle status, fees_earned per token (tick, resolves, amount), and a
+`reputation_caveat` string.
 
 Fees are earned on the resolve path only: a void, a cancel and an expiry all pay the oracle nothing.
 The caveat field is returned because the record is per-address with no bonding, and addresses are

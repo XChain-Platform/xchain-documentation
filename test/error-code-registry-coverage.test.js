@@ -36,7 +36,9 @@
  * (`blocked: 'CODE'`), which the mirror gate sends by reference as
  * `code: blocked`; a message/code pair row (`key: ['message', 'CODE']`),
  * which src/explorer/request/validate_params.js keeps in INTEGER_PATH_TYPES
- * and sends destructured as `{ error, code }`; and a
+ * and sends destructured as `{ error, code }`; a
+ * `refusal(message, 'CODE')` call (test/helpers/refusal_codes.js), whose helper
+ * builds the body with shorthand; and a
  * `new DbInputError(message, 'CODE')` throw under
  * src/db/, which src/explorer/request/load_data.js answers as a 400 with
  * `code: e.code`. A new emit shape needs its own rule here, or its codes go
@@ -63,6 +65,7 @@ const { test } = require('node:test');
 const fs   = require('node:fs');
 const path = require('node:path');
 const { sibling } = require('./helpers/sibling_checkout.js');
+const { callArguments, refusalCodes } = require('./helpers/refusal_codes.js');
 
 const ROOT          = path.resolve(__dirname, '..');
 const EXPLORER      = path.resolve(ROOT, '../xchain-explorer');
@@ -142,25 +145,6 @@ const EXPLORER_DB = path.join(EXPLORER_SRC, 'db');
 // fails the gate rather than going unread.
 const DB_INPUT_FORWARDERS = ['queryInteger'];
 
-// The top-level arguments of the call whose `(` sits at `open`, quote-aware, so a comma,
-// semicolon or parenthesis inside a message string does not split it.
-function callArguments(text, open) {
-    const args = [];
-    let depth = 0, quote = null, start = open + 1;
-    for (let i = open; i < text.length; i++) {
-        const ch = text[i];
-        if (quote) {
-            if (ch === '\\') i++;
-            else if (ch === quote) quote = null;
-        } else if (ch === "'" || ch === '"' || ch === '`') quote = ch;
-        else if (ch === '(' || ch === '[' || ch === '{') depth++;
-        else if (ch === ')' || ch === ']' || ch === '}') {
-            if (--depth === 0) { args.push(text.slice(start, i).trim()); return args; }
-        } else if (ch === ',' && depth === 1) { args.push(text.slice(start, i).trim()); start = i + 1; }
-    }
-    return null;
-}
-
 // Every code a DbInputError reaches the client with, from the throws and forwarder calls in
 // `files` ([{ name, text }]). A throw with no code argument answers the class default,
 // INVALID_PARAMETER, which load_data.js's own `code:` line already contributes.
@@ -208,7 +192,10 @@ function emittedCodes() {
         // this list has to follow it, never that the check may skip.
         assert.ok(fs.existsSync(file),
             path.relative(EXPLORER, file) + ' is gone from xchain-explorer; repoint SOURCES at the file the emit site moved to');
-        const lines = fs.readFileSync(file, 'utf8').split('\n');
+        const text  = fs.readFileSync(file, 'utf8');
+        for (const [code, where] of refusalCodes(text, path.basename(file)))
+            if (!found.has(code)) found.set(code, where);
+        const lines = text.split('\n');
         lines.forEach((line, i) => {
             const where   = `${path.basename(file)}:${i + 1}`;
             const record  = (code) => { if (!found.has(code)) found.set(code, where); };
@@ -365,6 +352,16 @@ function emittedWsCodes() {
     }
     return found;
 }
+
+test('the refusal rule reads literal codes and refuses one it cannot read', () => {
+    const codes = (text) => [...refusalCodes(text, 'fixture.js').keys()];
+    const call  = "return refusal('Too many (max ' + MAX + ', total); narrow', 'FIRST_CODE');\n"
+        + "return refusal('a', 'SECOND_CODE');";
+    assert.deepEqual(codes('function refusal(error, code){\n    return { refusal: { error, code } };\n}\n' + call),
+        ['FIRST_CODE', 'SECOND_CODE']);
+    assert.deepEqual(codes('if (assets.refusal) send(range.refusal);'), []);
+    assert.throws(() => codes('return refusal(message, someCode);'), /cannot read/);
+});
 
 test('the websocket.md Error Codes table matches the codes src/ws sends', { skip: noExplorer }, () => {
     const page    = fs.readFileSync(path.join(ROOT, 'components/explorer/websocket.md'), 'utf8');

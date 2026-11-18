@@ -93,9 +93,9 @@ This document covers common problems, their symptoms, and how to diagnose and re
 
 ### Watchdog Timeout
 
-**Symptom:** Log line `WATCHDOG TIMEOUT`. Docker restarts the container automatically.
+**Symptom:** An indexer log line containing `Watchdog timeout: block <N> exceeded 300000ms`. The container stays up (`docker ps` shows `Up`, not `Restarting`).
 
-**What it means:** A single block took longer than 5 minutes to process. Docker will restart the indexer, which will resume from the next unprocessed block.
+**What it means:** A single block took longer than 5 minutes to process. The indexer rolls that block's transaction back and retries the same block after `BLOCK_CHECK_INTERVAL`. The block is never skipped.
 
 **Causes:**
 - The block contained an unusually large number of XChain transactions.

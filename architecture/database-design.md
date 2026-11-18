@@ -79,7 +79,7 @@ The separation serves several purposes:
 
 ## Naming Convention
 
-All MariaDB databases follow a structured naming convention:
+The per-chain databases (each chain and network's Decoder and Indexer database) follow a structured naming convention:
 
 ```
 XChain_{CHAIN}_{NETWORK}_{COMPONENT}
@@ -100,6 +100,10 @@ XChain_{CHAIN}_{NETWORK}_{COMPONENT}
 | Dogecoin | `XChain_DOGE_Mainnet_Decoder` | `XChain_DOGE_Mainnet_Indexer` | `XChain_DOGE_Regtest_Decoder` | `XChain_DOGE_Regtest_Indexer` |
 
 Testnet databases follow the same pattern with `Testnet` as the network segment.
+
+### Non-chain databases
+
+The hub keeps its state in a single cross-chain database, so its name has no chain or network segment. The name is set by the required `HUB_DB_NAME` variable, and the xchain-node installer provisions `XChain_Hub` (see [Hub database](../components/hub/database.md)). Other cross-chain schemas an operator configures, such as the explorer's checkpoint mirror (shown as `XChain_Hub_Mirror` in the [explorer configuration](../components/explorer/configuration.md#checkpoint-schema-hub-mirror-tables)), are named in that service's config and are not bound by the per-chain pattern.
 
 For the full specification, see [`../protocol/database-naming-structure.md`](../protocol/database-naming-structure.md).
 

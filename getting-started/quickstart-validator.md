@@ -170,11 +170,12 @@ xchain-node validator unstake              # dry run
 xchain-node validator unstake --broadcast  # withdraw your stake
 ```
 
-Your stake stops counting toward the active set 6 blocks later. The XCHAIN
-itself stays locked for a further cooldown of 1000 blocks (roughly 7 days on
-Bitcoin) before the sweep credits it back, so do not plan on spending it
-sooner. Stop the hub any time after you leave the active set with
-`xchain-node stop xchain-hub`.
+Your stake stops counting toward the active set 6 blocks after the UNSTAKE
+lands. The XCHAIN itself stays locked for a cooldown of 1000 blocks (roughly 7
+days on Bitcoin), counted from that same UNSTAKE block, so the 6-block exit
+runs inside the cooldown rather than before it. The sweep credits the XCHAIN
+back when the cooldown ends, so do not plan on spending it sooner. Stop the hub
+any time after you leave the active set with `xchain-node stop xchain-hub`.
 
 ## Going deeper
 

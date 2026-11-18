@@ -31,7 +31,7 @@ A blockchain-agnostic token protocol currently running on Bitcoin, Litecoin, and
 | [**xchain-encoder**](https://github.com/XChain-Platform/xchain-encoder/) | Embeds ACTION data into unsigned PSBTs, auto-selects encoding format |
 | [**xchain-decoder**](https://github.com/XChain-Platform/xchain-decoder/) | Polls coin nodes for blocks, extracts and decodes XChain transactions into MariaDB |
 | [**xchain-indexer**](https://github.com/XChain-Platform/xchain-indexer/) | Validates ACTIONs, maintains token state with a double-entry ledger, runs a DEX matching engine, executes smart contracts |
-| [**xchain-sync**](https://github.com/XChain-Platform/xchain-sync/) | Replicates indexer databases to validators and consumers via REST snapshots and WebSocket streaming |
+| [**xchain-sync**](https://github.com/XChain-Platform/xchain-sync/) | Replicates the decoder and indexer databases to validators and consumers via REST snapshots and WebSocket streaming |
 | [**xchain-explorer**](https://github.com/XChain-Platform/xchain-explorer/) | 200+ REST/JSON-RPC endpoints, WebSocket live event streaming, and a web-based block explorer |
 | [**xchain-hub**](https://github.com/XChain-Platform/xchain-hub/) | Decentralized config oracle, price oracle, cross-chain attestation, SWAP coordinator, PBFT consensus, P2P gossip, governance |
 | [**xchain-utxo-tracker**](https://github.com/XChain-Platform/xchain-utxo-tracker/) | Real-time UTXO indexer powering balance queries and transaction construction |

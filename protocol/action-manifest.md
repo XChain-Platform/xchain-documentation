@@ -90,7 +90,7 @@ actions, and the `UNKNOWN` catch-all sentinel.
 3. Run each repo's conformance test. Each repo whose flag you set but did not wire fails loudly; wire it until green.
 
 `bin/sync-action-manifest.sh --check` is the cross-repo byte-parity gate, run by
-`bin/ci-all.sh`. It exists because the per-repo IDENTITY assertion below only
+`bin/ci-all.sh`. It exists because the per-repo IDENTITY assertion above only
 compares against canonical when `xchain-documentation` is checked out beside the
 repo, which on GitHub it never is, so the monorepo run is where all six copies are
 compared at once. The same pass classifies every other `action-manifest.json` in
