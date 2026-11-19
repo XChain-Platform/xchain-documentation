@@ -66,7 +66,7 @@ The design calls for a second, independent channel on a different host with a di
 
 If a document says "the release key" without saying which one, take the fingerprint as the answer rather than the name.
 
-**Four signed XChain Wallet releases have been published.** `v0.343.0`, published 2026-11-19, is the current one and covers the whole release: the Windows installers and the macOS and Linux builds under `https://downloads.xchain.io/wallet/desktop/`, the Android `.apk` under `android/`, the extension archive under `extension/` and the web bundle under `web/`. Its manifest carries no `coverage` line. `v0.341.2`, published 2026-10-07, came before it with the same coverage and no `coverage` line either. The two before that each cover part of the platform: `v0.336.0`, published 2026-08-06, covers Android, and `v0.338.0`, published 2026-08-11, covers macOS and Linux. Each of those says in its own signed header that its coverage is partial and names the lanes it covers, so read the note the verify step prints about partial manifests: an artifact missing from one is not evidence the release omitted it.
+**Four signed XChain Wallet releases have been published.** `v0.343.1`, published 2026-11-19, is the current one and covers the whole release (`v0.343.0` was signed but never published, and `v0.343.1` is its hotfix): the Windows installers and the macOS and Linux builds under `https://downloads.xchain.io/wallet/desktop/`, the Android `.apk` under `android/`, the extension archive under `extension/` and the web bundle under `web/`. Its manifest carries no `coverage` line. `v0.341.2`, published 2026-10-07, came before it with the same coverage and no `coverage` line either. The two before that each cover part of the platform: `v0.336.0`, published 2026-08-06, covers Android, and `v0.338.0`, published 2026-08-11, covers macOS and Linux. Each of those says in its own signed header that its coverage is partial and names the lanes it covers, so read the note the verify step prints about partial manifests: an artifact missing from one is not evidence the release omitted it.
 
 Each release's manifest is at `https://downloads.xchain.io/wallet/RELEASE_HASHES/<tag>.txt` with its signature beside it. That folder is listable on purpose, so it is also where to check which releases exist: a version tagged in the wallet repository is not a published release until its manifest appears there.
 
@@ -117,7 +117,7 @@ Use the artifact filename appropriate for your platform. Desktop installers are 
 Desktop artifact names carry the version and the architecture, and nothing needs escaping in them:
 
 ```bash
-curl -fsSLO "${BASE}/desktop/xchain-wallet-0.343.0-arm64.dmg"
+curl -fsSLO "${BASE}/desktop/xchain-wallet-0.343.1-arm64.dmg"
 ```
 
 Take the exact filename from the manifest rather than from an example on this page. The manifest is generated from the release, so it cannot drift from what was actually published, and an example can.
