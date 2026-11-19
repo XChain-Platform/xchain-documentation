@@ -89,6 +89,7 @@ Two generated defaults worth knowing about:
 
 - `EXPLORER_PORT_HTTP` / `EXPLORER_PORT_HTTPS` (and legacy `EXPLORER_PORT`) are honored from the host environment, so an operator can move the explorer's published ports without editing generated config.
 - On **regtest**, fresh indexer installs default `INDEXER_ALLOW_UNAUTHENTICATED=true` when no `INDEXER_API_KEY` is configured: the indexer otherwise fails closed and every gated method 401s, which no local single-operator regtest stack can pass. A config-file value or host `INDEXER_API_KEY` still wins; mainnet and testnet stay fail-closed.
+- `EXPLORER_INDEXER_API_KEY` is the key the explorer sends to the indexers it reads. Set it to use a separate key. When it is unset, the explorer reuses this node's `INDEXER_API_KEY`, but only while every indexer URL points at this node's own containers; with any remote `INDEXER_API_URL_*` override, the local key is never sent and the explorer gets no key unless you set one.
 
 ## Naming Conventions
 
