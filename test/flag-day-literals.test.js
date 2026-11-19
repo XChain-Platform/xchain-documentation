@@ -632,25 +632,38 @@ test('the real registry parses clean, so the check is not merely strict', { skip
     assert.ok(gen.collectGates().length > 0);
 });
 
-test('the generated page is the only place a live flag-day value appears', { skip: noIndexer }, () => {
-    const gates = gen.collectGates();
-    const liveDates = new Set(gates.map((g) => gen.utcDate(g.time)));
-    const liveStamps = new Set(gates.map((g) => String(g.time)));
-
+function liveLiteralHits(lines, liveStamps, liveDates) {
     const bad = [];
-    for (const { rel, no, line } of proseLines()) {
-        // A raw ten-digit gate timestamp is never anything but the constant,
-        // cue or no cue.
+    for (const { rel, no, line } of lines) {
         for (const m of line.matchAll(/\b(\d{10})\b/g)) {
-            if (!liveStamps.has(m[1])) continue;
-            bad.push(`${rel}:${no} states the block time ${m[1]} directly`);
+            if (liveStamps.has(m[1])) bad.push(`${rel}:${no} states the block time ${m[1]} directly`);
         }
         if (!CUE.test(line)) continue;
         for (const m of line.matchAll(/\b(20\d{2}-\d{2}-\d{2})\b/g)) {
-            if (!liveDates.has(m[1])) continue;
-            bad.push(`${rel}:${no} states the flag-day date ${m[1]} in prose`);
+            if (liveDates.has(m[1])) bad.push(`${rel}:${no} states the flag-day date ${m[1]} in prose`);
         }
     }
+    return bad;
+}
+
+test('a testnet arm literal is rejected from prose by stamp and cued date', () => {
+    const lines = [
+        { rel: 'stamp.md', no: 1, line: 'testnet uses 1787961600' },
+        { rel: 'date.md', no: 2, line: 'the activation is 2026-08-29' },
+        { rel: 'calendar.md', no: 3, line: 'measurement taken 2026-08-29' },
+    ];
+    const hits = liveLiteralHits(lines, new Set(['1787961600']), new Set(['2026-08-29']));
+    assert.deepStrictEqual(hits, [
+        'stamp.md:1 states the block time 1787961600 directly',
+        'date.md:2 states the flag-day date 2026-08-29 in prose',
+    ]);
+});
+
+test('the generated page is the only place a live flag-day value appears', { skip: noIndexer }, () => {
+    const gates = [...gen.collectGates(), ...gen.collectTestnetArms()];
+    const liveDates = new Set(gates.map((g) => gen.utcDate(g.time)));
+    const liveStamps = new Set(gates.map((g) => String(g.time)));
+    const bad = liveLiteralHits(proseLines(), liveStamps, liveDates);
 
     assert.deepStrictEqual(bad, [],
         'these pages carry a flag-day value that a repin would rot. Name the gate and link to '
@@ -674,6 +687,7 @@ test('no retired flag-day value survives anywhere in the prose', () => {
 });
 
 test('every retired value is genuinely retired in the current registry', { skip: noIndexer }, () => {
+    // A mainnet-retired value can remain a live testnet arm, so this set stays mainnet-only.
     const live = new Set(gen.collectGates().map((g) => String(g.time)));
     for (const stamp of RETIRED_TIMESTAMPS) {
         assert.ok(!live.has(stamp),

@@ -396,7 +396,7 @@ Representative gas costs (pre-launch, not final; see Appendix A): computation 1 
 
 Every execution is hard-bounded (pre-launch values, not final): gas ceiling **1,000,000**; isolate heap **8 MB**; **50** emitted actions; **10,000** state keys; **1 KB** per key and **64 KB** per value; **64 KB** code; **100** log entries (1 KB each); and a **30-second** wall-clock timeout that exists solely as a safety net. Gas is the binding constraint and halts a normal contract in well under a second; the wall-clock limit is deliberately generous so legitimate contracts are never killed prematurely.
 
-When `STATE_KEY_STORABLE_ACTIVATION` is active (testnet from 2026-11-17 00:00:00 UTC, regtest from genesis, and mainnet still unarmed), `state.set()` also refuses keys longer than 256 UTF-16 units or containing a code point above U+FFFF; `state.delete()` is unchanged.
+When `STATE_KEY_STORABLE_ACTIVATION` is active (testnet at the arm listed in [Flag-Day Values](protocol/flag-days.md), regtest from genesis, and mainnet still unarmed), `state.set()` also refuses keys longer than 256 UTF-16 units or containing a code point above U+FFFF; `state.delete()` is unchanged.
 
 ### 7.6 Contract state and derived addresses
 

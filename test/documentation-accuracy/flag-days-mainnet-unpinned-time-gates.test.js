@@ -10,10 +10,10 @@
  *
  **********************************************************************
  *
- * A registry time row whose mainnet slot is `null` is not UNARMED and carries no
- * instant, so neither the table nor the UNARMED list names it. The generated
- * Flag-Day Values page lists such gates in their own sentence, because other pages
- * send readers there for "where the gate stands on mainnet".
+ * A registry time row whose mainnet slot is `null` or its `UNPINNED` alias is
+ * not UNARMED and carries no instant, so neither the table nor the UNARMED list
+ * names it. The generated Flag-Day Values page lists such gates in their own
+ * sentence, because other pages send readers there for mainnet status.
  *
  * Run: node --test test/documentation-accuracy/flag-days-mainnet-unpinned-time-gates.test.js   (Node 22)
  *
@@ -47,6 +47,12 @@ const FIXTURE = [
 
 const PER_COIN = "addGate('e_activation.PER_COIN_ACTIVATION', 'time', { mainnet: null, 'BTC:mainnet': 1786060800 });\n";
 
+const UNPINNED_ALIAS = [
+    "addGate('f_activation.UNPINNED_ACTIVATION', 'time', { mainnet: UNPINNED, testnet: 0, regtest: 0 });",
+    "addGate('g_height.UNPINNED_HEIGHT', 'height', { mainnet: UNPINNED, testnet: 0, regtest: 0 });",
+    '',
+].join('\n');
+
 test('only a time row with a bare null mainnet slot is collected as unpinned', () => {
     const found = gen.collectMainnetUnpinned(fixtureRegistry(FIXTURE + PER_COIN)).map((g) => g.gate);
     assert.deepStrictEqual(found, ['NULL_ACTIVATION']);
@@ -56,6 +62,13 @@ test('the unpinned gate stays out of the UNARMED list and the mainnet table', ()
     const dir = fixtureRegistry(FIXTURE);
     assert.deepStrictEqual(gen.collectMainnetUnarmed(dir).map((g) => g.gate), ['SENTINEL_ACTIVATION']);
     assert.ok(!gen.collectGates(dir).some((g) => g.gate === 'NULL_ACTIVATION'));
+});
+
+test('the UNPINNED alias is collected only for time rows', () => {
+    const dir = fixtureRegistry(UNPINNED_ALIAS);
+    assert.deepStrictEqual(gen.collectMainnetUnpinned(dir).map((g) => g.gate), ['UNPINNED_ACTIVATION']);
+    assert.deepStrictEqual(gen.collectMainnetUnarmed(dir), []);
+    assert.deepStrictEqual(gen.collectGates(dir), []);
 });
 
 test('render names the unpinned gates in their own sentence', () => {

@@ -572,6 +572,80 @@ describe('reads through the explorer config view', () => {
     });
 });
 
+describe('reads through the hub config env call accessor', () => {
+    const CALL_SOURCE = [
+        "const hubConfig = require('../config.js');",
+        'const a = hubConfig.env().HUB_ALPHA || 64;',
+        "const b = hubConfig.env()['HUB_BETA'];",
+        'const c = hubConfig.env(opts.env).HUB_INJECTED;',
+        'const env = hubConfig.env();',
+        'const d = env.HUB_ALIAS;',
+        "hubConfig.env().HUB_WRITE = 'no';",
+        "const own = hubConfig.env().hasOwnProperty('HUB_ALPHA');",
+        'const unrelated = foo.env().HUB_OTHER;',
+        '// const ghost = hubConfig.env().HUB_GHOST;',
+        'const spread = { ...hubConfig.env() };',
+    ].join('\n');
+
+    test('named reads require a binding to config.js and preserve defaults', () => {
+        const found = scanSource(CALL_SOURCE, { configCall: true });
+        assert.deepEqual([...found.keys()], ['HUB_ALPHA', 'HUB_BETA', 'HUB_INJECTED', 'HUB_ALIAS']);
+        assert.equal(found.get('HUB_ALPHA')[0].default.value, '64');
+        assert.equal(scanSource(CALL_SOURCE).size, 0);
+    });
+
+    test('computed reads include direct and alias shapes but exclude writes', () => {
+        const source = [
+            "const hubConfig = require('../config');",
+            "const a = hubConfig.env()[coin + '_URL'];",
+            "const b = hubConfig.env()['X_' + coin];",
+            'const env = hubConfig.env();',
+            'const c = env[',
+            "    coin + '_KEY'",
+            '];',
+            'hubConfig.env()[target] = value;',
+        ].join('\n');
+        assert.deepEqual(cov.scanComputedReads(source, { configCall: true }), [2, 3, 5]);
+        assert.deepEqual(cov.scanComputedReads(source), []);
+    });
+
+    test('a call argument of any shape, nested calls and strings with parentheses included, still balances', () => {
+        const source = [
+            "const cfg = require('../config');",
+            'const a = cfg.env(selectEnv(opts)).NESTED_SETTING;',
+            'const b = cfg.env(pick(a, (b) => b.env)).DEEP_SETTING;',
+            "const c = cfg.env(label(')')).PAREN_STRING_SETTING;",
+            "const d = cfg.env(selectEnv(opts))[coin + '_NESTED_URL'];",
+            "const e = require('../../config.js').env(wrap(x)).DIRECT_NESTED;",
+            "cfg.env(selectEnv(opts))[target] = value;",
+            'const f = cfg.env(unclosed(opts.NOT_A_READ;',
+        ].join('\n');
+        assert.deepEqual([...scanSource(source, { configCall: true }).keys()],
+            ['NESTED_SETTING', 'DEEP_SETTING', 'PAREN_STRING_SETTING', 'DIRECT_NESTED']);
+        assert.deepEqual(cov.scanComputedReads(source, { configCall: true }), [5]);
+        assert.deepEqual(scanSource(source).size, 0);
+    });
+
+    test('buildSurvey enables the call accessor only for the hub', () => {
+        const source = "const cfg = require('../config');\nconst a = cfg.env().HUB_ONLY;\nconst b = cfg.env()[key];\n";
+        const serviceReader = {
+            listPaths: () => ['src/reader.js'],
+            readFiles: () => new Map([['src/reader.js', source]]),
+        };
+        const docReader = {
+            listPaths: () => ['components/hub/configuration.md'],
+            readFiles: () => new Map([['components/hub/configuration.md', 'nothing documented\n']]),
+        };
+        const survey = cov.buildSurvey({
+            platformRoot: '/fixture', docRoot: '/fixture/docs', serviceReader, docReader,
+            components: ['hub'],
+        });
+        assert.deepEqual([...survey.get('hub').vars.keys()], ['HUB_ONLY']);
+        assert.equal(survey.get('hub').computed.length, 1);
+        assert.match(cov.checkUndocumented('hub', survey.get('hub'))[0], /^HUB_ONLY \(read at src\/reader\.js:2\)/);
+    });
+});
+
 describe('checkComputedReads (the blind-spot ratchet)', () => {
     const entryWith = (n) => ({
         vars: new Map(), docLines: [], docProse: [], sourceFiles: 1,

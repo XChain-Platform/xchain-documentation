@@ -305,9 +305,9 @@ Every contract execution is bounded by hard limits:
 | Code size | 64 KB per contract |
 | Log entries | 100 per execution (1 KB each) |
 
-When `STATE_KEY_STORABLE_ACTIVATION` is active (testnet from 2026-11-17 00:00:00 UTC, regtest from genesis, and mainnet still unarmed), `state.set()` also refuses keys longer than 256 UTF-16 units or containing a code point above U+FFFF; `state.delete()` is unchanged.
+When `STATE_KEY_STORABLE_ACTIVATION` is active (testnet at the arm listed in [Flag-Day Values](../protocol/flag-days.md), regtest from genesis, and mainnet still unarmed), `state.set()` also refuses keys longer than 256 UTF-16 units or containing a code point above U+FFFF; `state.delete()` is unchanged.
 
-When `STATE_VALUE_ASTRAL_ESCAPE` is active (testnet from 2026-11-17 00:00:00 UTC, regtest from genesis, and mainnet still unarmed), the indexer stores a state value's JSON text with each character above U+FFFF, such as an emoji, written as its `\uXXXX\uXXXX` escape pair. `JSON.parse` of the stored text returns the same value, and text with no such character is stored unchanged.
+When `STATE_VALUE_ASTRAL_ESCAPE` is active (testnet at the arm listed in [Flag-Day Values](../protocol/flag-days.md), regtest from genesis, and mainnet still unarmed), the indexer stores a state value's JSON text with each character above U+FFFF, such as an emoji, written as its `\uXXXX\uXXXX` escape pair. `JSON.parse` of the stored text returns the same value, and text with no such character is stored unchanged.
 
 Gas is the primary execution bound. The wall-clock timeout exists only as a safety net for gas metering bugs; it should never trigger under normal operation.
 

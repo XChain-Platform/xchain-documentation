@@ -71,7 +71,7 @@ Context accessors (`getBlockHeight`, `getSourceAddress`, etc.), control flow (`r
 | Code size | `maxCodeSize` | 65,536 bytes | Maximum contract source code size (enforced at both deploy and execute) |
 | Block cache size | `maxBlockCacheSize` | 1,000 entries | Maximum compiled script entries cached per block |
 
-When `STATE_KEY_STORABLE_ACTIVATION` is active (testnet from 2026-11-17 00:00:00 UTC, regtest from genesis, and mainnet still unarmed), `state.set()` also refuses keys longer than 256 UTF-16 units or containing a code point above U+FFFF; `state.delete()` is unchanged.
+When `STATE_KEY_STORABLE_ACTIVATION` is active (testnet at the arm listed in [Flag-Day Values](../../protocol/flag-days.md), regtest from genesis, and mainnet still unarmed), `state.set()` also refuses keys longer than 256 UTF-16 units or containing a code point above U+FFFF; `state.delete()` is unchanged.
 
 ### Consensus Wall-Clock Budget
 

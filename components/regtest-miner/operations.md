@@ -115,7 +115,7 @@ Return the current mining loop state for operator diagnostics and CI health chec
 
 | Field | Type | Description |
 |---|---|---|
-| `wallet_ready` | boolean | `true` once `prepareWallet` has completed; gates on mine-readiness, not just server availability. It marks startup completion only and stays `true` across a reorg, even one that leaves the wallet unable to fund a send; read `wallet_funded` for that. |
+| `wallet_ready` | boolean | `true` once wallet preparation has completed; gates on mine-readiness, not just server availability. It briefly returns to `false` while a wallet recreated under the running miner receives a new mining address and matures its coinbase. It stays `true` across a reorg, even one that leaves the wallet unable to fund a send; read `wallet_funded` for that. |
 | `wallet_balance` | number or null | The wallet's spendable balance in coin units from the last `getbalance` read. `null` when no read has happened or the last read failed; neither `null` nor `0` counts as funded. |
 | `wallet_funded` | boolean | `true` only when `wallet_balance` is a number above 0. Use this, not `wallet_ready`, to learn whether the wallet can still fund a send (for example after a deep `invalidate_block`). |
 | `wallet_balance_at` | number or null | Unix timestamp in milliseconds of the last balance read attempt, successful or not; `null` before the first read |
@@ -129,7 +129,7 @@ Return the current mining loop state for operator diagnostics and CI health chec
 | `consecutive_errors` | number | Running count of consecutive RPC failures (either `getrawmempool` or `generatetoaddress`). Resets to 0 on the next successful RPC call. Useful for alerting: a non-zero value means the miner is retrying with exponential backoff. |
 | `mine_failures` | number | Consecutive failed block mines, on a streak of its own: a successful mempool read zeroes `consecutive_errors`, so that counter cannot show a miner that answers RPC but cannot generate a block. Resets on the next mined block; `health` reports it as a stall reason. |
 
-**Balance freshness.** The balance is read at startup, re-read before `invalidate_block` and `reconsider_block` return, and refreshed by the auto-mine loop at most every 5 seconds, including while mining is paused or `fill_mempool` is running. A single failed read, a node restart included, shows as `wallet_balance: null` and `wallet_funded: false` for one interval and then recovers, so re-poll once before concluding the wallet is drained. A `wallet_balance_at` well over 5 seconds old while `mining_started` is `true` means the refresh has stalled.
+**Balance freshness.** The balance is read at startup, re-read before `invalidate_block` and `reconsider_block` return, and refreshed by the auto-mine loop at most every 5 seconds, including while mining is paused or `fill_mempool` is running. A single failed read shows as `wallet_balance: null` and `wallet_funded: false`. An ordinary wallet reload recovers on the next interval; a recreated wallet also sets `wallet_ready: false` until its new mining address has matured. A `wallet_balance_at` well over 5 seconds old while `mining_started` is `true` means the refresh has stalled.
 
 ### `health`
 

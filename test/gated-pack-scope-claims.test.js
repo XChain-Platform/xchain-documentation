@@ -30,6 +30,7 @@ const readJson = (rel) => JSON.parse(readDoc(rel));
 const send   = readDoc('protocol/actions/send.md');
 const batch  = readDoc('protocol/actions/batch.md');
 const gated  = readDoc('protocol/token-gated-content.md');
+const uses   = readDoc('user-guide/use-cases.md');
 const tis    = readDoc('protocol/token-information-standard.md');
 const terms  = readDoc('getting-started/key-terms.md');
 const paper  = readDoc('whitepaper.md');
@@ -83,6 +84,20 @@ test('every statement of the handoff requirement carries the threshold exemption
         'the white paper SEND bullet states the handoff MESSAGE as always required');
     assert.match(gated, /^### Unlock thresholds \(`GATE_MIN_AMOUNT`\)$/m,
         'the unlock-threshold heading batch.md links to is gone');
+});
+
+test('per-pack thresholds define tiers and handoffs omit keys above the recipient balance', () => {
+    const nonGoal = lineStarting(gated, '- **Gating finer than a pack.**', 'token-gated-content.md');
+    assert.match(nonGoal, /Tiered access under one token is supported by publishing each tier as a separate pack/,
+        'the non-goal again denies per-pack tiers under one token');
+    assert.doesNotMatch(gated, /All gated files for a token are unlocked atomically/,
+        'the pre-threshold non-goal returned');
+    const selection = lineStarting(gated, '**Which keys the handoff carries.**', 'token-gated-content.md');
+    assert.match(selection, /leave out the key of a pack whose effective threshold that balance does not reach/,
+        'the sender rule no longer preserves keys for packs above the recipient balance');
+    const packs = lineStarting(uses, '- **Packs.**', 'user-guide/use-cases.md');
+    assert.match(packs, /at or above the pack's `GATE_MIN_AMOUNT`/,
+        'the user guide again says any token balance unlocks every pack');
 });
 
 test('the TIS and glossary group packs by publisher, GATE_TICKER and KEY_HASH', () => {

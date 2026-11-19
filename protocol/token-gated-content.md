@@ -114,6 +114,8 @@ The rule the indexer applies, in order:
 3. **A pack requires the handoff** when its effective threshold is unconditional, or when the post-send balance reaches it.
 4. **The `MESSAGE` is required if at least one pack requires it.** If every pack sits above the recipient's post-send balance, a plain `SEND` with no `MESSAGE` is valid and the recipient deliberately receives no key. They can be sent one later, or acquire more of the token and be handed the key on the transfer that crosses the threshold.
 
+**Which keys the handoff carries.** The sending wallet should include the key of every pack that requires the handoff under rule 3, measured against the same post-send balance as rule 2. It should leave out the key of a pack whose effective threshold that balance does not reach, so that key stays with the sender. The indexer checks only that the `MESSAGE` is present and cannot enforce which keys its encrypted payload contains.
+
 Before [`SEND_GATED_TOTAL_TICK_ID_ACTIVATION`](./flag-days.md) is active, the total in item 2 is summed per `DESTINATION` and literal `TICK` as written, so spelling variants are measured apart. Once the gate is active, it is summed per `DESTINATION` and resolved `TICK_ID`, so variants of one tick, for example a different letter case or the `^<tickid>` form, count together toward the threshold. The gate changes only whether the handoff is owed; it never changes which legs settle.
 
 Publishing a gated `FILE` against a token is restricted to that token's issuer, so an outsider cannot attach a pack (or a threshold) to someone else's token.
@@ -178,7 +180,7 @@ The plaintext inside every ECIES key-handoff MESSAGE is a compact binary blob:
 - **Wire size:** `1 + 32 × N` bytes for N keys. A single-key handoff is 33 bytes; the common case for any token with one gated `FILE` or one pack.
 - **No `KEY_HASH` is sent on the wire.** The recipient hashes each 32-byte candidate (`sha256(K)`) and matches against the `KEY_HASH` of whichever gated `FILE` it cares to unlock. This is the same hash check the wallet already performs as a tamper defense, doubled as the identification step.
 - **Pack support is implicit.** A pack with N files shares one `K`, which means one 32-byte entry in the handoff unlocks every file in the pack.
-- **Multi-key handoffs** (a token with multiple distinct gated `KEY_HASH`es, e.g. two unrelated packs under one ticker) carry one 32-byte entry per distinct `K`. The recipient hashes each and matches independently.
+- **Multi-key handoffs** (a token with multiple distinct gated `KEY_HASH`es, e.g. two unrelated packs under one ticker) carry one 32-byte entry per distinct `K` for the packs that require a handoff to this recipient under the [unlock threshold rules](#unlock-thresholds-gate_min_amount). The recipient hashes each and matches independently.
 - **Version byte** is `0x01`. Reserved for future format evolution, readers must reject unknown version bytes rather than guessing the layout.
 - **Transport.** The plaintext bytes are passed to ECIES (`MESSAGE` v2, method 1) **in binary mode**. No UTF-8 conversion. The on-chain `ENCRYPTED_MESSAGE` field is the ECIES ciphertext (KDF version byte `0x01` ‖ ephemeral pubkey, 33 bytes ‖ IV, 12 bytes ‖ GCM tag, 16 bytes ‖ encrypted bytes), opaque to anyone without the recipient's private key. Byte 0 selects the key-derivation version (`0x01` = HKDF-SHA256 v1; legacy v0 is sniffed as `0x02`/`0x03`); readers must reject unknown version bytes rather than guessing the layout.
 
@@ -200,7 +202,7 @@ These are the protocol-level rules the indexer enforces. See the individual acti
 
 ## Use cases
 
-- **Album drops / track packs.** Issuer mints a token, publishes a multi-file pack of FLAC stems plus liner notes PDF. Buyers of the token unlock everything atomically the moment the transfer confirms.
+- **Album drops / track packs.** Issuer mints a token, publishes a multi-file pack of FLAC stems plus liner notes PDF. A buyer unlocks the whole pack atomically when the transfer leaves their balance at or above its threshold, or on any handoff when the pack sets no threshold.
 - **Sealed bundles.** A creator can guarantee that no one has seen any file in the pack (not even the indexer operators or block explorers) until a holder unlocks. Useful for time-locked reveals, lottery / raffle distributions, surprise drops.
 - **Paid downloads.** Issuer sells the token via DISPENSER or ORDER. No payment gateway, no checkout server. Neither settlement path carries the key, so the seller follows the sale with a direct `SEND` that includes the key handoff, or sells by direct send in the first place.
 - **Holder-only resources.** Brand guidelines, board minutes, premium research: published once on-chain, accessible only to holders, durable as long as the chain exists.
@@ -211,7 +213,7 @@ These are the protocol-level rules the indexer enforces. See the individual acti
 ## Non-goals (initial release)
 
 - **Key rotation.** If a key is leaked, the only recourse is to republish the affected files under a new key. Republishing does not retire the old files: a valid gated `FILE` stays active, so an old pack with no `GATE_MIN_AMOUNT` keeps requiring the key-handoff `MESSAGE` on every later `SEND` the pack lookup matches, whatever threshold the republished pack sets.
-- **Per-file granular gating.** All gated files for a token are unlocked atomically when the holder receives the keys. If a creator wants tiered access, they should mint multiple tokens.
+- **Gating finer than a pack.** Files that share a key form one pack and unlock together, and the pack has one effective threshold: the minimum `GATE_MIN_AMOUNT` across its files. Tiered access under one token is supported by publishing each tier as a separate pack with its own key and threshold. Separate tokens remain an option when tiers need distinct gate tokens.
 - **Revocation.** Knowledge can't be ungranted. A holder who unlocks and then transfers the token still has the bytes. The chain reflects who holds it now, not who has ever read it.
 - **DRM.** A holder can rehost plaintext anywhere.
 - **Threshold or proxy re-encryption.** The initial release uses simple symmetric encryption + per-recipient ECIES envelopes. More advanced schemes are out of scope.

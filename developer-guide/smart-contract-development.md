@@ -25,7 +25,7 @@ npx xchain-contracts scaffold escrow my-escrow.js  # write a template to customi
 npx xchain-contracts lint my-escrow.js             # conservative deploy-time preflight, superset of the chain gate (Node 22)
 ```
 
-Or programmatically from the SDK (browser-safe, no Node-22 requirement):
+Or programmatically from the SDK (browser-safe, no Node-22 requirement). The SDK embeds every pattern and the subset of templates returned by `sdk.listTemplates()`; scaffold the remaining CLI-only templates with `npx xchain-contracts scaffold <name>`:
 
 ```javascript
 const source = sdk.scaffold('escrow');        // the template source, ready to edit
@@ -281,7 +281,7 @@ The VM performs the following checks before deployment. Ahead of check 1, a **ne
 
 A second pre-parse bound, the **syntax-depth pre-check**, rejects source whose syntactic depth exceeds 200, with `syntax depth exceeds limit (200) at line N`, reported under the same `nesting-depth` rule. It counts every construct the parser and the gas-metering pass recurse on, not only delimiters, so it also catches delimiter-free shapes: a long chain of `+` or `!` operators, a long ternary or `else if` chain, or a long chained assignment such as `a = b = c = ...`. The SDK linter (`sdk.validateContract`, and `sdk.deploy` with `lint: 'block'`) and the `xchain-lint` CLI enforce it by default; its activation is described under [Syntax Validation](../components/vm/operations.md#syntax-validation-deploy-time). To stay under it, split long operator or ternary chains into named intermediate values, replace a long `else if` ladder with a lookup table or early returns, and split chained assignments into separate statements.
 
-A third pre-parse bound, the **regex group-depth pre-check**, applies while `LINT_REGEX_GROUP_DEPTH_ACTIVATION` is active (testnet from 2026-11-17 00:00:00 UTC, regtest from genesis, and mainnet still unarmed). It rejects a regular expression literal whose groups nest more than 64 deep, with `regex group depth exceeds limit (64) at line N`, reported under the same `nesting-depth` rule; an escaped `(` or one inside a character class does not count. The execute-time lint applies the same bound from the same instant. To stay under it, split a deeply nested pattern into smaller patterns.
+A third pre-parse bound, the **regex group-depth pre-check**, applies while `LINT_REGEX_GROUP_DEPTH_ACTIVATION` is active (testnet at the arm listed in [Flag-Day Values](../protocol/flag-days.md), regtest from genesis, and mainnet still unarmed). It rejects a regular expression literal whose groups nest more than 64 deep, with `regex group depth exceeds limit (64) at line N`, reported under the same `nesting-depth` rule; an escaped `(` or one inside a character class does not count. The execute-time lint applies the same bound from the same instant. To stay under it, split a deeply nested pattern into smaller patterns.
 
 1. **V8 syntax check**; the code must parse as valid JavaScript
 2. **Acorn metering pass**; the code must be parseable by acorn (ES2020 maximum)

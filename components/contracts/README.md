@@ -54,7 +54,7 @@ These templates deliberately do **not** reimplement native protocol actions. XCh
 
 ## Using it from the SDK
 
-The same library is reachable from `xchain-sdk` without the Node 22 requirement, because the SDK ships only the advisory half of the linter:
+The SDK embeds every pattern and the subset of templates returned by `sdk.listTemplates()` without the Node 22 requirement, because it ships only the advisory half of the linter. The remaining templates are CLI-only through `npx xchain-contracts scaffold <name>`; `sdk.scaffold()` reports `TEMPLATE_NOT_FOUND` for them:
 
 ```js
 const source = sdk.scaffold('escrow');       // template source, ready to edit

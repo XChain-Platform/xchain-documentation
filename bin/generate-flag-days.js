@@ -882,12 +882,12 @@ function collectMainnetUnarmed(indexerSrc = INDEXER_SRC) {
 }
 
 /**
- * Registry time rows whose MAINNET slot is the literal `null`, as `{ gate }` sorted by
- * name. `null` parks an inert placeholder no operator has ratified: it is not the
- * UNARMED sentinel, so `collectMainnetUnarmed` rightly skips it and `collectGates`
- * finds no instant, and without this list such a gate leaves no trace on the page that
- * other pages send readers to for its mainnet status. A row that keys mainnet per coin
- * is not listed, because one coin may carry a real instant.
+ * Registry time rows whose MAINNET slot is `null` or the registry's `UNPINNED`
+ * alias, as `{ gate }` sorted by name. That value parks an inert placeholder no
+ * operator has ratified: it is not the UNARMED sentinel, so
+ * `collectMainnetUnarmed` rightly skips it and `collectGates` finds no instant.
+ * A row that keys mainnet per coin is not listed, because one coin may carry a
+ * real instant.
  */
 function collectMainnetUnpinned(indexerSrc = INDEXER_SRC) {
     const sources = registrySources(indexerSrc);
@@ -898,7 +898,7 @@ function collectMainnetUnpinned(indexerSrc = INDEXER_SRC) {
         const body = objectBody(sources.scannable, row.index + row[0].length - 1);
         if (body === null || /['"][A-Za-z0-9_]+:mainnet['"]\s*:/.test(body)) continue;
         const slot = BARE_MAINNET_SLOT.exec(body);
-        if (slot !== null && slot[1].trim() === 'null') found.set(row[2], { gate: row[2] });
+        if (slot !== null && /^(?:null|UNPINNED)$/.test(slot[1].trim())) found.set(row[2], { gate: row[2] });
     }
     return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
 }
