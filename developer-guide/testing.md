@@ -173,7 +173,7 @@ All XChain Platform tests use the following infrastructure:
 | **Toxiproxy** | Network fault injection for chaos tests (explorer) |
 | **Docker Compose** | Test environment orchestration (integration, chaos, E2E) |
 
-All suites require **Node 22 exactly**. Node 18 fails outright; Node 24 fails the Node ABI 127 consensus-runtime pin in `xchain-vm`, and on some suites an unsupported Node silently skips tests rather than failing, which reads as a false green.
+All suites require **Node 22 exactly**. Node 18 fails outright, and Node 24 fails the Node ABI 127 consensus-runtime pin in `xchain-vm`. The standard VM test gates load the native binding through `test/preflight.test.js` and fail when it is unavailable. Only focused VM files or scripts that omit preflight can silently skip isolate-dependent tests, so pair those selections with `npm run test:preflight`.
 
 ### Running Tests
 

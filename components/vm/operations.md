@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- **Node.js** v22 exactly: `src/consensus-runtime.js` pins the Node ABI to 127, so Node 24 fails `checkConsensusRuntime()` (below Node 22 tests silently skip rather than fail, producing false greens)
+- **Node.js** v22 exactly: `src/consensus-runtime.js` pins the Node ABI to 127, so Node 24 fails `checkConsensusRuntime()`. A missing native binding makes the standard VM test gates fail through `test/preflight.test.js`; only focused files or scripts that omit preflight can silently skip isolate-dependent tests.
 - **Native build tools** only where `isolated-vm` has no prebuilt binding (it ships them for linux x64/arm64 glibc and musl, darwin-arm64 and win32-x64) and npm falls back to a source build: `build-essential`, `python3`, `libnghttp2-dev`, `libicu-dev`, `libbrotli-dev`, `libc-ares-dev` (Debian/Ubuntu)
 - The VM is a library dependency of `xchain-indexer`; it is not run as a standalone process
 
@@ -30,7 +30,7 @@ npm run test:chaos            # chaos engineering (76 tests)
 npm run mutation              # mutation testing (Stryker)
 ```
 
-The VM maintains **1,250+ total tests** across unit, E2E, security, fuzz, chaos, boundary, regression, and smoke suites. Tests that require `isolated-vm` are automatically skipped in the standard suite if the native module is not available. The regression suite (`test/regression/`) uses a fail-loud check; it throws a fatal error instead of silently skipping, since regression tests must never pass vacuously.
+The VM maintains **1,250+ total tests** across unit, E2E, security, fuzz, chaos, boundary, regression, and smoke suites. The primary `npm test`, `ci`, and `test:all` scripts run `test/preflight.test.js`, which loads and executes `isolated-vm` without catching a binding failure. The core regression harness also fails loudly. A focused test file or a script that omits preflight, such as `test:performance`, can still skip isolate-dependent tests and report success; run `npm run test:preflight` alongside such selections.
 
 ## Integration with the Indexer
 

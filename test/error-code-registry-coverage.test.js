@@ -290,6 +290,14 @@ test('INVALID_ADDRESS docs preserve the free-text search exception', () => {
         'the explorer API page must document both market counterparty lanes');
 });
 
+test('history validation meanings stay in the REST registry', () => {
+    const section = restSection(fs.readFileSync(REGISTRY_PAGE, 'utf8'));
+    const row = (code) => section.match(new RegExp('^\\| `' + code + '` \\|.*$', 'm'))[0];
+    assert.match(row('INVALID_LIMIT'), /`POST \/\{COIN\}\/api\/history`.*1 through 100.*refused rather than clamped/);
+    assert.match(row('INVALID_RANGE'), /`since` or `until`.*`since` is later than `until`/);
+    assert.match(row('INVALID_CURSOR'), /`before`.*JSON number or decimal string.*zero is refused/);
+});
+
 test('the REST registry check fails on a dropped row or an unemitted row', { skip: noExplorer }, () => {
     const page    = fs.readFileSync(REGISTRY_PAGE, 'utf8');
     const emitted = emittedCodes();

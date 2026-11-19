@@ -183,8 +183,16 @@ function objectBody(text, open) {
 /** A `const NAME = {` activation map in a sibling module. */
 const SIBLING_MAP = /const\s+([A-Z][A-Z0-9_]*)\s*=\s*\{/g;
 
-/** A `mainnet:` threshold inside such a map, bare or keyed per coin. */
-const SIBLING_MAINNET_SLOT = /(?:^|[{,\s])(mainnet|['"][A-Z]+:mainnet['"])\s*:\s*([^,}\n]*)/g;
+/** A plain network key in any object-literal spelling JavaScript treats alike. */
+function networkKeySource(network) {
+    return `(?:${network}|'${network}'|"${network}")`;
+}
+
+/** A mainnet threshold inside such a map, plain or keyed per coin. */
+const SIBLING_MAINNET_SLOT = new RegExp(
+    `(?:^|[{,\\s])(${networkKeySource('mainnet')}|['"][A-Z]+:mainnet['"])\\s*:\\s*([^,}\\n]*)`,
+    'g',
+);
 
 /**
  * What the sibling scan makes of a `mainnet:` value: a number it read, a shape
@@ -264,11 +272,12 @@ function collectSiblingGates(indexerSrc, add) {
  */
 function collectMapSlots(body, gate, source, label, add, unreadable) {
     for (const slot of body.matchAll(SIBLING_MAINNET_SLOT)) {
+        const key = slot[1].replace(/^(['"])(.*)\1$/, '$2');
         const read = readMainnetSlot(slot[2]);
-        const where = `${label}: ${gate}.${slot[1]} = ${slot[2].trim() || '(nothing this scan can read)'}`;
+        const where = `${label}: ${gate}.${key} = ${slot[2].trim() || '(nothing this scan can read)'}`;
         if (read.kind === 'unreadable') unreadable.push(where);
         else if (read.kind !== 'number') continue;
-        else if (slot[1] === 'mainnet') add(gate, read.time, source);
+        else if (key === 'mainnet') add(gate, read.time, source);
         else if (read.time >= TIMESTAMP_FLOOR && read.time < SENTINEL_FLOOR) unreadable.push(`${where} is a block TIME, so this page would carry it`);
     }
 }
@@ -279,8 +288,10 @@ const GATE_ROW = /addGate\(\s*'([A-Za-z0-9_/]+)\.([A-Z][A-Z0-9_]*)'\s*,\s*'([a-z
 /** A whole string literal in any quoting, with no escapes or nested quotes. */
 const STRING_LITERAL = /^(['"`])([^'"`\\]*)\1$/;
 
-/** A bare `mainnet:` slot inside a table body. */
-const BARE_MAINNET_SLOT = /(?:^|[{,\s])mainnet\s*:\s*([^,}\n]*)/;
+/** A plain mainnet slot inside a table body. */
+const BARE_MAINNET_SLOT = new RegExp(
+    `(?:^|[{,\\s])${networkKeySource('mainnet')}\\s*:\\s*([^,}\\n]*)`,
+);
 
 /**
  * The first `count` top-level arguments of the call whose `(` sits at `open`, as
@@ -430,7 +441,7 @@ function resolveRowCoins(sources, body, network, where, gate) {
             throw new Error(`${where}: ${gate} keys ${network} for the coin ${m[1]}, which is not one of ${COINS.join(', ')}, so protocol/flag-days.md would drop the slot.`);
         }
     }
-    const bare = slotText(network);
+    const bare = slotText(networkKeySource(network));
     return COINS.map((coin) => {
         const own = slotText(`['"]${coin}:${network}['"]`);
         if (own !== null && !/^(?:null|UNPINNED)$/.test(own) && slotValue(sources, own, where, gate) === null) {

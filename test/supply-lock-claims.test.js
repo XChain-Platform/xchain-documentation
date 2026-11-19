@@ -41,6 +41,12 @@
  *      choose to lock them permanently"). The ISSUE lock set has no list
  *      entry, format 5 carries no lock field, and the edit rules guard no
  *      list, so the membership gate stays editable for a token's whole life.
+ *   6. XCHAIN pages called the genesis cap permanent even though genesis sets
+ *      no supply locks. Burns can reopen public-mint headroom, and the owner
+ *      paths remain open until the three separate supply locks are set.
+ *   7. The FAQ called explicit locks the only edit restriction. DECIMALS is
+ *      unchangeable while supply is positive, and the callback fields are
+ *      unchangeable while supply is distributed, without any lock flag.
  *
  * WHAT IT CHECKS. Both sides, because either one alone is a half guard:
  *
@@ -70,6 +76,7 @@ const DOC_ROOT = process.env.XCHAIN_DOCS_ROOT || path.join(__dirname, '..');
 const INDEXER  = path.resolve(path.join(__dirname, '..'), '../xchain-indexer/src');
 const GUIDE    = path.join(DOC_ROOT, 'user-guide', 'creating-tokens.md');
 const USECASES = path.join(DOC_ROOT, 'user-guide', 'use-cases.md');
+const FAQ      = path.join(DOC_ROOT, 'user-guide', 'faq.md');
 
 const readSrc = (rel) => readModuleSource(path.join(INDEXER, rel));
 const guide = fs.readFileSync(GUIDE, 'utf8');
@@ -289,4 +296,54 @@ test('the FAQ lock answer does not promise a lifetime issuance ceiling', () => {
     assert.match(answer, /outstanding/i, 'faq.md does not scope the max-supply lock to outstanding supply');
     assert.match(answer, /LOCK_MINT\b/, 'faq.md does not name LOCK_MINT, which closes public minting');
     assert.match(answer, /LOCK_MINT_SUPPLY/, 'faq.md does not name LOCK_MINT_SUPPLY, which closes the issuer path');
+});
+
+test('the source facts the XCHAIN supply wording rests on still hold', { skip: skipNoIndexer }, () => {
+    const genesis = readSrc('chain/genesis/protocol_token.js');
+    assert.match(genesis, /lockMaxSupply:\s*''/,
+        'XCHAIN genesis now locks MAX_SUPPLY; revisit the lock-dependent supply wording');
+    assert.match(genesis, /locks:\s*\{\}/,
+        'XCHAIN genesis now sets lock flags; revisit the lock-dependent supply wording');
+});
+
+test('XCHAIN supply pages describe closure as dependent on all three locks', () => {
+    const pages = [
+        ['overview.md', 'getting-started/overview.md', '## Token and economics'],
+        ['gas.md', 'concepts/gas.md', '## The XCHAIN Token'],
+        ['whitepaper.md', 'whitepaper.md', '### 13.2 The XCHAIN monetary model'],
+        ['xchain-genesis.md monetary model', 'operations/xchain-genesis.md', '## Monetary model (why)'],
+        ['xchain-genesis.md launch step', 'operations/xchain-genesis.md', '## Step 1: Open the mint (launch)'],
+    ];
+    for(const [label, rel, heading] of pages){
+        const prose = section(fs.readFileSync(path.join(DOC_ROOT, rel), 'utf8'), heading, label);
+        assert.doesNotMatch(prose, /can ever be created|only ever \*?decreases|permanent `MAX_SUPPLY`|Permanent cap/i,
+            `${label} still promises supply permanence that genesis does not enforce`);
+        for(const lock of ['LOCK_MAX_SUPPLY', 'LOCK_MINT_SUPPLY', 'LOCK_MINT']){
+            assert.match(prose, new RegExp(lock), `${label} does not name ${lock}`);
+        }
+    }
+});
+
+test('the source facts the implicit edit restrictions rest on still hold', { skip: skipNoIndexer }, () => {
+    const issue = readSrc('actions/issue.js');
+    assert.match(issue, /tokenInfo\['SUPPLY'\][\s\S]*DECIMALS \(locked\)/,
+        'ISSUE no longer refuses DECIMALS edits while current supply is positive');
+    for(const field of ['CALLBACK_BLOCK', 'CALLBACK_TICK', 'CALLBACK_AMOUNT']){
+        assert.match(issue, new RegExp(`${field} \\(supply distributed\\)`),
+            `ISSUE no longer refuses ${field} edits while supply is distributed`);
+    }
+});
+
+test('the issuer guide names state-dependent edit restrictions beyond locks', () => {
+    const faq = fs.readFileSync(FAQ, 'utf8');
+    const answer = section(faq, "### Can I change my token's settings after creation?", 'faq.md');
+    const decimals = section(guide, '### Decimals');
+    assert.ok(!answer.includes('The only settings you cannot change are ones you have explicitly locked.'),
+        'faq.md still says explicit locks are the only edit restrictions');
+    assert.match(answer, /decimals/i, 'faq.md does not name the DECIMALS restriction');
+    assert.match(answer, /callback/i, 'faq.md does not name the callback restriction');
+    assert.match(decimals, /supply/i, 'the Decimals section does not tie editability to current supply');
+    for(const field of ['DECIMALS', 'CALLBACK_BLOCK', 'CALLBACK_TICK', 'CALLBACK_AMOUNT']){
+        assert.match(lockSection, new RegExp(field), `the Locking Parameters section omits ${field}`);
+    }
 });

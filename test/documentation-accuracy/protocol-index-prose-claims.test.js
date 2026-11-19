@@ -22,6 +22,9 @@ const test = require('node:test');
 const ROOT = path.resolve(__dirname, '..', '..');
 const README = fs.readFileSync(path.join(ROOT, 'protocol/README.md'), 'utf8');
 const MANIFEST_PAGE = fs.readFileSync(path.join(ROOT, 'protocol/action-manifest.md'), 'utf8');
+const TIS_PAGE = fs.readFileSync(path.join(ROOT, 'protocol/token-information-standard.md'), 'utf8');
+const TIS_SCHEMA = require(path.join(ROOT,
+    'protocol/json/token-information-standard-v1.1.2-schema.json'));
 const CONSTANTS_SOURCE = fs.readFileSync(path.join(ROOT, 'protocol/constants.js'), 'utf8');
 const CONSTANTS = require(path.join(ROOT, 'protocol/constants.js'));
 
@@ -44,6 +47,17 @@ function assertIdentityDirection(markdown) {
     assert.ok(definition >= 0, 'IDENTITY definition is missing');
     assert.ok(reference > definition, 'IDENTITY cross-reference must point above to its definition');
     assert.doesNotMatch(markdown, /IDENTITY assertion below/);
+}
+
+function assertTisUntypedFields(markdown, schema) {
+    const size = markdown.split('\n').find((line) => line.startsWith('| size '));
+    const type = markdown.split('\n').find((line) => line.startsWith('| type '));
+    assert.match(size || '', /^\| size\s+\| Any\s+\|/);
+    assert.match(size, /v1\.1\.2 does not constrain its JSON type/);
+    assert.match(type || '', /^\| type\s+\| String \/ Any\s+\|/);
+    assert.match(type, /For `files`, published schema v1\.1\.2 does not constrain the JSON type/);
+    assert.equal(Object.hasOwn(schema.definitions.images.properties.size, 'type'), false);
+    assert.equal(Object.hasOwn(schema.definitions.files.properties.type, 'type'), false);
 }
 
 function activationBlock(source, name) {
@@ -74,6 +88,15 @@ test('the JSON Schemas row describes the files in protocol/json', () => {
 
 test('the action-manifest IDENTITY cross-reference points to the definition above', () => {
     assertIdentityDirection(MANIFEST_PAGE);
+});
+
+test('the TIS field table discloses the two types v1.1.2 does not constrain', () => {
+    assertTisUntypedFields(TIS_PAGE, TIS_SCHEMA);
+    const tightened = structuredClone(TIS_SCHEMA);
+    tightened.definitions.images.properties.size.type = 'string';
+    assert.throws(() => assertTisUntypedFields(TIS_PAGE, tightened));
+    assert.throws(() => assertTisUntypedFields(
+        TIS_PAGE.replace(/\| size\s+\| Any\s+\|/, '| size        | String  |'), TIS_SCHEMA));
 });
 
 test('per-chain checkpoint and archive heights are described as armed', () => {

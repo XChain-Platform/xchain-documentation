@@ -126,6 +126,12 @@ const SCOPED = [
   { file: 'components/e2e-test/architecture.md', claim: '141 action', count: 1,
     why: 'test files at every depth, several per action; the recursive mocha glob and git ls-files '
        + 'xchain-e2e-test/test/actions both count the committed tree on 2026-11-18' },
+  { file: 'components/e2e-test/README.md', claim: '33 ACTION', count: 1,
+    why: 'ACTION names some test/actions suite builds a payload for, not the ACTION set; recounted by '
+       + 'xchain-e2e-test bin/count-action-suites.js and pinned to the tree by its '
+       + 'test/unit/scripts/action_suite_count.test.js' },
+  { file: 'components/e2e-test/architecture.md', claim: '33 ACTION names', count: 1,
+    why: 'the same e2e coverage figure as the README bullet, recounted by the same script' },
   { file: 'components/indexer/architecture.md', claim: '50 action', count: 1,
     why: 'handler classes, not the ACTION set: xchain-indexer src/actions/actions_class/handler_wiring.js '
        + 'builds 50 (`new <handler>(...)`), counted on 2026-10-14 after ROLLCALL and XBRIDGE landed' },

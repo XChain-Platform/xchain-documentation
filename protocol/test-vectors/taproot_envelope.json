@@ -105,11 +105,68 @@
     "requires": "SIGHASH_ALL on all commit inputs (§3.5); commit-RBF replacements MUST preserve ins[0]"
   },
   "commit_fee_output_placement": {
-    "description": "Spec §3.5: native fee-destination outputs ride the COMMIT transaction, mirroring the funding transaction's role in the chunk lanes; the decoder's funding-fee resolver (findFundingFeeOutputs / FUNDING_VOUT_BASE) extends to the commit.",
+    "description": "Spec §3.5: encoders place native fee-destination outputs on the COMMIT transaction. Validation uses every fee-destination output persisted for the reveal action, including outputs on the reveal itself and attributed commit outputs, just as it does for the chunk lanes.",
     "commit_vout_0": "the envelope P2TR output (by construction in the shipped encoder)",
-    "fee_destination_outputs": "vout >= 1 on the commit",
-    "fee_evaluation_height": "the requirement in force at the REVEAL's block height, using the outputs recorded on the commit",
-    "reveal_outputs": "never consulted for protocol-fee sufficiency"
+    "encoder_fee_destination_outputs": "vout >= 1 on the commit",
+    "fee_evaluation_height": "the requirement in force at the REVEAL's block height",
+    "stored_vout_rule": "reveal outputs keep their on-chain vout; attributed commit outputs use 1000000 + their on-chain vout",
+    "selection_rule": "sort by stored vout and select the first fee-destination output; a reveal fee output therefore takes precedence over every commit fee output",
+    "validation_rule": "only the selected output is checked against the fee tolerance band; a selected output outside the band makes the fee invalid even if a later output would pass",
+    "vectors": [
+      {
+        "name": "commit_only_fee",
+        "outputs": [
+          { "tx": "commit", "vout": 0, "role": "other", "value_ratio": 1.00 },
+          { "tx": "commit", "vout": 1, "role": "fee_destination", "value_ratio": 1.00 }
+        ],
+        "expected_selected": { "tx": "commit", "vout": 1 },
+        "expected_fee_outcome": "valid"
+      },
+      {
+        "name": "reveal_only_fee",
+        "outputs": [
+          { "tx": "reveal", "vout": 1, "role": "fee_destination", "value_ratio": 1.00 }
+        ],
+        "expected_selected": { "tx": "reveal", "vout": 1 },
+        "expected_fee_outcome": "valid"
+      },
+      {
+        "name": "reveal_precedes_commit",
+        "outputs": [
+          { "tx": "reveal", "vout": 1, "role": "fee_destination", "value_ratio": 1.05 },
+          { "tx": "commit", "vout": 1, "role": "fee_destination", "value_ratio": 1.00 }
+        ],
+        "expected_selected": { "tx": "reveal", "vout": 1 },
+        "expected_fee_outcome": "valid"
+      },
+      {
+        "name": "reveal_out_of_tolerance_overrides_valid_commit",
+        "outputs": [
+          { "tx": "reveal", "vout": 1, "role": "fee_destination", "value_ratio": 0.50 },
+          { "tx": "commit", "vout": 1, "role": "fee_destination", "value_ratio": 1.00 }
+        ],
+        "expected_selected": { "tx": "reveal", "vout": 1 },
+        "expected_fee_outcome": "invalid"
+      },
+      {
+        "name": "multiple_commit_fee_outputs",
+        "outputs": [
+          { "tx": "commit", "vout": 2, "role": "fee_destination", "value_ratio": 1.05 },
+          { "tx": "commit", "vout": 1, "role": "fee_destination", "value_ratio": 1.00 }
+        ],
+        "expected_selected": { "tx": "commit", "vout": 1 },
+        "expected_fee_outcome": "valid"
+      },
+      {
+        "name": "no_fee_output",
+        "outputs": [
+          { "tx": "reveal", "vout": 1, "role": "other", "value_ratio": 1.00 },
+          { "tx": "commit", "vout": 1, "role": "other", "value_ratio": 1.00 }
+        ],
+        "expected_selected": null,
+        "expected_fee_outcome": "invalid"
+      }
+    ]
   },
   "deflate_raw_pair": {
     "description": "Part B golden pair. Compression is presentational, never consensus: only INFLATION must be reproduced. deflated_hex is one valid encoding (Node zlib.deflateRawSync, default level), pinned for reader regression tests; encoders MAY produce different bytes for the same raw input.",

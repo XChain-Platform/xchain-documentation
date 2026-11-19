@@ -47,9 +47,9 @@ Reinforcing these: token-gated encrypted content that unlocks client-side with n
 
 The gas token, **XCHAIN**, is conservative by design:
 
-- **Fixed, hard-capped supply, zero pre-mint**: the cap is 100,000,000 (8 decimals), set at genesis, but supply starts at zero and every unit is minted, either as a pinned genesis distribution credit or by a public mint. Once the open mint is exhausted, no further XCHAIN can ever be created, by anyone, and supply only *decreases* afterward through a deflationary fee burn.
-- **No inflation**: validator rewards are paid from a pre-funded pool, never minted.
-- **Demand** comes from fee payment and staking lockup against that fixed cap.
+- **Genesis cap, zero pre-mint**: the initial `MAX_SUPPLY` is 100,000,000 (8 decimals), but supply starts at zero. Genesis sets no supply locks, so the cap limits how much can exist at one time but is still editable, burns reopen mint headroom, and the GAS owner can still issue `MINT_SUPPLY`. The launch plan becomes permanent only after `LOCK_MAX_SUPPLY` freezes the cap, `LOCK_MINT_SUPPLY` closes owner issuance, and `LOCK_MINT` closes the public mint after its allocation is exhausted. Once all three locks are set, fee burns can only lower supply.
+- **Rewards are paid, not minted**: validator rewards come from a pre-funded pool.
+- **Demand** comes from fee payment and staking lockup.
 
 The genesis distribution honors the communities that pioneered Bitcoin-native tokens: a snapshot reserving tick-name ownership for prior holders, plus a 30% airdrop to those same Counterparty and Dogeparty holders. The rest of the cap is 25% open mint, 20% treasury, 10% market and liquidity, 9.7% independent validators and 5.3% pre-funded validator reward pool, with **0% to the team**. No ICO, no pre-mint, no insider faucet; the open-mint leg is first-come at 1,000 XCHAIN per mint, capped at 1,000 XCHAIN per address, with no closing date. Full figures and the snapshot pins are in the [white paper](../whitepaper.md#133-genesis-and-fair-launch).
 

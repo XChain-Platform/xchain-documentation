@@ -11,7 +11,7 @@ It is available on **Bitcoin and Litecoin**. Dogecoin has no SegWit and therefor
 
 Two transactions, mirroring the fund/reveal pattern the chunk lanes already use:
 
-1. **Commit.** One P2TR output whose script tree contains the envelope as a tapscript leaf, with an internal key owned by the sender. The shipped encoder builds a single-leaf tree, but other leaves may share the tree and do not affect recognition. Any native fee-destination outputs ride this transaction.
+1. **Commit.** One P2TR output whose script tree contains the envelope as a tapscript leaf, with an internal key owned by the sender. The shipped encoder builds a single-leaf tree, but other leaves may share the tree and do not affect recognition. Encoders SHOULD place any native fee-destination outputs on this transaction.
 2. **Reveal.** Spends that output through the script path, exposing the envelope in the witness. **The reveal is the transaction the action belongs to**: its block and txid are the action's identity, exactly as a chunk-lane action is identified by its reveal.
 
 An unrevealed commit is not an action. It is an ordinary P2TR output, indistinguishable from any other until it is spent.
@@ -96,7 +96,11 @@ Commit inputs are signed `SIGHASH_ALL`, and the commit's input 0 is preserved ac
 
 The commit output prefunds the reveal's fee. If rates move between the two, the reveal is re-signed under RBF; CPFP from the reveal's change output remains possible externally.
 
-Fee sufficiency is evaluated against **the requirement in force at the reveal's block height**, using the outputs recorded on the commit. A commit that sits unrevealed while oracle-priced rates rise can therefore go stale; the recovery is to cancel and recommit.
+Fee sufficiency is evaluated against **the requirement in force at the reveal's block height**. The decoder persists fee-destination outputs from the reveal at their on-chain `vout` and attributes commit fee outputs at `1000000 + vout`. The indexer sorts those outputs by the stored `vout`, selects the first matching fee-destination output, and checks only that output against the tolerance band. A reveal fee output therefore takes precedence over every commit fee output. If it is outside the tolerance band, the fee fails even when a later commit output would pass. The same selection rule applies to funding outputs attributed to the P2SH and P2WSH chunk lanes.
+
+Wallets MUST NOT add a fee-destination output to the reveal. It overrides the commit fee output and can make an otherwise sufficient fee fail. Restricting evaluation to commit outputs would change the live fee-validation rule and requires its own coordinated activation height.
+
+A commit that sits unrevealed while oracle-priced rates rise can therefore go stale; the recovery is to cancel and recommit.
 
 **Cancel requires persisted state.** The key-path spend that recovers an unrevealed commit needs the internal key *and* the tapleaf hash to reconstruct the BIP341 tweak. Lose the leaf and the funds sit in an address the wallet cannot re-derive. Before broadcasting a commit, a wallet MUST durably persist:
 

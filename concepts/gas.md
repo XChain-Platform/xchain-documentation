@@ -139,13 +139,13 @@ The accepted set is `{0, 1, 2}`, following the indexer's `validValues` for the f
 
 XCHAIN is a standard XChain token issued via ISSUE on the **BTC chain only**; it is never natively issued on LTC or DOGE, and the ticker is reserved (case-folded) on all chains to prevent unauthorized issuance. The [token bridge](./token-bridge.md) gives XCHAIN a real, provably-backed **shadow balance** on LTC and DOGE (lock on BTC into a protocol-owned escrow, mint a matching amount on the other chain), so XCHAIN can be held and spent there today, but supply, the mint cap and the price reference all still live on BTC alone; a foreign chain's supply is a shadow of the BTC escrow, never a second, independent mint, and XCHAIN-balance fee payment on LTC/DOGE (as opposed to native-coin fee payment, which works everywhere) is a later milestone. See [Cross-Chain Bridge](../protocol/xchain-bridge.md) for the full mechanism.
 
-**Fixed supply, zero pre-mint.** XCHAIN has a permanent `MAX_SUPPLY` cap of 100,000,000 (8 decimals) set at genesis, but supply starts at zero: the genesis `ISSUE` carries no `MINT_SUPPLY`. Every unit is minted, either as a pinned genesis distribution credit or by a public mint, up to the cap; once the open mint is exhausted, no further XCHAIN can ever be created, by anyone, including the issuing address. Supply only ever decreases after that, via the burn bucket above. The genesis allocation itself is in the [white paper](../whitepaper.md#133-genesis-and-fair-launch).
+**Genesis cap, zero pre-mint.** XCHAIN starts with `MAX_SUPPLY` set to 100,000,000 (8 decimals), but the genesis `ISSUE` carries no `MINT_SUPPLY`, so supply starts at zero. The cap limits supply outstanding at one time. Genesis sets no supply locks: until they are set, burns reopen room that public `MINT`s can refill, and the GAS owner can change the cap or issue `MINT_SUPPLY`. The launch plan becomes permanent only after `LOCK_MAX_SUPPLY` freezes the cap, `LOCK_MINT_SUPPLY` closes owner issuance, and `LOCK_MINT` closes public minting after the open-mint allocation is exhausted. Once all three locks are visible on the token record, fee burns can only lower supply. The genesis allocation itself is in the [white paper](../whitepaper.md#133-genesis-and-fair-launch).
 
 **Validator rewards** are paid from a dedicated, pre-funded **reward pool address**. Never by minting. The pool is seeded by the operator after the mint window opens (Step 2 of the [XCHAIN Genesis](../operations/xchain-genesis.md) runbook, since supply is zero at genesis) and topped up manually over time. When the pool cannot cover a pending reward, the `COLLECT` is rejected and the reward stays claimable until the pool is replenished (see [COLLECT](../protocol/actions/collect.md)).
 
 XCHAIN's value is driven by:
 - **Staking demand**: validators must stake XCHAIN to qualify for capabilities, from 500 for `oracle_publish` up to 5,000 for `cross_chain` (see [capability stake floors](../getting-started/running-a-validator.md#capabilities-and-their-stake-floors))
-- **Fixed, capped supply**: no inflation; rewards are paid from a finite pool, and the burn bucket is deflationary
+- **Planned locked supply**: the launch plan closes both minting paths and freezes the cap with the three locks above; rewards are paid from a finite pool, and the burn bucket is deflationary after those locks are set
 
 ## Oracle Price Validation
 
@@ -182,6 +182,10 @@ native-coin fee output on the commit (first) transaction. The commit is never mi
 (the reveal spends it, so the commit sits in an earlier block or earlier in the same block), so the
 fee is fully received before the action is processed; the decoder
 attributes the commit's fee output to the reveal action.
+
+Do not add a fee-destination output to the reveal. The decoder records it at its on-chain
+output index, before attributed commit outputs, so it is selected instead of the commit fee
+and can make an otherwise sufficient fee fail.
 
 ### Client pre-validation (sizing the fee + refusing doomed transactions)
 

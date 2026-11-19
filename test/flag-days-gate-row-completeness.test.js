@@ -41,7 +41,10 @@ function fixtureRegistry(body) {
     return dir;
 }
 
-const COLLECTORS = ['collectGates', 'collectTestnetArms', 'collectTestnetUnarmed', 'collectMainnetUnarmed'];
+const COLLECTORS = [
+    'collectGates', 'collectTestnetArms', 'collectTestnetUnarmed',
+    'collectMainnetUnarmed', 'collectMainnetUnpinned',
+];
 
 // Asserts every collector refuses the fixture and names the offending gate.
 function assertRefusedEverywhere(body, name) {
@@ -56,6 +59,60 @@ test('a canonical addGate time row is collected', () => {
         "addGate('foo_activation.FOO_ACTIVATION', 'time', { mainnet: 1786060800, testnet: 0, regtest: 0 });\n",
     );
     assert.deepStrictEqual(gen.collectGates(dir).map((g) => [g.gate, g.time]), [['FOO_ACTIVATION', 1786060800]]);
+});
+
+test('quoted mainnet keys collect the same time as a bare key', () => {
+    for (const quote of ["'", '"']) {
+        const dir = fixtureRegistry(
+            `addGate('foo_activation.FOO_ACTIVATION', 'time', { ${quote}mainnet${quote}: 1786060800, testnet: 0 });\n`,
+        );
+        assert.deepStrictEqual(
+            gen.collectGates(dir).map((g) => [g.gate, g.time]),
+            [['FOO_ACTIVATION', 1786060800]],
+        );
+    }
+});
+
+test('quoted network keys are read by both UNARMED collectors', () => {
+    for (const quote of ["'", '"']) {
+        const dir = fixtureRegistry(
+            `addGate('foo_activation.FOO_ACTIVATION', 'time', { ${quote}mainnet${quote}: UNARMED, `
+            + `${quote}testnet${quote}: UNARMED });\n`,
+        );
+        assert.deepStrictEqual(gen.collectMainnetUnarmed(dir).map((g) => g.gate), ['FOO_ACTIVATION']);
+        assert.deepStrictEqual(gen.collectTestnetUnarmed(dir).map((g) => g.gate), ['FOO_ACTIVATION']);
+    }
+});
+
+test('quoted testnet keys are read by the testnet arm collector', () => {
+    for (const quote of ["'", '"']) {
+        const dir = fixtureRegistry(
+            `addGate('foo_activation.FOO_ACTIVATION', 'time', { mainnet: 1786060800, `
+            + `${quote}testnet${quote}: 1791804379 });\n`,
+        );
+        assert.deepStrictEqual(
+            gen.collectTestnetArms(dir).map((g) => [g.gate, g.time]),
+            [['FOO_ACTIVATION', 1791804379]],
+        );
+    }
+});
+
+test('quoted mainnet keys are read by the unpinned collector', () => {
+    for (const quote of ["'", '"']) {
+        const dir = fixtureRegistry(
+            `addGate('foo_activation.FOO_ACTIVATION', 'time', { ${quote}mainnet${quote}: UNPINNED, testnet: 0 });\n`,
+        );
+        assert.deepStrictEqual(gen.collectMainnetUnpinned(dir).map((g) => g.gate), ['FOO_ACTIVATION']);
+    }
+});
+
+test('a const unit with a quoted mainnet key is refused', () => {
+    for (const quote of ["'", '"']) {
+        assertRefusedEverywhere(
+            `const U = 'time';\naddGate('foo_activation.Q_ACTIVATION', U, { ${quote}mainnet${quote}: 1786060800 });\n`,
+            'Q_ACTIVATION',
+        );
+    }
 });
 
 test('an addGate mainnet slot reads separators the way an addChange time slot does', () => {
