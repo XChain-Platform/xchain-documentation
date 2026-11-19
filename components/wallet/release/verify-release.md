@@ -66,9 +66,11 @@ The design calls for a second, independent channel on a different host with a di
 
 If a document says "the release key" without saying which one, take the fingerprint as the answer rather than the name.
 
-**Two signed XChain Wallet releases exist, and each one covers part of the platform rather than all of it.** `v0.336.0`, published 2026-08-06, covers Android: the `.apk` is at `https://downloads.xchain.io/wallet/android/`. `v0.338.0`, published 2026-08-11, covers macOS and Linux: the `.dmg`, `-mac.zip`, `.AppImage` and `.deb` files, both architectures of each, are at `https://downloads.xchain.io/wallet/desktop/`. Each release's manifest is at `https://downloads.xchain.io/wallet/RELEASE_HASHES/<tag>.txt` with its signature beside it, and each says in its own signed header that its coverage is partial and names the lanes it covers, so read the note the verify step prints about partial manifests: an artifact missing from one is not evidence the release omitted it.
+**Three signed XChain Wallet releases have been published.** `v0.341.2`, published 2026-10-07, is the current one and covers the whole release: the Windows installers and the macOS and Linux builds under `https://downloads.xchain.io/wallet/desktop/`, the Android `.apk` under `android/`, the extension archive under `extension/` and the web bundle under `web/`. Its manifest carries no `coverage` line. The two before it each cover part of the platform: `v0.336.0`, published 2026-08-06, covers Android, and `v0.338.0`, published 2026-08-11, covers macOS and Linux. Each of those says in its own signed header that its coverage is partial and names the lanes it covers, so read the note the verify step prints about partial manifests: an artifact missing from one is not evidence the release omitted it.
 
-**No Windows, extension or iOS artifact has been published**, so a file offered to you as one of those is not a release of ours. Read that list as the current state rather than as a permanent one; the manifests are the standing answer, because a genuine artifact is named in a K1-signed manifest and nothing else is.
+Each release's manifest is at `https://downloads.xchain.io/wallet/RELEASE_HASHES/<tag>.txt` with its signature beside it. That folder is listable on purpose, so it is also where to check which releases exist: a version tagged in the wallet repository is not a published release until its manifest appears there.
+
+**No iOS artifact has been published**, so a file offered to you as one is not a release of ours. Read that as the current state rather than as a permanent one; the manifests are the standing answer, because a genuine artifact is named in a K1-signed manifest and nothing else is.
 
 ---
 
@@ -110,12 +112,12 @@ curl -fsSL -o RELEASE_HASHES.txt.asc "${BASE}/RELEASE_HASHES/${TAG}.txt.asc"
 curl -fsSLO --path-as-is "${BASE}/desktop/<artifact-filename>"
 ```
 
-Use the artifact filename appropriate for your platform. Desktop installers are under `desktop/`, the web tarball under `web/`, and the extension zip under `extension/`.
+Use the artifact filename appropriate for your platform. Desktop installers are under `desktop/`, the Android `.apk` under `android/`, the web tarball under `web/`, and the extension zip under `extension/`.
 
 Desktop artifact names carry the version and the architecture, and nothing needs escaping in them:
 
 ```bash
-curl -fsSLO "${BASE}/desktop/xchain-wallet-0.338.0-arm64.dmg"
+curl -fsSLO "${BASE}/desktop/xchain-wallet-0.341.2-arm64.dmg"
 ```
 
 Take the exact filename from the manifest rather than from an example on this page. The manifest is generated from the release, so it cannot drift from what was actually published, and an example can.
@@ -242,7 +244,7 @@ Cross-platform reproduction is not yet wired. Until that lands, the per-platform
 
 Both bundles have reproduce scripts: run `packages/extension/scripts/reproduce.sh <tag> <out-dir>` or `packages/web/scripts/reproduce.sh <tag> <out-dir>`, with the matching `pnpm --filter ... reproduce` command as an alternative. Each script checks out the tag in an isolated worktree, builds it in the digest-pinned container, and prints a SHA-256 manifest. See the Extension and Web verification protocols in [Reproducible Builds](../reproducible-builds.md) for prerequisites and comparison steps.
 
-The hosted web tarball is named in its signed release manifest. The extension lane has not shipped, so it has no published per-release reference manifest yet; until its first release, an independent rebuild can only be compared at content level with an unpacked bundle, and a store-repacked package will not hash-match. Delivery is protected by the extension store's signature and by the web build's SRI attributes.
+The hosted web tarball, and from `v0.341.2` on the extension archive, are named in their release's signed manifest, so a copy taken from downloads.xchain.io is checked exactly like a desktop installer in steps 3 and 4. An independent rebuild is compared at content level with an unpacked bundle, as the protocols in [Reproducible Builds](../reproducible-builds.md) describe, and a store-repacked extension will not hash-match our manifest. Delivery from a store is protected by that store's signature, and the hosted web wallet by its SRI attributes.
 
 ---
 

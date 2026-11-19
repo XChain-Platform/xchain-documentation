@@ -114,7 +114,7 @@ The other limits are explicit: a bare `MULTISIGN` carrier is recognized by outpu
 
 ## Audit posture
 
-The wallet is pre-v1.0 GA at `0.341.3`. External security and accessibility audits, plus Chrome Web Store submission, remain user-driven release items before v1.0.0 GA. Audit-readiness material ships in the wallet repository.
+The wallet is pre-v1.0 GA at `0.343.0`. External security and accessibility audits, plus Chrome Web Store submission, remain user-driven release items before v1.0.0 GA. Audit-readiness material ships in the wallet repository.
 
 The security audit scope includes vault and KDF code, unlocked-session secrets, software and hardware signers, the single-encode confirmation checks, dApp permissions and approvals, and shell trust boundaries. The accessibility target is WCAG 2.2 AA across keyboard, screen-reader, contrast, motion, forced-colors, touch-target, zoom, and reflow behavior.
 

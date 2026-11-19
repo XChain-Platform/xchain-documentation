@@ -3,7 +3,7 @@
 
 # Desktop: Windows
 
-**Status: not shipped.** No Windows build has been published yet. Any file offered as a Windows release of XChain Wallet is not ours; see [Verify a release](../verify-release.md). This page describes the lane planned for its first release.
+**Status: not shipped as a declared lane, but published.** The `windows` lane still reads `NOT-SHIPPED` in `tools/release/shipped-lanes.txt`, so no release is required to carry it. Even so, `v0.341.2` published code-signed Windows installers to `downloads.xchain.io` on 2026-10-07, they are named in that release's signed manifest, and the desktop update feed serves them. A Windows file that a signed manifest names is ours; anything else offered as a Windows release of XChain Wallet is not, see [Verify a release](../verify-release.md). The Microsoft Store listing is not live yet.
 
 The Windows desktop build is designed to ship two artifacts from the same source tree, one installable and one portable, for both `x64` and `arm64`.
 
@@ -14,7 +14,7 @@ The Windows desktop build is designed to ship two artifacts from the same source
 | NSIS installer (`.exe`) | A guided installer. Not one-click: the user can change the install directory. Installs per-user, not per-machine, and does not delete app data on uninstall. |
 | Portable zip (`.zip`) | A zip archive of the app, for running without installing. |
 
-Windows will ship **two separate installers, one per architecture**, rather than a single combined installer covering both. Each artifact's filename carries its architecture, so a download will state which one it is.
+Windows ships **two separate installers, one per architecture**, rather than a single combined installer covering both. Each artifact's filename carries its architecture, so a download will state which one it is.
 
 ## How it's built
 

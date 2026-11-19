@@ -76,7 +76,7 @@ Its direct external runtime dependencies match the extension's: `@ledgerhq/hw-ap
 
 ## Desktop shell
 
-The Electron shell is built for Windows, macOS, and Linux. The macOS and Linux builds have shipped; the Windows build has not been published yet. The packaged application embeds Electron, uses the shared React renderer, and reuses the extension background host in its main process.
+The Electron shell is built for Windows, macOS, and Linux. The Windows, macOS and Linux builds are all published as direct downloads, Windows since `v0.341.2`. The packaged application embeds Electron, uses the shared React renderer, and reuses the extension background host in its main process.
 
 ### `electron-updater`
 
@@ -172,7 +172,7 @@ Native mobile declarations use their platform lock and build files rather than `
 | iOS deployment target | `16` |
 | Vendored Argon2 reference implementation | tag `20190702`, commit `62358ba2123abd17fccf2a108a301d4b52c01a7c` |
 
-Internal workspace links use `workspace:*`; the shipped private workspaces are versioned `0.341.3`. The committed lockfile resolves those links to their sibling workspace directories.
+Internal workspace links use `workspace:*`; the shipped private workspaces are versioned `0.343.0`. The committed lockfile resolves those links to their sibling workspace directories.
 
 ---
 

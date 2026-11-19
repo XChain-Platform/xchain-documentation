@@ -158,7 +158,7 @@ Every package under `packages/` ships at the **same version**. The private `test
 
 ## Status
 
-Pre-v1.0 (`0.341.3`). All four implementation phases, Phase 1 (framework), Phase 2 (issuance + hardware), Phase 3 (DEX + messaging), and Phase 4 (contracts + staking + cross-chain + multisig), are closed. The autonomous portion of the §56.3 pre-launch track is also closed; three user-driven items remain before v1.0.0 GA: external security audit, external accessibility audit, and Chrome Web Store submission. Audit-readiness packets ship with the repo.
+Pre-v1.0 (`0.343.0`). All four implementation phases, Phase 1 (framework), Phase 2 (issuance + hardware), Phase 3 (DEX + messaging), and Phase 4 (contracts + staking + cross-chain + multisig), are closed. The autonomous portion of the §56.3 pre-launch track is also closed; three user-driven items remain before v1.0.0 GA: external security audit, external accessibility audit, and Chrome Web Store submission. Audit-readiness packets ship with the repo.
 
 ## Scripts
 
