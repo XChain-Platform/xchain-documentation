@@ -929,6 +929,7 @@ Response to client `ping`.
 | `COIN_DATA_STALE` | The coin's indexed tip is older than its maximum age and the server is set to fail closed, so the snapshot or catch-up is refused rather than served as current |
 | `SNAPSHOT_QUEUE_FULL` | A snapshot fan-out is already running and this client's pending-snapshot queue (capped at its subscription limit) is full; retry the subscribe with `snapshot: true` once it completes |
 | `INTERNAL_ERROR` | The server threw while handling the message; the request `id` is echoed |
+| `SNAPSHOT_OVERTAKEN` | Live updates for the subscribed entity kept arriving while its snapshot was being read, so no snapshot frame is sent; the live frames already delivered describe its current state |
 
 An unsupported coin prefix in the connection URL never reaches this table: the upgrade itself is
 refused with HTTP 400, so no WebSocket and no `error` frame exist.
