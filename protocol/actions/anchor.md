@@ -858,7 +858,9 @@ backlog more slowly.
 **`ANCHOR_ELECTION_TOLERANCE_BLOCKS` (36).** The unit is BTC *blocks*, not wall clock, precisely
 so every hub computes the same rank unlock without clock synchronisation. 36 BTC blocks is about
 6 hours at the 10-minute target, so each failover rank waits about 6 hours of elected-publisher
-silence. The ordering is the load-bearing property:
+silence. Because leaders and followers both recompute this verdict, the override is honoured on
+regtest only; mainnet, testnet and standalone use the fleet-canonical 36. The ordering is the
+load-bearing property:
 
 ```
 signing round (120s) + DOGE burial (60 confs, ~1h)  <<  36 blocks (~6h)  <<  ANCHOR_INTERVAL_MS (24h)
@@ -870,9 +872,9 @@ confirmation wait in the `XANC_BUNDLE_DONE` path well inside a single rank. The 
 means ranks 1 to 3 unlock at about 6, 12 and 18 hours, so up to three backups still get a slot
 inside one publishing cycle and a dead rank 0 cannot cost a whole day of anchoring. Anything in
 roughly 6 to 144 blocks (1 to 24 hours) preserves both bounds: below the DOGE burial window the
-ladder burns DOGE on duplicate anchors, above about 144 a dead leader stalls a cycle. Neither
-direction is a divergence risk, because concurrently unlocked publishers build byte-identical
-archives; the cost of getting it wrong is DOGE or delay, never a fork. The same value bounds how
+ladder burns DOGE on duplicate anchors, above about 144 a dead leader stalls a cycle. Concurrently
+unlocked publishers build byte-identical archives, but hubs using different tolerances disagree
+on whether a sender is unlocked and can lose co-signing liveness. The same value bounds how
 far a peer's claimed election block may sit from the receiver's own BTC tip when co-signing,
 which is anti-spam only.
 

@@ -482,6 +482,7 @@ xchain.contract.slash(pubkey, 'XCHAIN', '50');
 - Slashed tokens go to the destination locked at deploy time.
 - The slash reaches active stakes first; if there's a remainder, it pulls from any cooldown-queued balance the staker has already begun withdrawing. (Stakers can't escape an imminent slash by unstaking.)
 - Over-slash is silently capped at the staker's available balance. Asking for more than the available balance does not throw, but malformed arguments do; see [Throws and argument validation](../protocol/contract-staking.md#throws-and-argument-validation).
+- Where `SLASH_GRID_ACTIVATION` is active, the amount is floored to the token's decimals. A request below one base unit deducts nothing and writes no `slash_events` row; see [Amount precision and flooring](../protocol/contract-staking.md#amount-precision-and-flooring).
 - Atomic with the calling EXECUTE: if the method reverts after the slash, the slash rolls back too.
 
 ### What This Enables
@@ -518,7 +519,7 @@ Deployed contracts are **immutable** in API version 1. There is no mechanism to 
 
 **Programmable token logic:**
 - **Conditional logic**: "Execute this SEND only if the caller holds at least 1000 of token X"
-- **Token vesting**: Automatically release tokens on a schedule based on block height
+- **Token vesting**: Unlock tokens on a schedule based on block height; the beneficiary claims the vested amount with an EXECUTE call
 - **Automated market makers**: Continuous-pricing liquidity pools using constant-product formulas
 - **Multi-condition escrow**: Release funds when multiple conditions are met
 - **Governance (DAOs)**: Token-weighted voting with on-chain proposal and execution

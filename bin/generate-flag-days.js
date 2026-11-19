@@ -133,15 +133,13 @@ const withoutComments = stripComments;
 /**
  * The mainnet_time argument of a call, when it is a literal this page covers.
  *
- * Returns null for anything else: a literal outside the time-keyed window, an
- * identifier, or a call shape with too few arguments. Null means "not a row
- * this page would have carried", which is what makes the check below quiet
- * about declarations that were never its business.
+ * A registry constant is resolved when supplied. Returns null for any value
+ * outside the time-keyed window or a call shape with too few arguments.
  *
  * `open` is the index of the `(` of a call or the `[` of an array row; the
  * arguments are read the same way from either.
  */
-function mainnetTimeLiteral(text, open) {
+function mainnetTimeLiteral(text, open, constants = new Map()) {
     if (text[open] !== '(' && text[open] !== '[') return null;
 
     const args = [];
@@ -158,10 +156,14 @@ function mainnetTimeLiteral(text, open) {
     }
     if (args.length < 3) return null;
 
-    const raw = args[2].trim().replace(/_/g, '');
-    if (!/^\d+$/.test(raw)) return null;
-    const time = Number(raw);
-    return (time >= TIMESTAMP_FLOOR && time < SENTINEL_FLOOR) ? time : null;
+    const slot = args[2].trim();
+    const raw = slot.replace(/_/g, '');
+    let time;
+    let via = null;
+    if (/^\d+$/.test(raw)) time = Number(raw);
+    else if (constants.has(slot)) { time = constants.get(slot); via = slot; }
+    else return null;
+    return (time >= TIMESTAMP_FLOOR && time < SENTINEL_FLOOR) ? { time, via } : null;
 }
 
 /**
@@ -180,6 +182,35 @@ function objectBody(text, open) {
     return null;
 }
 
+/** Reads a property expression through its top-level comma or closing bracket. */
+function propertyValue(text, start) {
+    let depth = 0;
+    let quote = null;
+    for (let i = start; i < text.length; i++) {
+        const ch = text[i];
+        if (quote !== null) {
+            if (ch === '\\') i++;
+            else if (ch === quote) quote = null;
+            continue;
+        }
+        if (ch === "'" || ch === '"' || ch === '`') quote = ch;
+        else if (ch === '(' || ch === '[' || ch === '{') depth++;
+        else if (ch === ')' || ch === ']' || ch === '}') {
+            if (depth === 0) return { text: text.slice(start, i).trim(), end: i };
+            depth--;
+        } else if (ch === ',' && depth === 0) {
+            return { text: text.slice(start, i).trim(), end: i };
+        }
+    }
+    return { text: text.slice(start).trim().replace(/;$/, ''), end: text.length };
+}
+
+function propertyText(body, pattern) {
+    pattern.lastIndex = 0;
+    const match = pattern.exec(body);
+    return match === null ? null : propertyValue(body, match.index + match[0].length).text;
+}
+
 /** A `const NAME = {` activation map in a sibling module. */
 const SIBLING_MAP = /const\s+([A-Z][A-Z0-9_]*)\s*=\s*\{/g;
 
@@ -188,9 +219,9 @@ function networkKeySource(network) {
     return `(?:${network}|'${network}'|"${network}")`;
 }
 
-/** A mainnet threshold inside such a map, plain or keyed per coin. */
+/** The key of a mainnet threshold inside such a map, plain or keyed per coin. */
 const SIBLING_MAINNET_SLOT = new RegExp(
-    `(?:^|[{,\\s])(${networkKeySource('mainnet')}|['"][A-Z]+:mainnet['"])\\s*:\\s*([^,}\\n]*)`,
+    `(?:^|[{,\\s])(${networkKeySource('mainnet')}|['"][A-Z]+:mainnet['"])\\s*:\\s*`,
     'g',
 );
 
@@ -271,10 +302,14 @@ function collectSiblingGates(indexerSrc, add) {
  * same shape in a `const NAME = {` declaration and in an `addGate` row.
  */
 function collectMapSlots(body, gate, source, label, add, unreadable) {
-    for (const slot of body.matchAll(SIBLING_MAINNET_SLOT)) {
+    SIBLING_MAINNET_SLOT.lastIndex = 0;
+    let slot;
+    while ((slot = SIBLING_MAINNET_SLOT.exec(body)) !== null) {
+        const value = propertyValue(body, SIBLING_MAINNET_SLOT.lastIndex);
+        SIBLING_MAINNET_SLOT.lastIndex = Math.max(SIBLING_MAINNET_SLOT.lastIndex, value.end);
         const key = slot[1].replace(/^(['"])(.*)\1$/, '$2');
-        const read = readMainnetSlot(slot[2]);
-        const where = `${label}: ${gate}.${key} = ${slot[2].trim() || '(nothing this scan can read)'}`;
+        const read = readMainnetSlot(value.text);
+        const where = `${label}: ${gate}.${key} = ${value.text || '(nothing this scan can read)'}`;
         if (read.kind === 'unreadable') unreadable.push(where);
         else if (read.kind !== 'number') continue;
         else if (key === 'mainnet') add(gate, read.time, source);
@@ -288,9 +323,9 @@ const GATE_ROW = /addGate\(\s*'([A-Za-z0-9_/]+)\.([A-Z][A-Z0-9_]*)'\s*,\s*'([a-z
 /** A whole string literal in any quoting, with no escapes or nested quotes. */
 const STRING_LITERAL = /^(['"`])([^'"`\\]*)\1$/;
 
-/** A plain mainnet slot inside a table body. */
+/** The key of a plain mainnet slot inside a table body. */
 const BARE_MAINNET_SLOT = new RegExp(
-    `(?:^|[{,\\s])${networkKeySource('mainnet')}\\s*:\\s*([^,}\\n]*)`,
+    `(?:^|[{,\\s])${networkKeySource('mainnet')}\\s*:\\s*`,
 );
 
 /**
@@ -357,10 +392,11 @@ function assertEveryGateRowParsed(sources) {
         let loud = unit !== null && unit[2] === 'time';
         if (unit === null && args[2] && args[2].text.startsWith('{')) {
             const body = objectBody(text, args[2].index);
-            const slot = body === null ? null : BARE_MAINNET_SLOT.exec(body);
-            const value = slot === null ? '' : slot[1].trim();
+            const value = body === null ? '' : propertyText(body, BARE_MAINNET_SLOT) || '';
+            const read = readMainnetSlot(value);
             loud = value === 'UNARMED'
-                || (TIME_LITERAL.test(value) && Number(value.replace(/_/g, '')) >= TIMESTAMP_FLOOR);
+                || read.kind === 'unreadable'
+                || (read.kind === 'number' && read.time >= TIMESTAMP_FLOOR);
         }
         if (loud) unread.push(`${sources.where(call.index)}: ${text.slice(call.index, call.index + 80).replace(/\s+/g, ' ')}`);
     }
@@ -425,16 +461,14 @@ function slotValue(sources, text, where, gate) {
  * What each coin resolves to on `network` for one time row's table `body`, as
  * `[coin, value]` pairs: the coin-qualified key first, then the bare key, the
  * order `resolveThreshold` in the indexer's core.js applies. An absent slot,
- * `null` and `UNPINNED` resolve to null, and so does a bare slot this scan
- * cannot read, as it always has. A coin-qualified slot it cannot read is
- * refused instead, because quiet there would let a gate whose coins all read
- * that way fall off both lists. A coin-qualified key naming a coin outside
- * COINS is refused too, because the indexer would never look it up.
+ * `null`, `UNPINNED` and identifiers resolve to null. Any compound expression
+ * this scan cannot classify is refused for both bare and coin-qualified slots.
+ * A coin-qualified key naming a coin outside COINS is refused too, because the
+ * indexer would never look it up.
  */
 function resolveRowCoins(sources, body, network, where, gate) {
     const slotText = (key) => {
-        const match = new RegExp(`(?:^|[,\\s{])${key}\\s*:\\s*([^,}\\n]*)`).exec(body);
-        return match === null ? null : match[1].trim();
+        return propertyText(body, new RegExp(`(?:^|[,\\s{])${key}\\s*:\\s*`));
     };
     for (const m of body.matchAll(new RegExp(`['"]([A-Za-z0-9_]+):${network}['"]\\s*:`, 'g'))) {
         if (!COINS.includes(m[1])) {
@@ -442,6 +476,10 @@ function resolveRowCoins(sources, body, network, where, gate) {
         }
     }
     const bare = slotText(networkKeySource(network));
+    if (bare !== null && !/^(?:null|UNPINNED|[A-Za-z_$][A-Za-z0-9_$]*)$/.test(bare)
+        && slotValue(sources, bare, where, gate) === null) {
+        throw new Error(`${where}: ${gate} keys ${network} with \`${bare}\`, which this generator cannot read, so protocol/flag-days.md would drop the gate.`);
+    }
     return COINS.map((coin) => {
         const own = slotText(`['"]${coin}:${network}['"]`);
         if (own !== null && !/^(?:null|UNPINNED)$/.test(own) && slotValue(sources, own, where, gate) === null) {
@@ -525,13 +563,15 @@ function collectGateRowSlots(sources, network, add) {
 function assertEveryDeclarationParsed(sources, parsedCalls, parsedConstLines, parsedNames) {
     const unparsed = [];
     const registry = sources.scannable;
+    const constants = registryConstants(sources);
 
     for (const m of registry.matchAll(/(?:addChange\s*\(|\[)\s*(['"])([A-Za-z0-9_]+)\1\s*,\s*(['"])[0-9.]+\3\s*,/g)) {
         if (parsedCalls.has(m.index)) continue;
         if (parsedNames.has(m[2])) continue;
-        const time = mainnetTimeLiteral(registry, m.index + m[0].search(/[([]/));
-        if (time === null) continue;
-        unparsed.push(`${sources.where(m.index)}: declaration of ${m[2]} at mainnet_time ${time}`);
+        const resolved = mainnetTimeLiteral(registry, m.index + m[0].search(/[([]/), constants);
+        if (resolved === null) continue;
+        const via = resolved.via === null ? '' : ` (via ${resolved.via})`;
+        unparsed.push(`${sources.where(m.index)}: declaration of ${m[2]} at mainnet_time ${resolved.time}${via}`);
     }
 
     for (const m of registry.matchAll(/const\s+[A-Z][A-Z0-9_]*_MAINNET_TIME\s*=/g)) {
@@ -908,8 +948,8 @@ function collectMainnetUnpinned(indexerSrc = INDEXER_SRC) {
         if (row[3] !== 'time') continue;
         const body = objectBody(sources.scannable, row.index + row[0].length - 1);
         if (body === null || /['"][A-Za-z0-9_]+:mainnet['"]\s*:/.test(body)) continue;
-        const slot = BARE_MAINNET_SLOT.exec(body);
-        if (slot !== null && /^(?:null|UNPINNED)$/.test(slot[1].trim())) found.set(row[2], { gate: row[2] });
+        const slot = propertyText(body, BARE_MAINNET_SLOT);
+        if (slot !== null && /^(?:null|UNPINNED)$/.test(slot)) found.set(row[2], { gate: row[2] });
     }
     return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
 }

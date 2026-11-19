@@ -32,7 +32,7 @@ DEPLOY|1|CODE_ENCODING|GAS_LIMIT|CONSTRUCTOR_PARAMS|COOLDOWN_BLOCKS|SLASH_DESTIN
 
 Top-up vs. new is auto-detected: if `(target_contract_index, signing_pubkey, tick)` already has a valid row, whether or not that stake is still active, the action is treated as a top-up and the row must be owned by the same `SOURCE`; a different `SOURCE` is refused with `SIGNING_PUBKEY (already staked to this contract by another source)`. The first valid staker keeps the key, and only a DELEGATE rotation that rewrites a live row's signing key moves a row off it. Otherwise the action creates a new row.
 
-Activation delay is calibrated per chain for roughly **60 minutes of reorg protection**: **6 blocks on BTC** (~10 min/block), **24 blocks on LTC** (~2.5 min/block), and **60 blocks on DOGE** (~1 min/block). Because contract staking runs on every chain, a single block count would give materially different wall-clock protection (6 blocks ≈ 6 minutes on DOGE), so each chain sets its own `STAKING.ACTIVATION_DELAY_BLOCKS` default; operators may override it per deployment. (Capability staking is BTC-only and uses the same 6-block BTC value.)
+Activation delay is calibrated per chain for roughly **60 minutes of reorg protection**: **6 blocks on BTC** (~10 min/block), **24 blocks on LTC** (~2.5 min/block), and **60 blocks on DOGE** (~1 min/block). Because contract staking runs on every chain, a single block count would give materially different wall-clock protection (6 blocks ≈ 6 minutes on DOGE). Each chain's `STAKING.ACTIVATION_DELAY_BLOCKS` is therefore a fixed, chain-wide consensus constant in the bundled chain configuration, shared by every node. Changing it requires a coordinated consensus upgrade, not a local or per-deployment override. A local edit either fails the consensus pin check where that pin is armed or makes the node compute different stake activation heights and diverge from the network where it is not. This activation delay is separate from the contract's deploy-time `COOLDOWN_BLOCKS`, which controls how long an UNSTAKE remains locked. (Capability staking is BTC-only and uses the same 6-block BTC value.)
 
 ### UNSTAKE v1
 
@@ -92,9 +92,15 @@ Slashes `amount` of `token` from the staker identified by `pubkey` on **this** c
 
 Both riders are active from genesis on testnet and regtest and follow the contract-era activation on mainnet. See [Cohort A riders that mint no constant](./protocol-activation.md#cohort-a-riders-that-mint-no-constant) for activation details.
 
+#### Amount precision and flooring
+
+The VM validation above checks the amount's shape, not the staked token's `DECIMALS`. Once [`SLASH_GRID_ACTIVATION`](./activation-catalogue.md#r-through-x) is active, the indexer floors the requested amount once to the token's decimal grid before any deduction. It never rounds the punishment up. Contract authors should calculate slash amounts at the token's own precision.
+
+An amount that floors to zero is a successful no-op: it still costs `VM_EMISSION` gas, but it deducts and credits nothing and writes no `slash_events` row. The indexer rule is active from genesis on mainnet and regtest. On testnet it starts at BTC block **155001**, LTC block **4906040**, and DOGE block **67962387**. Testnet blocks below those heights retain the legacy half-up arithmetic at the token's decimals, even though the VM already accepts up to 18 fractional digits there.
+
 Gas: `VM_EMISSION` (500).
 
-A `slash_events` row is written for every successful slash: `{execution_index, target_contract_index, signing_pubkey_id, tick_id, amount, destination_id, block_index}`.
+A `slash_events` row is written for every slash that deducts a non-zero amount: `{execution_index, target_contract_index, signing_pubkey_id, tick_id, amount, destination_id, block_index}`. A slash that finds no slashable stake, or whose amount floors to zero, writes no row.
 
 ## Cooldown release
 

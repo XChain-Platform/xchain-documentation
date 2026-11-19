@@ -129,7 +129,7 @@ describe('extractDefault (the checker that reported false green during the audit
     });
 
     test('stops folding at the first non-literal factor', () => {
-        assert.deepEqual(defaultOf('const n = process.env.CAP || 4 * factor;'), { value: '4', numeric: true });
+        assert.equal(defaultOf('const n = process.env.CAP || 4 * factor;'), null);
     });
 
     // A numeric scan that stops at the `e` records `|| 1e6` as `1`, and

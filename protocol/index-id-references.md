@@ -278,11 +278,13 @@ automatically (opt out with `{ compactTickers: false }` / `{ compactAddresses: f
 It only ever emits a `^<id>` for a value it has already resolved to an existing id via the
 explorer, and it falls back to the full value whenever an id cannot be resolved, so a
 client never emits an id the indexer would not recognize. Multi-recipient (array)
-fields are left in full form by the SDK. For `SEND.DESTINATION`, and for
-`LIST.ITEM` when the list `TYPE` is address below `LIST_ADDRESS_REF_ACTIVATION`, the
-rules above require it: the indexer resolves no `^<id>` in those cases. At or above the
-gate, the SDK still writes address list items in full even though the indexer resolves a
-canonical reference. At or above `LIST_TICK_COIN_ACTIVATION`, on a ticker list (`TYPE`
+fields are left in full form by the SDK except for `LIST.ITEM` on an address list. Below
+`LIST_ADDRESS_REF_ACTIVATION`, `LIST.ITEM` addresses stay in full because the indexer
+resolves no `^<id>` there. At or above the gate, the SDK compacts each `ITEM` address it
+can resolve to `^<id>` and keeps unresolved items in full, so one list may contain both
+forms. For an edit with no `TYPE`, it reads the parent list's type and compacts only a
+type 2 address list. `{ compactAddresses: false }` disables this path. `SEND.DESTINATION`
+remains in full. At or above `LIST_TICK_COIN_ACTIVATION`, on a ticker list (`TYPE`
 1), the SDK writes a coin-qualified item whose root is BTC, LTC or DOGE and whose rest
 is a well-formed name as `COIN:^<tickid>`, looking the id up on that coin's own explorer.
 When the lookup fails or returns no id, the SDK keeps the item as written. An item

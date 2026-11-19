@@ -77,7 +77,7 @@ Validator removal does not take effect immediately; the validator continues to p
 ## Cooldown Period
 Separate from the deactivation delay, tracked via the `cooldown_end_block` column on the `unstakes` table.
 
-- Default cooldown: 1000 blocks (configurable via `STAKING.COOLDOWN_BLOCKS`)
+- Cooldown: 1000 blocks (`STAKING.COOLDOWN_BLOCKS`, a fixed chain-wide consensus constant that changes only through a coordinated consensus upgrade)
 - After cooldown elapses, the staked XCHAIN tokens are returned to the broadcasting address
 
 ```mermaid
