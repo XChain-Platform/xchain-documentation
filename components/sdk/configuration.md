@@ -24,7 +24,7 @@ const sdk = new XChainSDK(options);
 | `timeout` | number | `30000` | Request timeout in milliseconds applied to all HTTP requests. |
 | `retry` | RetryConfig or `false` | See [Retry Configuration](#retry-configuration) | Retry policy for transient errors. Pass `false` to disable retries entirely. |
 | `hooks` | SDKHooks object | `{}` | Lifecycle callbacks for requests, responses, errors, and retries. See [Request Hooks](#request-hooks). |
-| `pool` | PoolConfig object | See [Connection Pooling](#connection-pooling) | HTTP keep-alive agent settings for the explorer and encoder clients. |
+| `pool` | PoolConfig object | See [Connection Pooling](#connection-pooling) | HTTP keep-alive agent settings, or injected `httpAgent` / `httpsAgent` members, for the explorer, encoder, hub and WebSocket clients. |
 | `websocketUrl` | string | `WEBSOCKET_URL` env var, falls back to a resolved `explorerUrl` (not the regtest `localhost` explorer fallback, so a zero-config regtest SDK has no WebSocket client) | Hostname of the xchain-explorer WebSocket server. |
 | `websocketPort` | number | `WEBSOCKET_PORT` env var, falls back to `explorerPort` | Port of the xchain-explorer WebSocket server. |
 
@@ -58,6 +58,8 @@ const sdk = new XChainSDK(options);
 | `keepAliveMsecs` | number | `1000` | Initial delay (ms) between keep-alive packets. |
 | `maxSockets` | number | `10` | Maximum concurrent sockets per host. |
 | `maxFreeSockets` | number | `5` | Maximum idle sockets to keep open per host. |
+| `httpAgent` | `http.Agent` | none | Injected agent used instead of the default keep-alive agent for `http://` and `ws://` connections, for example a SOCKS proxy agent. |
+| `httpsAgent` | `https.Agent` | none | Injected agent used for `https://` and `wss://` connections. |
 
 ## Config Resolution Priority
 
@@ -303,7 +305,7 @@ const sdk = new XChainSDK({
 
 ## Connection Pooling
 
-The explorer and encoder clients share an HTTP keep-alive agent. Keeping connections open reduces latency for repeated requests to the same host. The default settings suit most applications; tune them for high-throughput workloads.
+The explorer and encoder clients share an HTTP keep-alive agent. A host that must route traffic differently, such as through a SOCKS proxy, injects `httpAgent` and `httpsAgent`; every connection (explorer, encoder, hub and the live WebSocket) then picks one by URL scheme, with `https://` and `wss://` using `httpsAgent`, and never uses the other scheme's agent. Keeping connections open reduces latency for repeated requests to the same host. The default settings suit most applications; tune them for high-throughput workloads.
 
 **Default pool settings:** keepAlive `true`, keepAliveMsecs `1000`, maxSockets `10`, maxFreeSockets `5`.
 
