@@ -137,7 +137,7 @@ Each connection's messages are measured as a leaky bucket that holds `limits.max
 
 An `xcall` call id must be 64 hex characters; it is lower-cased at subscribe time, and a missing or malformed id is refused with `INVALID_CHANNEL`.
 
-An `address` (and every entry of `addresses`) must be a non-empty string; any other value is refused with `INVALID_CHANNEL` and nothing in the request is subscribed.
+An `address` (and every entry of `addresses`) must be a non-empty string; any other value is refused with `INVALID_CHANNEL` and nothing in the request is subscribed. Recognized bech32 addresses are normalized to lowercase, which is also the spelling echoed by `SUBSCRIBED`. Other address forms are matched byte-exactly against the indexed spelling; a different spelling receives an empty snapshot and no live frames.
 
 ### unsubscribe
 
