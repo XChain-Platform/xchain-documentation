@@ -26,7 +26,7 @@ Before writing code, pin down four things:
 
 1. **What does staking unlock?** Access to a method? A seat in a game? Eligibility to claim a reward? Voting weight? The protocol doesn't enforce any of this, your contract's code does.
 2. **What gets slashed, and by whom?** Slashing is unilateral; only your contract can slash its own stakers. Decide what behaviors trigger a slash and how much.
-3. **What is the cooldown period?** When a staker calls `UNSTAKE`, their tokens are not returned immediately. You set the cooldown in **blocks** (any value from 1 to 100,000) at deploy time. This is **permanent**; it cannot be changed later.
+3. **What is the cooldown period?** When a staker calls `UNSTAKE`, their tokens are not returned immediately. You set the cooldown in **blocks** (any value from 1 to 100,000) at deploy time. This is **permanent**; it cannot be changed later. For a contract that slashes or makes access or voting decisions from stake, use at least the activation delay of every chain where it will run; [Step 6](#step-6-unstake) explains the shorter-cooldown edge case.
 4. **Where do slashed tokens go?** Either a specific on-chain address (a treasury, a community pool, a reward sink) or the literal sentinel `BURN`, which routes to the chain's configured burn address. Also **permanent** at deploy time.
 
 Stakers will read both of those settings before they decide to lock anything up. Design them to be defensible.
@@ -174,6 +174,8 @@ After the DEPLOY v1 confirms, the contract is live and stakeable. Contracts are 
 | `SLASH_DESTINATION` | Valid address on the deploying chain, or `BURN` | No |
 | Contract code | n/a: already immutable for all contracts | No |
 
+Although the protocol accepts the full `COOLDOWN_BLOCKS` range, a value below the chain's activation delay can release tokens before the contract's legacy stake view stops counting them. Contracts that slash or make decisions from stake should set it to at least the largest activation delay on their target chains.
+
 If you set `SLASH_DESTINATION` to an address that is later compromised or lost, those slashed tokens still go there. Choose carefully.
 
 ---
@@ -249,6 +251,7 @@ A few things to know about slashing:
 - **Authorization is implicit and per-contract.** A contract can only slash its own stakers, you cannot accidentally drain someone else's contract's stakers.
 - **Slash reaches active stake first, then cooldown-locked stake.** A staker cannot dodge a slash by initiating an unstake; the protocol pulls from the cooldown queue if the active stake isn't enough.
 - **Over-slash is silently capped.** If you ask to slash 100 but the staker only has 30 locked, it slashes 30 without an over-slash error. Malformed pubkey, token or amount arguments throw before a SLASH emission is added. Contract code can catch the exception; an uncaught exception fails the EXECUTE. See [Throws and argument validation](../protocol/contract-staking.md#throws-and-argument-validation).
+- **Slash amounts use the token's decimal grid.** Where `SLASH_GRID_ACTIVATION` is active, the indexer floors the amount to the token's decimals. An amount smaller than one base unit deducts nothing, writes no `slash_events` row, and still costs gas. See [Amount precision and flooring](../protocol/contract-staking.md#amount-precision-and-flooring).
 - **The destination is permanent.** Slashed tokens go to whatever `SLASH_DESTINATION` you set at deploy time: `BURN` (the chain's burn address), or a regular address.
 
 ---
@@ -269,10 +272,10 @@ After this confirms:
 
 Both timers start at the UNSTAKE block and run in parallel (they do **not** run sequentially):
 
-1. After the per-chain activation delay (6 blocks on BTC, 24 on LTC, 60 on DOGE) counted from the UNSTAKE block, the stake becomes invisible to the contract (`xchain.contract.getStake(...) === '0'`). The staker is effectively no longer participating.
-2. After **`COOLDOWN_BLOCKS`** counted from the same UNSTAKE block, the locked tokens are credited back to the staker's address. The funds release at `UNSTAKE block + COOLDOWN_BLOCKS` (`cooldown_end_block`), which overlaps the activation delay rather than following it, so it is not added on top of that delay.
+1. The stake row reaches its scheduled deactivation after the per-chain activation delay: 6 blocks on BTC, 24 on LTC, or 60 on DOGE.
+2. The locked tokens are credited back after **`COOLDOWN_BLOCKS`**. The funds release at `UNSTAKE block + COOLDOWN_BLOCKS` (`cooldown_end_block`), so the cooldown overlaps the activation delay rather than following it.
 
-During the cooldown window, the contract can still slash the staker; the cooldown-locked balance is reachable by `xchain.contract.slash`.
+When `COOLDOWN_BLOCKS` is at least the activation delay, the contract's stake view becomes `0` at scheduled deactivation and the locked balance remains slashable until release. If the cooldown is shorter, the network's `STAKE_SNAPSHOT_SLASH_WINDOW` rule matters. Where the rule is active, `getStake`, `getTotalStaked`, and `getStakers` stop counting the stake when the tokens are released. Where it is inactive, those methods keep reporting the stake until scheduled deactivation even though a slash after release takes nothing. The unusable interval is `activation delay - cooldown - 1` blocks, when positive. See [Protocol Flag Days](../protocol/flag-days.md) for network activation status.
 
 The full stake lifecycle described above:
 
@@ -286,7 +289,7 @@ stateDiagram-v2
     Active --> Active: slashStaker, slashes active stake first
     Active --> Cooldown: UNSTAKE v1, begins cooldown
 
-    Cooldown --> Cooldown: slashStaker, slashes cooldown-locked stake
+    Cooldown --> Cooldown: slashStaker, while tokens remain locked
     Cooldown --> Released: COOLDOWN_BLOCKS elapse, tokens credited back
 
     Released --> [*]
@@ -339,7 +342,7 @@ For more examples, see [user-guide/use-cases.md#native-multi-chain-staking](../u
 
 ## Read-Through Checklist Before Mainnet
 
-- [ ] You have explicitly chosen `COOLDOWN_BLOCKS` and verified it matches the kind of behavior you want stakers to commit to. Long cooldowns punish exit; short cooldowns let bad actors un-stake before consequences land.
+- [ ] You have explicitly chosen `COOLDOWN_BLOCKS`, checked it against the activation delay of every target chain, and verified it matches the behavior you want stakers to commit to. Long cooldowns punish exit; short cooldowns can let bad actors un-stake before consequences land.
 - [ ] You have explicitly chosen `SLASH_DESTINATION` and the receiving address (if not `BURN`) is one you control or have publicly committed to in writing.
 - [ ] You have tested the contract end-to-end on regtest (DEPLOY v1 → STAKE v3 → EXECUTE → slash → UNSTAKE v1 → cooldown completion).
 - [ ] You have considered what happens if you (the deployer) lose access to your admin key. Slashing pathways gated on admin-only access become permanently unreachable in that case.

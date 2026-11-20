@@ -515,6 +515,7 @@ xchain.contract.slash(signingPubkey, 'XCHAIN', '50');
 - Slashed tokens go to the destination you set at deploy time.
 - The slash reaches a staker's currently-active stake first; if there is still a remainder, it pulls from the cooldown-locked balance the staker has already begun withdrawing. (Stakers cannot escape an imminent slash by initiating an unstake.)
 - Over-slash is silently capped at the staker's available balance. Asking for more than the available balance does not throw, but malformed arguments do; see [Throws and argument validation](../protocol/contract-staking.md#throws-and-argument-validation).
+- Where `SLASH_GRID_ACTIVATION` is active, the amount is floored to the token's decimals. A request below one base unit deducts nothing and writes no `slash_events` row; see [Amount precision and flooring](../protocol/contract-staking.md#amount-precision-and-flooring).
 - Atomic with the calling EXECUTE: if the calling method reverts, the slash rolls back too.
 
 Slash costs `VM_EMISSION` (500) gas.

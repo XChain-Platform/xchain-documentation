@@ -82,7 +82,7 @@ A capability becomes active on a hub when all three conditions hold: (a) stake q
 - Applies to the BTC-only capability forms: STAKE v1, STAKE v2 (top-up), UNSTAKE v0, and DELEGATE v0/v2 (capability rotate/revoke). The contract-targeted forms (STAKE v3, UNSTAKE v1, DELEGATE v1/v3) run on every chain and use the per-chain calibrated delay below instead. See [UNSTAKE](./unstake.md) and [DELEGATE](./delegate.md).
 - Tracked via the `activation_block` column on the `stakes` table (set to `block_index + 6`) for STAKE and capability UNSTAKE. Contract-targeted stakes carry the same column on `contract_stakes`, and DELEGATE is tracked on `delegations` (v0/v2) / `contract_delegations` (v1/v3).
 - Active-stake queries filter by `activation_block <= current_block`.
-- The 6-block figure is the BTC value (capability staking is BTC-only). The contract-targeted forms run on every chain and use a per-chain calibrated delay for equivalent ~60-min reorg protection: **6 blocks on BTC, 24 on LTC, 60 on DOGE**, set via each chain's `STAKING.ACTIVATION_DELAY_BLOCKS` default.
+- The 6-block figure is the BTC value (capability staking is BTC-only). The contract-targeted forms run on every chain and use a per-chain calibrated delay for equivalent ~60-min reorg protection: **6 blocks on BTC, 24 on LTC, 60 on DOGE**. Each chain's `STAKING.ACTIVATION_DELAY_BLOCKS` is a fixed consensus constant that changes only through a coordinated consensus upgrade.
 
 ## Storage Model
 Each STAKE action (v1 or v2) inserts a new row into the `stakes` table. The active stake amount for a pubkey is `SUM(amount)` across all valid rows for that pubkey within the activation window. This append-only ledger preserves rollback correctness: block-level rewinds simply delete rows past the rewind point.

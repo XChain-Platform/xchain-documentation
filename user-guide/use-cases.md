@@ -57,9 +57,9 @@ XChain actions involved: ISSUE, SEND, AIRDROP.
 
 ### Gift Cards and Store Credit
 
-Create a token representing store credit or a gift card. Issue it to a customer and they can spend it (transfer it to your payment address) at any time. You can optionally restrict the token to your own addresses using an allow list, so it cannot be sold or transferred elsewhere.
+Create a token representing store credit or a gift card. Issue it to a customer and they can spend it (transfer it to your payment address) at any time. If you add an allow list, it applies to both the sender and recipient of every transfer, so every customer who will hold the card must be listed along with your merchant addresses. A list containing only your addresses makes the first send to a customer fail. An allow list keeps the card among approved holders, but cannot require customers to spend only with you. For that directional policy, bind a [controller contract](../protocol/controller-bound-tokens.md) whose `SEND` guard checks `from` and `to`. Bind `all`, or bind both `transfer` and `trade`, if listings must also be blocked.
 
-XChain actions involved: ISSUE, LIST, SEND.
+XChain actions involved: ISSUE, LIST, SEND, and DEPLOY when using a controller contract.
 
 ### Revenue Sharing and Dividends
 
@@ -245,7 +245,7 @@ XChain has a built-in smart contract layer that runs on top of every supported c
 
 A smart contract on XChain can do what a person with a wallet can do: issue tokens, transfer balances, place orders, set up dispensers, send messages; but on a schedule or under conditions that you define in code.
 
-- **Automatic token vesting**: tokens released to recipients on a schedule, without anyone needing to push a button on the date.
+- **Scheduled token vesting**: tokens unlock for a recipient as blocks pass, but remain in the contract until the beneficiary sends an EXECUTE call to `claim`. Nothing is paid out automatically when a date or block height is reached.
 - **Automated market makers**: liquidity pools that price tokens continuously based on supply and demand, going beyond the fixed-price model of orders and dispensers.
 - **Multi-condition escrow**: funds released only when several conditions are all met (time elapsed, multiple parties have approved, an outside event has occurred).
 - **On-chain governance**: token-weighted voting where the result of the vote is executed by the contract itself, with no human in the middle.

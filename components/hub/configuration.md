@@ -375,7 +375,7 @@ Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match a
 | `ANCHOR_INTERVAL_MS` | No | `86400000` | Milliseconds between ANCHOR publish cycles (default: 24 hours) |
 | `ANCHOR_MATCH_BATCH_SIZE` | No | `200` | Maximum `cross_chain_matches` rows to include per ANCHOR archive chunk |
 | `ANCHOR_CHUNK_RETRY_MS` | No | `2500` | Delay before retrying a failed archive chunk upload (ms) |
-| `ANCHOR_ELECTION_TOLERANCE_BLOCKS` | No | `36` | BTC blocks a non-leader hub waits before the next eligible rank may take over |
+| `ANCHOR_ELECTION_TOLERANCE_BLOCKS` | No | `36` | BTC blocks a non-leader hub waits before the next eligible rank may take over. This shared leader and follower predicate is fleet-uniform: an override is honoured on regtest only, while mainnet, testnet and standalone ignore it with a warning and use `36`. |
 | `ANCHOR_REWARD_PER_PUBLISH` | No | `"10.00000000"` | XCHAIN distributed to the elected ANCHOR publisher per successful publish cycle |
 | `ANCHOR_CHECKPOINT_EVERY_N` | No | `1` | Anchor only every Nth checkpoint **ordinal** on-chain, gating the whole round (one bundle covers every chain). Eligibility is `FLOOR(checkpoint_seq / CHECKPOINT_INTERVAL_BLOCKS) % N`, not `checkpoint_seq % N`: the cadence latch advances the seq by exactly one interval per round, so a raw-seq test is a residue class pinned by the seed rather than a 1-in-N sample, and for any N sharing a factor with the interval the federation would anchor every round or never anchor at all. Both this and `CHECKPOINT_INTERVAL_BLOCKS` must be fleet-uniform, and the hub enforces it: an override is honoured on regtest only, and on mainnet, testnet and a standalone hub a set value is ignored with a warning and the hub uses `1`. Retuning it on a live network is a coordinated code change, never a local setting. `checkpoint_seq` is consensus data, so the predicate is deterministic across every hub. On regtest it decouples on-chain ANCHOR spend from checkpoint production cadence, it is not a cadence control (`ANCHOR_INTERVAL_MS` is): skipped (off-multiple) ordinals remain in the off-chain hub-DB mirror and are still verifiable via the explorer. `1` anchors every checkpoint (original behaviour). |
 | `XCHAIN_HUB_SKIP_ANCHOR_CADENCE_ASSERT` | No | _(unset)_ | Set to `1` to silence the regtest warning logged when `CHECKPOINT_INTERVAL_BLOCKS` or `ANCHOR_CHECKPOINT_EVERY_N` differs from the fleet-canonical values (`6` and `1`). It never lifts the pin: on mainnet, testnet and a standalone hub both knobs always use `6` and `1`. Log-only, never fatal. |
@@ -402,8 +402,8 @@ Controls `StateAnchorPublisher` (commits checkpoints and the cross-chain match a
 
 #### Why those magnitudes (before you retune them)
 
-None of the ANCHOR knobs is consensus data: hubs on different values still
-produce mutually verifiable anchors. Three of them do encode a real bound, and
+None of the ANCHOR knobs is consensus data, but peers must use the same election
+tolerance to agree on rank unlocks. Three knobs encode a real bound, and
 the full derivation is in
 [anchor.md](../../protocol/actions/anchor.md#where-the-publisher-constants-come-from):
 
@@ -426,7 +426,8 @@ the full derivation is in
   the unlock without clock sync. The ordering carries the meaning: signing round
   (120s) + DOGE burial (60 confs, ~1h) << 36 blocks (~6h) <<
   `ANCHOR_INTERVAL_MS` (24h). Roughly 6 to 144 blocks keeps both bounds; a wrong
-  value costs duplicate DOGE spend or delayed anchoring, never a divergence.
+  value costs duplicate DOGE spend or delayed anchoring. An override is honoured
+  on regtest only; live networks use the fleet-canonical `36`.
 
 ### Attestation Publishing
 

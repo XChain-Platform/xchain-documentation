@@ -74,7 +74,11 @@ test('index references document coin-scoped resolution and SDK output', () => {
     assert.ok(sdkBehavior, 'protocol/index-id-references.md must include SDK behavior');
     const sdkRequirements = [
         '`LIST_TICK_COIN_ACTIVATION`',
+        '`LIST_ADDRESS_REF_ACTIVATION`',
         '`COIN:^<tickid>`',
+        '`{ compactAddresses: false }`',
+        'the SDK compacts each `ITEM` address it can resolve to `^<id>`',
+        "reads the parent list's type",
         "looking the id up on that coin's own explorer",
         'This compaction applies only to coin-qualified name items:',
         'the SDK still writes every bare ticker item in full',
@@ -85,6 +89,11 @@ test('index references document coin-scoped resolution and SDK output', () => {
             `protocol/index-id-references.md SDK behavior must include ${text}`,
         );
     }
+    assert.doesNotMatch(
+        sdkBehavior,
+        /the SDK still writes address list items in full/,
+        'protocol/index-id-references.md must not restore the stale LIST.ITEM claim',
+    );
 });
 
 test('ISSUE reserves coin-qualified roots without changing existing tickers or ids', () => {
