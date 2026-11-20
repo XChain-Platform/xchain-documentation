@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Corrected the Token Information Standard JSON examples and defined verification of URL hash pins over exact response bytes.
+
 ## [0.27.1] - 2026-11-18
 
 ### Changed

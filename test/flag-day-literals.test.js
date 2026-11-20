@@ -492,6 +492,30 @@ test('an unreadable call keyed to a block height does not throw', () => {
     assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
 });
 
+test('an unreadable row with a time-keyed network slot is loud on every arm', () => {
+    const fixtures = [
+        '["EMISSION_DEPTH_EXECUTE_ONLY", "0.2.0", UNARMED, 1792303200, UNARMED, 0, 0, 0],',
+        'this.addChange("FOO", "1.0.0", 9999999999, 1792303200, 0, 0, 0, 0);',
+        "['Foo_gate', '1.0.0', UNARMED, 1792303200, UNARMED, 0, 0, 0],",
+        'const BAR_TESTNET_TIME = 1792303200;\n["FOO_GATE", "1.0.0", 0, BAR_TESTNET_TIME, 0, 0, 0, 0],',
+    ];
+    const arms = ['collectGates', 'collectTestnetArms', 'collectTestnetUnarmed', 'collectMainnetUnarmed'];
+    for (const body of fixtures) {
+        const dir = fixtureRegistry("this.addChange('REAL', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n" + body);
+        for (const arm of arms) assert.throws(() => gen[arm](dir), /declaration of/);
+    }
+});
+
+test('unreadable rows with non-time testnet slots stay quiet', () => {
+    const dir = fixtureRegistry(
+        "this.addChange('REAL', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n"
+        + '["BY_HEIGHT", "1.0.0", 0, 961000, 0, 0, 0, 0],\n'
+        + '["UNKNOWN", "1.0.0", 0, SOME_SENTINEL, 0, 0, 0, 0],\n',
+    );
+    assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
+    assert.deepStrictEqual(gen.collectTestnetArms(dir), []);
+});
+
 test('a call whose time is an identifier the const pass never saw does not throw', () => {
     // No text scan can tell a parked sentinel from a live timestamp behind a
     // name, and guessing is what turns a build gate into noise.

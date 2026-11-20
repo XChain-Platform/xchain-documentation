@@ -77,7 +77,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **ISSUE**: The ACTION that creates a new token or updates an existing token's parameters. Defines the ticker, maximum supply, decimal places, mint supply, description, and many other parameters.
 
-**LINK**: An ACTION that associates an address or token with an external URL or resource identifier.
+**LINK**: An ACTION that ties two existing on-chain actions together by their ACTION_INDEX, on the same chain or across chains; most often used to attach a stored FILE to a token's ISSUE.
 
 **LIST**: An ACTION that creates a named list of addresses or tickers that can be referenced as an allow list or block list in other actions (e.g., restricting who can mint a token).
 

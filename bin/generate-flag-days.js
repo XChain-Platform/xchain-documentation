@@ -131,15 +131,16 @@ function lineAt(text, index) {
 const withoutComments = stripComments;
 
 /**
- * The mainnet_time argument of a call, when it is a literal this page covers.
+ * A time argument of a call, when it can affect this page.
  *
  * A registry constant is resolved when supplied. Returns null for any value
- * outside the time-keyed window or a call shape with too few arguments.
+ * below the time-keyed floor, unknown identifiers, or calls with too few
+ * arguments. The bare UNARMED name is time-keyed by syntax alone.
  *
  * `open` is the index of the `(` of a call or the `[` of an array row; the
  * arguments are read the same way from either.
  */
-function mainnetTimeLiteral(text, open, constants = new Map()) {
+function timeSlotLiteral(text, open, slotIndex, constants = new Map()) {
     if (text[open] !== '(' && text[open] !== '[') return null;
 
     const args = [];
@@ -154,16 +155,17 @@ function mainnetTimeLiteral(text, open, constants = new Map()) {
             depth--;
         } else if (ch === ',' && depth === 0) { args.push(text.slice(start, i)); start = i + 1; }
     }
-    if (args.length < 3) return null;
+    if (args.length <= slotIndex) return null;
 
-    const slot = args[2].trim();
+    const slot = args[slotIndex].trim();
+    if (slot === 'UNARMED') return { time: 'UNARMED', via: null };
     const raw = slot.replace(/_/g, '');
     let time;
     let via = null;
     if (/^\d+$/.test(raw)) time = Number(raw);
     else if (constants.has(slot)) { time = constants.get(slot); via = slot; }
     else return null;
-    return (time >= TIMESTAMP_FLOOR && time < SENTINEL_FLOOR) ? { time, via } : null;
+    return time >= TIMESTAMP_FLOOR ? { time, via } : null;
 }
 
 /**
@@ -541,8 +543,8 @@ function collectGateRowSlots(sources, network, add) {
  * row, and the evidence that was meant to exclude that (regenerate today's
  * registry, see nothing throw) cannot see it: every call in today's registry is
  * single-quoted, so no arm of the check is exercised at all. A call is loud only
- * when its mainnet_time slot holds a literal inside the time-keyed window, which
- * is exactly the condition under which a row went missing.
+ * when either network slot holds a timestamp, a parked sentinel, or a registry
+ * time constant. Those are exactly the values one of this page's lists publishes.
  *
  * An identifier in that slot is resolved when it names one of the registry's own
  * `const NAME_MAINNET_TIME = <digits>;` declarations (see `registryCalls`), and
@@ -560,7 +562,7 @@ function collectGateRowSlots(sources, network, add) {
  * in the part files' shape, and is checked by the same arm: the row's `[` is
  * where a call's `(` is, and the arguments read identically from either.
  */
-function assertEveryDeclarationParsed(sources, parsedCalls, parsedConstLines, parsedNames) {
+function assertEveryDeclarationParsed(sources, parsedCalls, parsedConstLines, parsedNames, checkConstants = true) {
     const unparsed = [];
     const registry = sources.scannable;
     const constants = registryConstants(sources);
@@ -568,13 +570,19 @@ function assertEveryDeclarationParsed(sources, parsedCalls, parsedConstLines, pa
     for (const m of registry.matchAll(/(?:addChange\s*\(|\[)\s*(['"])([A-Za-z0-9_]+)\1\s*,\s*(['"])[0-9.]+\3\s*,/g)) {
         if (parsedCalls.has(m.index)) continue;
         if (parsedNames.has(m[2])) continue;
-        const resolved = mainnetTimeLiteral(registry, m.index + m[0].search(/[([]/), constants);
-        if (resolved === null) continue;
+        const open = m.index + m[0].search(/[([]/);
+        const slots = [
+            ['mainnet_time', timeSlotLiteral(registry, open, 2, constants)],
+            ['testnet_time', timeSlotLiteral(registry, open, 3, constants)],
+        ];
+        const hit = slots.find(([, resolved]) => resolved !== null);
+        if (!hit) continue;
+        const [slot, resolved] = hit;
         const via = resolved.via === null ? '' : ` (via ${resolved.via})`;
-        unparsed.push(`${sources.where(m.index)}: declaration of ${m[2]} at mainnet_time ${resolved.time}${via}`);
+        unparsed.push(`${sources.where(m.index)}: declaration of ${m[2]} at ${slot} ${resolved.time}${via}`);
     }
 
-    for (const m of registry.matchAll(/const\s+[A-Z][A-Z0-9_]*_MAINNET_TIME\s*=/g)) {
+    for (const m of checkConstants ? registry.matchAll(/const\s+[A-Z][A-Z0-9_]*_MAINNET_TIME\s*=/g) : []) {
         const line = lineAt(registry, m.index);
         if (parsedConstLines.has(line)) continue;
         unparsed.push(`${sources.where(m.index)}: ${sources.raw.split('\n')[line - 1].trim()}`);
@@ -585,8 +593,8 @@ function assertEveryDeclarationParsed(sources, parsedCalls, parsedConstLines, pa
             'the protocol_changes registry declares gates this generator cannot read, so protocol/flag-days.md '
             + 'would publish an inventory that calls itself complete and is not:\n  '
             + unparsed.join('\n  ')
-            + "\n\ncollectGates reads addChange('NAME', 'version', <digits>, ...) or the part-file row "
-            + "['NAME', 'version', <digits>, ...] with single quotes and a literal time, and "
+            + "\n\nThe collectors read addChange('NAME', 'version', <mainnet>, <testnet>, ...) or the part-file row "
+            + "['NAME', 'version', <mainnet>, <testnet>, ...] with single quotes and readable time slots, and "
             + 'const NAME_MAINNET_TIME = <digits>;. A decimal literal may carry `_` separators in either '
             + 'position. Either write the declaration in one of those shapes or widen the parse in '
             + 'bin/generate-flag-days.js deliberately.',
@@ -776,6 +784,17 @@ function registryCalls(sources) {
             testnet: slot(m[3], m[1], m.index),
         });
     }
+    const parsedNames = new Set(calls.map((call) => call.gate));
+    for (const d of declaredTimeConstants(sources)) {
+        if (!consumed.has(d.name)) parsedNames.add(d.prefix);
+    }
+    assertEveryDeclarationParsed(
+        sources,
+        new Set(calls.map((call) => call.index)),
+        new Set(),
+        parsedNames,
+        false,
+    );
     return { calls, consumed };
 }
 

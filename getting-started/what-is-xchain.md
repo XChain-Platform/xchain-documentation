@@ -59,7 +59,7 @@ The SWAP action enables escrowed cross-chain exchanges, trading a token on Bitco
 
 ### Store Data and Messages
 
-XChain can embed arbitrary data on the blockchain. The MESSAGE action stores a short message permanently on-chain. The BROADCAST action supports richer use cases: oracle data feeds, prediction market outcomes, price broadcasts. The FILE action stores larger data payloads. The LINK action creates associations between addresses and external resources.
+XChain can embed arbitrary data on the blockchain. The MESSAGE action stores a short message permanently on-chain. The BROADCAST action supports richer use cases: oracle data feeds, prediction market outcomes, price broadcasts. The FILE action stores larger data payloads. The LINK action ties two on-chain actions together, for example attaching a stored file to a token, even across chains.
 
 ### Publish Cryptographically Secure, Token-Gated Files
 

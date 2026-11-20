@@ -70,12 +70,16 @@ const { callArguments, refusalCodes } = require('./helpers/refusal_codes.js');
 const ROOT          = path.resolve(__dirname, '..');
 const EXPLORER      = path.resolve(ROOT, '../xchain-explorer');
 const EXPLORER_SRC  = path.join(EXPLORER, 'src');
+const TRACKER       = path.resolve(ROOT, '../xchain-utxo-tracker');
 const REGISTRY_PAGE = path.join(ROOT, 'protocol/error-codes.md');
 const API_PAGE      = path.join(ROOT, 'components/explorer/api.md');
 
 // REST-side emit sites. src/ws/ is deliberately absent (separate surface).
 const SOURCES = ['XChainExplorer.js', 'api.js', 'http/concurrency_gate.js', 'contract/vm_query.js', 'http/bridge_panel_routes.js']
     .map((file) => path.join(EXPLORER_SRC, file));
+// native_history passes this route's answers back unchanged, making its codes
+// part of the Explorer REST surface even though their literals live elsewhere.
+const TRACKER_RELAY_SOURCES = [path.join(TRACKER, 'src/api/history_route.js')];
 
 // An entry file whose long methods were split keeps its path and gains a
 // sibling directory of parts, so an emit site can sit in either. The explorer
@@ -109,6 +113,8 @@ const DOCUMENTED_ELSEWHERE = Object.create(null);
 // Repo presence only: a pinned file gone from a PRESENT explorer fails inside the test by
 // name (readSource below). Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1.
 const noExplorer   = sibling('xchain-explorer').skip;
+const noTracker    = sibling('xchain-utxo-tracker').skip;
+const noRestSources = noExplorer || noTracker;
 
 // The observability logger's first argument is an EVENT name, not a response
 // code; a log line also carrying the Node errno as `code: err.code` would
@@ -180,7 +186,7 @@ function dbInputSources() {
 // Every SCREAMING_SNAKE string literal on a line that carries `code:` or a
 // positional helper call, plus every status-map key, simulation throw and
 // mirror-gate verdict, minus a logger event name leading that line's log call.
-function emittedCodes() {
+function explorerCodes() {
     const found = new Map();
     const files = SOURCES.slice();
     for (const [entry, dir] of Object.entries(PART_DIRS)) {
@@ -215,6 +221,30 @@ function emittedCodes() {
     return found;
 }
 
+function relayedTrackerCodes() {
+    const found = new Map();
+    for (const file of TRACKER_RELAY_SOURCES) {
+        assert.ok(fs.existsSync(file),
+            path.relative(TRACKER, file) + ' is gone from xchain-utxo-tracker; repoint TRACKER_RELAY_SOURCES');
+        const text = fs.readFileSync(file, 'utf8');
+        for (const [code, where] of refusalCodes(text, path.basename(file))) found.set(code, where);
+        text.split('\n').forEach((line, i) => {
+            if (!line.includes('code:')) return;
+            for (const quoted of line.match(/'([A-Z][A-Z0-9_]{2,})'/g) || []) {
+                const code = quoted.slice(1, -1);
+                if (!found.has(code)) found.set(code, `${path.basename(file)}:${i + 1}`);
+            }
+        });
+    }
+    return found;
+}
+
+function emittedCodes() {
+    const found = explorerCodes();
+    for (const [code, where] of relayedTrackerCodes()) if (!found.has(code)) found.set(code, where);
+    return found;
+}
+
 // The Explorer REST API section of the registry page, up to the next `## `
 // heading: the JSON-RPC table below it uses the same row format, so a page-wide
 // match would let a JSON-RPC row stand in for a REST one.
@@ -246,7 +276,7 @@ function registryDrift(emitted, rows) {
     return { missing, phantoms, revived };
 }
 
-test('every explorer REST error code has a registry row', { skip: noExplorer }, () => {
+test('every explorer REST error code has a registry row', { skip: noRestSources }, () => {
     const section = restSection(fs.readFileSync(REGISTRY_PAGE, 'utf8'));
     const rows    = restRows(section);
     const emitted = emittedCodes();
@@ -296,22 +326,30 @@ test('history validation meanings stay in the REST registry', () => {
     assert.match(row('INVALID_LIMIT'), /`POST \/\{COIN\}\/api\/history`.*1 through 100.*refused rather than clamped/);
     assert.match(row('INVALID_RANGE'), /`since` or `until`.*`since` is later than `until`/);
     assert.match(row('INVALID_CURSOR'), /`before`.*JSON number or decimal string.*zero is refused/);
+    assert.match(row('NOT_READY'), /`POST \/\{COIN\}\/api\/native_history`/);
+    assert.match(row('BAD_REQUEST'), /native_history.*from_height/);
+    assert.match(row('INVALID_CURSOR'), /native_history.*cursor/);
 });
 
-test('the REST registry check fails on a dropped row or an unemitted row', { skip: noExplorer }, () => {
+test('the REST registry check fails on a dropped row or an unemitted row', { skip: noRestSources }, () => {
     const page    = fs.readFileSync(REGISTRY_PAGE, 'utf8');
     const emitted = emittedCodes();
+    const explorer = explorerCodes();
     // The message/code pair rule reads a map row, never an HTTP method list.
     assert.equal(emitted.has('POST'), false, 'the message/code pair rule read a method list as a code');
-    assert.ok(emitted.has('BAD_REQUEST'), 'BAD_REQUEST is no longer collected from the final error handler');
+    assert.ok(explorer.has('BAD_REQUEST'), 'BAD_REQUEST is no longer collected from the final error handler');
     for (const code of ['VM_BUSY', 'MIRROR_STALE', 'INVALID_CURSOR', 'INVALID_TX_INDEX',
         'FILE_PART', 'FILE_INCOMPLETE', 'FILE_ASSEMBLY_MISMATCH', 'FILE_PART_CORRUPT']) {
-        assert.ok(emitted.has(code), `${code} is no longer collected from the explorer source`);
+        assert.ok(explorer.has(code), `${code} is no longer collected from the explorer source`);
         const dropped = page.replace(new RegExp('^\\| `' + code + '` \\|.*\\n', 'm'), '');
         assert.notEqual(dropped, page, `falsification fixture did not drop the ${code} row`);
         assert.deepEqual(registryDrift(emitted, restRows(restSection(dropped))).missing.map((m) => m.split(' ')[0]),
             [code]);
     }
+    const withoutNotReady = page.replace(/^\| `NOT_READY` \|.*\n/m, '');
+    assert.notEqual(withoutNotReady, page, 'falsification fixture did not drop the NOT_READY row');
+    assert.deepEqual(registryDrift(emitted, restRows(restSection(withoutNotReady))).missing.map((m) => m.split(' ')[0]),
+        ['NOT_READY']);
     const fake    = '| `FAKE_GONE_CODE` | 400 | test | No |\n';
     const inRest  = page.replace('| `MISSING_PARAMETER` |', fake + '| `MISSING_PARAMETER` |');
     assert.deepEqual(registryDrift(emitted, restRows(restSection(inRest))).phantoms, ['FAKE_GONE_CODE']);

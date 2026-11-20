@@ -1002,6 +1002,27 @@ describe('doc matching', () => {
     test('a `|| 0` default is satisfied by a row that says the feature is off', () => {
         assert.equal(defaultDocumented(['| `MIRROR_MAX_LAG_S` | No | None | warn above this lag |'], '0'), true);
         assert.equal(defaultDocumented(['| `SOME_CAP` | No | `500` | a real number |'], '0'), false);
+        assert.equal(defaultDocumented(['| `SOME_CAP` | No | `500` | Set to `0` to disable |'], '0'), false);
+        assert.equal(defaultDocumented([
+            '| `EXPLORER_MAX_CONCURRENT_REQUESTS` | No | `200` | Set to `0` to disable the cap |',
+        ], '0'), false);
+        assert.equal(defaultDocumented([
+            '| `EXPLORER_MAX_CONCURRENT_REQUESTS` | No | `200` | Set to `0` to disable the cap |',
+        ], '200'), true);
+        assert.equal(defaultDocumented(['| `X_LIMIT` | No | `64` | an unset value keeps 64 |'], '0'), false);
+        assert.equal(defaultDocumented(['When `X_CAP` is unset the cap is not applied.'], '0'), false);
+        assert.equal(defaultDocumented(['| `X_CAP` | No | `off` | feature switch |'], '0'), true);
+        assert.equal(defaultDocumented(['`X_CAP` defaults to off.'], '0'), true);
+    });
+
+    test('a bare zero-word cell does not override a nonzero default the rows assert', () => {
+        assert.equal(defaultDocumented(['| X_CAP | No | 500 | Disabled |'], '0'), false);
+        assert.equal(defaultDocumented(['| `X_CAP` | No | `500` | `off` |'], '0'), false);
+        assert.equal(defaultDocumented(['| `X_CAP` | No | `"500"` (cap) | Disabled |'], '0'), false);
+        assert.equal(defaultDocumented(['| `X_CAP` | No | None | cap |', '`X_CAP` defaults to `500`.'], '0'), false);
+        assert.equal(defaultDocumented(['| `X_CAP` | No | Disabled | `0` turns it off |'], '0'), true);
+        assert.equal(defaultDocumented(['| `X_CAP` | No | `0` (off) | Disabled |'], '0'), true);
+        assert.equal(defaultDocumented(['| Cap | `X_CAP` | None | per request |'], '0'), true);
     });
 
     test('a wrong documented default is rejected, and a prefix does not count', () => {
