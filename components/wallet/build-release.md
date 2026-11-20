@@ -87,7 +87,7 @@ Signing identities live with the publisher, Dankest, LLC. The release manifest r
 |---|---|
 | Web | Static web app at `https://wallet.xchain.io/` |
 | Extension | Chrome Web Store. The publish log records a main-item upload, while the authoritative shipped-lane declaration still marks the extension lane `NOT-SHIPPED`. |
-| Desktop | `https://downloads.xchain.io/wallet/desktop/`, also used by `electron-updater`. The shipped-lane declaration marks macOS and Linux `SHIPPED` and Windows `NOT-SHIPPED`; see [desktop/windows.md](release/desktop/windows.md). |
+| Desktop | `https://downloads.xchain.io/wallet/desktop/`, also used by `electron-updater`. The macOS, Linux, and Windows direct-download lanes are all marked `SHIPPED`; see [desktop/windows.md](release/desktop/windows.md). |
 | Android | Direct APKs under `https://downloads.xchain.io/wallet/android/`. Both the store-profile direct lane and the full-profile direct lane are marked `SHIPPED`; Google Play distribution remains pending. See [mobile/android-play.md](release/mobile/android-play.md). |
 | iOS | App Store package only; the iOS lane is `NOT-SHIPPED`. See [mobile/ios-app-store.md](release/mobile/ios-app-store.md). |
 | Desktop stores | Mac App Store, Microsoft Store, and Snap Store lanes are `NOT-SHIPPED`; each has its page under [Release engineering](release/README.md). |
