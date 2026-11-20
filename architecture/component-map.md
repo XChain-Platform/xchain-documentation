@@ -119,7 +119,7 @@ Key technical details:
 - Polls each indexer and decoder database for new blocks every 3 seconds (configurable). Builds a complete block payload from all affected tables and broadcasts to WebSocket subscribers.
 - Full snapshots are streamed as gzip-compressed JSON for bootstrapping new validators.
 - Incremental snapshots provide deltas since a given block height for catch-up after downtime.
-- Indexer block payloads carry the indexer's three per-block chained SHA256 hashes (ledger, actions, contracts) plus a fourth, replication-only `state_hash` covering the in-place mutations and backdated refund credits those three cannot see; decoder payloads carry a single `block_hash`.
+- Indexer block payloads carry the indexer's three per-block chained SHA256 hashes (ledger, actions, contracts) plus a fourth, replication-only `state_hash` covering the in-place mutations and backdated refund credits (from before `UNSTAKE_COOLDOWN_COMPLETION_ACTION`) those three cannot see; decoder payloads carry a single `block_hash`.
 - On apply, an indexer replica recomputes `state_hash` (`VERIFY_STATE_HASH`, default on) and the per-block SPV state-commitment roots (balances, block Merkle root) with sync's SHA-256 Merkle/SMT primitives (`VERIFY_STATE_COMMITMENT`, default on), and halts durably on a mismatch. Both checks still trust the source for the committed values, so they do not by themselves catch a single dishonest source.
 - Separately, server mode keeps a transparency log that groups indexer blocks into Merkle epochs (`MERKLE_EPOCH_SIZE`) and serves inclusion proofs and the latest root for external auditors.
 - Clients can sync from 2+ independent sources and cross-verify block hashes to detect tampered data.

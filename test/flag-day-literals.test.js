@@ -516,6 +516,41 @@ test('unreadable rows with non-time testnet slots stay quiet', () => {
     assert.deepStrictEqual(gen.collectTestnetArms(dir), []);
 });
 
+// The refusals above each cover one bypass: a head the collector does not
+// read, and a slot expression the collector cannot read. A declaration with
+// BOTH reaches only the completeness guard, so the guard has to refuse the
+// expression itself; resolving to no time does not make it quiet.
+test('an unreadable slot in a head the collector skips is refused, not read as quiet', () => {
+    const fixtures = [
+        ['this.addChange("NEW_GATE", "1.0.0", 1786060800 + 86400, 0, 0, 0, 0, 0);', /1786060800 \+ 86400/],
+        ["this.addChange ('NEW_GATE', '1.0.0', 1786060800 + 86400, 0, 0, 0, 0, 0);", /mainnet_time/],
+        ['["NEW_GATE", "1.0.0", 1786060800 + 86400, 0, 0, 0, 0, 0],', /mainnet_time/],
+        ['this.addChange("NEW_GATE", "1.0.0", 0, 1787961600 + 86400, 0, 0, 0, 0);', /testnet_time/],
+        ['this.addChange("NEW_GATE", "1.0.0", 0x6A7B8C9D, 0, 0, 0, 0, 0);', /0x6A7B8C9D/],
+    ];
+    const arms = ['collectGates', 'collectTestnetArms', 'collectTestnetUnarmed', 'collectMainnetUnarmed'];
+    for (const [body, detail] of fixtures) {
+        const dir = fixtureRegistry("this.addChange('REAL', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n" + body + '\n');
+        for (const arm of arms) {
+            assert.throws(() => gen[arm](dir), /declaration of NEW_GATE/, `${arm} dropped ${body} in silence`);
+            assert.throws(() => gen[arm](dir), detail);
+        }
+    }
+});
+
+test('a quiet slot in a head the collector skips still does not throw', () => {
+    // The negative control for the refusal above: zero, an unknown name and a
+    // missing argument are READ as quiet, so they must stay quiet.
+    const dir = fixtureRegistry(
+        "this.addChange('REAL', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n"
+        + 'this.addChange("QUIET", "1.0.0", 0, 0, 0, 0, 0, 0);\n'
+        + 'this.addChange("NAMED", "1.0.0", SOME_UNKNOWN_NAME, 0, 0, 0, 0, 0);\n'
+        + '["SHORT", "1.0.0", 0],\n',
+    );
+    assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
+    assert.deepStrictEqual(gen.collectTestnetArms(dir), []);
+});
+
 test('a call whose time is an identifier the const pass never saw does not throw', () => {
     // No text scan can tell a parked sentinel from a live timestamp behind a
     // name, and guessing is what turns a build gate into noise.

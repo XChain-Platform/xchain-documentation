@@ -234,10 +234,10 @@ When the coin node refuses the transaction, the call returns a `-32010` operatio
 
 | Reason | Meaning | `data` fields | Retry? |
 |---|---|---|---|
-| `NODE_REJECTED` | The node refused the transaction (for example a double-spend, dust output, or fee below the relay floor) | `node_code`: the node's own RPC error code | No: rebuild and re-sign the transaction |
-| `TX_ALREADY_IN_CHAIN` | The node already knows this transaction, in its mempool or in a block | `node_code`: the node's own RPC error code | No: the transaction is already broadcast; track its txid |
+| `NODE_REJECTED` | The node refused the transaction (for example a double-spend, dust output, or fee below the relay floor) | `node_code`: the node's own RPC error code; optional `node_reason` | No: rebuild and re-sign the transaction |
+| `TX_ALREADY_IN_CHAIN` | The node already knows this transaction, in its mempool or in a block | `node_code`: the node's own RPC error code; optional `node_reason` | No: the transaction is already broadcast; track its txid |
 
-Branch on `reason`, never on `message`. A transport fault between the encoder and the node (unreachable, timeout, malformed reply) is not a node verdict and still returns `-32603`, which is safe to retry with backoff. See [Error Codes](../../protocol/error-codes.md#encoder-operational-reasons) for the full reason registry.
+When present, `node_reason` classifies the node refusal with a stable machine-readable value. Treat an unknown value like an absent one. Branch on `reason` or `node_reason`, never on `message`. A transport fault between the encoder and the node (unreachable, timeout, malformed reply) is not a node verdict and still returns `-32603`, which is safe to retry with backoff. See [Error Codes](../../protocol/error-codes.md#broadcast_tx-node_reason-values) for the `node_reason` vocabulary and the full reason registry.
 
 ### `get_utxos`
 

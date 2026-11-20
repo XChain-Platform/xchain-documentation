@@ -110,8 +110,10 @@ The state hash preimage (built in `xchain-indexer/src/consensus/state_hash.js`, 
 | Slash amount cuts | `stakes`, `unstakes`, `contract_stakes`, `contract_unstakes` | Capability or contract slash debit logged at this block |
 | Request-status flips | `attests`, `xcalls` | v0 request resolved (answer or expire) |
 | Cooldown-maturity flips | `unstakes`, `contract_unstakes` | `cooldown_end_block` reached |
-| Backdated refund credits | `credits` | Cooldown-maturity GAS refund (capability) or own-tick refund (contract), credited using the unstake's original `action_index` |
+| Backdated refund credits | `credits` | Before `UNSTAKE_COOLDOWN_COMPLETION_ACTION` only: cooldown-maturity GAS refund (capability) or own-tick refund (contract), credited using the unstake's original `action_index` |
 | Invalid-archive stamps | `anchor_actions` | Final v2 chunk lands at block B and the reassembled batch fails its CRC check; the v1 parent row from an earlier block is stamped in-place |
+
+The backdated-refund class is legacy history. Once `UNSTAKE_COOLDOWN_COMPLETION_ACTION` is active (from genesis on testnet and regtest; the mainnet instant is on [Flag Days](../protocol/flag-days.md)), the indexer mints a synthetic `UNSTAKE` action with `FORMAT = 2` at the block where each cooldown ends and writes the refund credit and its escrow release under that action. Those rows belong to the release block, so the ledger and actions hashes cover them and this class is empty for them. The cooldown-maturity status flip on `unstakes` and `contract_unstakes` is still an in-place change, so the state hash still covers it.
 
 The preimage also carries `block_index` and a `state_hash_version` field (currently `1`, independent of `BLOCK_HASH_VERSION`). It is **not** chained on a previous state hash; the three consensus hashes already carry chain continuity.
 

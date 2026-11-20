@@ -7,7 +7,7 @@ This action begins the unstaking cooldown for an active stake identified by its 
 ## PARAMS
 | Name                    | Type    | Description                                                             |
 | ----------------------- | ------- | ----------------------------------------------------------------------- |
-| `VERSION`               | String  | Format Version (0 = capability unstake, 1 = contract-targeted unstake) |
+| `VERSION`               | String  | Format Version a user broadcasts (0 = capability unstake, 1 = contract-targeted unstake); formats 2 and 3 are protocol-generated, see below |
 | `SIGNING_PUBKEY`        | String  | Ed25519 public key of the stake to unstake                              |
 | `TARGET_CONTRACT_INDEX` | Integer | v1 only: `action_index` of the stakeable contract                      |
 | `TICK`                  | String  | v1 only: token ticker of the stake row to release                      |
@@ -20,6 +20,12 @@ This action begins the unstaking cooldown for an active stake identified by its 
 
 ### Version `1` - Contract-Targeted Unstake
 - `VERSION|SIGNING_PUBKEY|TARGET_CONTRACT_INDEX|TICK[|AMOUNT]`
+
+### Protocol-generated formats
+No user broadcasts these; the indexer mints them as synthetic `UNSTAKE` actions, and a broadcast `UNSTAKE` naming either version is invalid as an unknown `VERSION`.
+
+- Format `2` - cooldown completion. Once `UNSTAKE_COOLDOWN_COMPLETION_ACTION` is active, one is minted per matured unstake at the block where its cooldown ends, and the returned amount's credit and escrow release are written under it, so they belong to the release block. Before activation the credit reused the original `UNSTAKE`'s `action_index`.
+- Format `3` - roll-call eviction, described in [ROLLCALL](rollcall.md).
 
 ## Examples
 ```

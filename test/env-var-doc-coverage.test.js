@@ -1342,9 +1342,55 @@ const present = cov.presentComponents(PLATFORM_ROOT);
 
 // Reading a sibling at HEAD needs its object database. A service checked out
 // without one (an export, a tarball) cannot be judged, and guessing from its
-// working tree is the failure this suite is fixing, so it drops out.
+// working tree is the failure this suite is fixing, so it drops out of the
+// survey and fails by name in the readability check below.
 const readable = present.filter((c) => cov.isGitRepo(path.join(PLATFORM_ROOT, `xchain-${c}`)));
-const unreadable = present.filter((c) => !readable.includes(c));
+
+/**
+ * What the gate does with the siblings it found. Only an ABSENT fleet skips
+ * cleanly; a present sibling that cannot be read is a failure, so the
+ * readability check runs whenever anything is present, outside the coverage
+ * suite, where skipping the suite cannot skip it too.
+ */
+function siblingGate(presentList, readableList) {
+    const unreadableList = presentList.filter((c) => !readableList.includes(c));
+    let suiteSkip = false;
+    if (presentList.length === 0) suiteSkip = 'sibling service repos not checked out';
+    else if (readableList.length === 0) suiteSkip = `no checked-out sibling is readable at HEAD: ${unreadableList.join(', ')}`;
+    return { suiteSkip, checkReadability: presentList.length > 0, unreadable: unreadableList };
+}
+
+describe('the sibling gate decision', () => {
+    test('no sibling present skips everything and reports nothing unreadable', () => {
+        assert.deepEqual(siblingGate([], []),
+            { suiteSkip: 'sibling service repos not checked out', checkReadability: false, unreadable: [] });
+    });
+
+    test('every present sibling unreadable still runs the readability check', () => {
+        const gate = siblingGate(['hub', 'indexer'], []);
+        assert.equal(gate.checkReadability, true, 'an all-unreadable fleet must fail by name, not skip');
+        assert.deepEqual(gate.unreadable, ['hub', 'indexer']);
+        assert.match(gate.suiteSkip, /readable at HEAD: hub, indexer/);
+    });
+
+    test('a mixed fleet runs the suite and names only the unreadable siblings', () => {
+        assert.deepEqual(siblingGate(['hub', 'indexer'], ['indexer']),
+            { suiteSkip: false, checkReadability: true, unreadable: ['hub'] });
+    });
+
+    test('a fully readable fleet runs the suite with nothing unreadable', () => {
+        assert.deepEqual(siblingGate(['hub'], ['hub']), { suiteSkip: false, checkReadability: true, unreadable: [] });
+    });
+});
+
+const gate = siblingGate(present, readable);
+const unreadable = gate.unreadable;
+
+test('every checked-out sibling could be read at HEAD', { skip: gate.checkReadability ? false : gate.suiteSkip }, () => {
+    // A sibling silently dropping out is how a gate goes green while
+    // proving less than it did yesterday, so name it loudly.
+    assert.deepEqual(unreadable, [], `checked out but not a git repo, so not gated: ${unreadable.join(', ')}`);
+});
 
 const siblingsMissing = readable.length === 0;
 
@@ -1356,13 +1402,7 @@ const survey = siblingsMissing ? new Map() : cov.buildSurvey({
     components:    readable,
 });
 
-describe('environment-variable documentation coverage', { skip: siblingsMissing ? 'sibling service repos not checked out' : false }, () => {
-    test('every checked-out sibling could be read at HEAD', () => {
-        // A sibling silently dropping out is how a gate goes green while
-        // proving less than it did yesterday, so name it loudly.
-        assert.deepEqual(unreadable, [], `checked out but not a git repo, so not gated: ${unreadable.join(', ')}`);
-    });
-
+describe('environment-variable documentation coverage', { skip: gate.suiteSkip }, () => {
     // The floor is a FLEET figure: the services read hundreds of variables
     // between them, so a full platform checkout that surveys under 300 has a
     // broken scanner, not a quiet fleet. A partial checkout (GitHub CI checks

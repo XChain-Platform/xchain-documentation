@@ -134,8 +134,13 @@ const withoutComments = stripComments;
  * A time argument of a call, when it can affect this page.
  *
  * A registry constant is resolved when supplied. Returns null for any value
- * below the time-keyed floor, unknown identifiers, or calls with too few
- * arguments. The bare UNARMED name is time-keyed by syntax alone.
+ * below the time-keyed floor, unknown identifiers, empty slots, or calls with
+ * too few arguments. The bare UNARMED name is time-keyed by syntax alone.
+ *
+ * Anything else (arithmetic, hex, a member access, a call) returns
+ * `{ unreadable: text }` rather than null. Null means "read, and cannot affect
+ * this page"; an expression was never read, so its value is unknown and the
+ * completeness guard has to refuse it instead of treating it as quiet.
  *
  * `open` is the index of the `(` of a call or the `[` of an array row; the
  * arguments are read the same way from either.
@@ -164,7 +169,8 @@ function timeSlotLiteral(text, open, slotIndex, constants = new Map()) {
     let via = null;
     if (/^\d+$/.test(raw)) time = Number(raw);
     else if (constants.has(slot)) { time = constants.get(slot); via = slot; }
-    else return null;
+    else if (slot === '' || /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(slot)) return null;
+    else return { unreadable: slot };
     return time >= TIMESTAMP_FLOOR ? { time, via } : null;
 }
 
@@ -575,6 +581,14 @@ function assertEveryDeclarationParsed(sources, parsedCalls, parsedConstLines, pa
             ['mainnet_time', timeSlotLiteral(registry, open, 2, constants)],
             ['testnet_time', timeSlotLiteral(registry, open, 3, constants)],
         ];
+        // An unreadable slot is refused on its own: the other slot resolving to
+        // a quiet value says nothing about what this one would have published.
+        const unreadable = slots.filter(([, resolved]) => resolved !== null && resolved.unreadable !== undefined);
+        for (const [slot, resolved] of unreadable) {
+            const expr = resolved.unreadable.split('\n')[0].slice(0, 60);
+            unparsed.push(`${sources.where(m.index)}: declaration of ${m[2]} at ${slot} with an unreadable expression \`${expr}\``);
+        }
+        if (unreadable.length > 0) continue;
         const hit = slots.find(([, resolved]) => resolved !== null);
         if (!hit) continue;
         const [slot, resolved] = hit;
@@ -596,7 +610,7 @@ function assertEveryDeclarationParsed(sources, parsedCalls, parsedConstLines, pa
             + "\n\nThe collectors read addChange('NAME', 'version', <mainnet>, <testnet>, ...) or the part-file row "
             + "['NAME', 'version', <mainnet>, <testnet>, ...] with single quotes and readable time slots, and "
             + 'const NAME_MAINNET_TIME = <digits>;. A decimal literal may carry `_` separators in either '
-            + 'position. Either write the declaration in one of those shapes or widen the parse in '
+            + 'position; a time slot is a literal, a registry constant name or UNARMED. Either write the declaration in one of those shapes or widen the parse in '
             + 'bin/generate-flag-days.js deliberately.',
         );
     }
@@ -738,7 +752,9 @@ function registryConstants(sources) {
  * REFUSAL LIVES HERE rather than in the completeness check, because
  * `collectTestnetArms`, `collectTestnetUnarmed` and `collectMainnetUnarmed`
  * read the same calls and have no completeness check behind them: a shape this
- * parse cannot read has to be loud on every arm or it is loud on one.
+ * parse cannot read has to be loud on every arm or it is loud on one. The
+ * completeness check refuses an unreadable slot too, but only for the calls
+ * this pattern does not match.
  */
 function registryCalls(sources) {
     const scannable = sources.scannable;

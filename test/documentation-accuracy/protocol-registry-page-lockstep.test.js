@@ -24,6 +24,7 @@ const API_PAGE = fs.readFileSync(path.join(ROOT, 'components/explorer/api.md'), 
 const SOURCE_PATHS = [
     'src/explorer/fees_preflight.js',
     'src/explorer/mount.js',
+    'src/explorer/proofs.js',
     'src/http/api_boot/json_body.js',
     'src/explorer/multipart_file.js',
     'src/explorer/multipart_stream.js',
@@ -62,6 +63,12 @@ function assertBodyClaim(row, preflightLimit, contractLimit) {
     assert.match(row, /256 KB on `POST \/\{COIN\}\/api\/contract\/\{contractIndex\}\/call`/);
     assert.match(row, /10 KB on every other route/);
     assert.doesNotMatch(row, /allow 1 MB/);
+}
+
+function assertCheckpointLimitClaim(row) {
+    assert.match(row, /Checkpoint list: `limit` is not a whole number of at least 1/);
+    assert.match(row, /a value above 100 reads as 100/);
+    assert.doesNotMatch(row, /`0` reads as 1|Checkpoint list: `limit` is not a non-negative integer/);
 }
 
 function multipartErrors(sourceText) {
@@ -103,6 +110,21 @@ test('BODY_TOO_LARGE matches every explorer parser ceiling', { skip: explorer.sk
 
     const stale = registryRow('BODY_TOO_LARGE').replace('2.5 MB', '1 MB');
     assert.throws(() => assertBodyClaim(stale, preflight, contract));
+});
+
+test('INVALID_LIMIT checkpoint-list bounds match the explorer refusal', { skip: explorer.skip }, () => {
+    const proofs = source('src/explorer/proofs.js');
+    const match = proofs.match(/async processCheckpointsRequest\([\s\S]*?(?=\n    async )/);
+    assert.ok(match, 'processCheckpointsRequest must remain readable; repoint this test if it moves');
+    assert.match(match[0], /parseInt\(req\.query\.limit, 10\) < 1/);
+    assert.match(match[0], /code: 'INVALID_LIMIT'/);
+    assert.match(match[0], /Math\.min\(parseInt\(req\.query\.limit, 10\), 100\)/);
+    assertCheckpointLimitClaim(registryRow('INVALID_LIMIT'));
+
+    const stale = registryRow('INVALID_LIMIT').replace(
+        'Checkpoint list: `limit` is not a whole number of at least 1 (a value above 100 reads as 100)',
+        'Checkpoint list: `limit` is not a non-negative integer (`0` reads as 1 and a value above 100 reads as 100)');
+    assert.throws(() => assertCheckpointLimitClaim(stale));
 });
 
 test('multipart FILE refusals keep their registry statuses and API references', { skip: explorer.skip }, () => {

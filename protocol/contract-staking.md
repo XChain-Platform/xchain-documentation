@@ -109,7 +109,7 @@ When a `contract_unstakes` row's `cooldown_end_block` ≤ current block:
 1. The remaining `amount` (after any slashing) is credited back to the staker's source address.
 2. The row is marked `completed` so it won't be swept again.
 
-Tokens are debited from the staker at STAKE time and only credited back at the block-end sweep that catches the cooldown completion. There is no intermediate "release" action; it happens automatically.
+Tokens are debited from the staker at STAKE time and only credited back at the block-end sweep that catches the cooldown completion. No user broadcasts a "release" action; it happens automatically. Once `UNSTAKE_COOLDOWN_COMPLETION_ACTION` is active, the protocol itself mints a synthetic `UNSTAKE` action with `FORMAT = 2` at the release block and writes the credit and the escrow release under it. Before activation the credit reused the original `UNSTAKE`'s `action_index`.
 
 The same sweep also finalizes capability `unstakes` (previously unaddressed), contract staking and capability staking share the same cooldown finalization pass.
 

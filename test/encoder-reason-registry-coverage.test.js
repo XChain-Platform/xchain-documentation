@@ -30,6 +30,7 @@ const { sibling } = require('./helpers/sibling_checkout.js');
 const ROOT          = path.resolve(__dirname, '..');
 const ENCODER_SRC   = path.resolve(ROOT, '../xchain-encoder/src');
 const ENCODER_API   = path.join(ENCODER_SRC, 'api/json_rpc_methods.js');
+const ERROR_SANITIZE = path.join(ENCODER_SRC, 'common/error_sanitize.js');
 const REGISTRY_PAGE = path.join(ROOT, 'protocol/error-codes.md');
 
 // Emit shapes: an OperationalError constructor, an xchainCode or verdict code
@@ -112,17 +113,62 @@ function missingOperationalMethods(registry, source) {
     return [...operationalMethods(source)].filter((name) => !row.includes('`' + name + '`')).sort();
 }
 
+function between(page, start, end) {
+    const from = page.indexOf(start);
+    const to = page.indexOf(end, from + start.length);
+    assert.notEqual(from, -1, `missing section heading: ${start}`);
+    assert.notEqual(to, -1, `missing section boundary: ${end}`);
+    return page.slice(from, to);
+}
+
+function nodeReasonCodes(source) {
+    const rules = source.match(/const NODE_REASON_RULES = \[([\s\S]*?)\n\]/);
+    assert.ok(rules, 'NODE_REASON_RULES must remain a literal array; repoint this test if it moves');
+    const codes = [...rules[1].matchAll(/code: '([A-Z][A-Z0-9_]{2,})'/g)].map((match) => match[1]);
+    assert.ok(codes.length >= 14, `collected only ${codes.length} node reasons; the rule shape changed`);
+    return codes;
+}
+
+function missingNodeReasons(registry, source) {
+    const section = between(registry, '#### `broadcast_tx` `node_reason` values', '\n## Where the specs live');
+    return nodeReasonCodes(source).filter((code) => !section.includes('| `' + code + '` |'));
+}
+
 test('every encoder operational reason has a registry row', { skip: noEncoder }, () => {
     const registry = fs.readFileSync(REGISTRY_PAGE, 'utf8');
+    const reasonTable = between(registry, '### Encoder operational reasons',
+        '#### `broadcast_tx` `node_reason` values');
     const raised   = raisedReasons();
     assert.ok(raised.size >= 15,
         `collected only ${raised.size} reasons from the encoder source; the emit shape changed`);
     const missing = [...raised]
-        .filter(([reason]) => !(reason in NO_ROW_NEEDED) && !registry.includes('| `' + reason + '` |'))
+        .filter(([reason]) => !(reason in NO_ROW_NEEDED) && !reasonTable.includes('| `' + reason + '` |'))
         .map(([reason, where]) => `${reason} (raised in ${where})`);
     assert.deepEqual(missing, [],
         'protocol/error-codes.md is the append-only reason registry, so every reason '
         + 'the encoder raises needs a row there. Missing:\n  ' + missing.join('\n  '));
+});
+
+test('every broadcast node_reason has a registry row', { skip: noEncoder }, () => {
+    const registry = fs.readFileSync(REGISTRY_PAGE, 'utf8');
+    const source = fs.readFileSync(ERROR_SANITIZE, 'utf8');
+    assert.deepEqual(missingNodeReasons(registry, source), [],
+        'protocol/error-codes.md omits broadcast_tx node_reason values');
+});
+
+test('broadcast_tx emits the documented optional node_reason field', { skip: noEncoder }, () => {
+    const source = fs.readFileSync(ENCODER_API, 'utf8');
+    const body = publicMethodBodies(source).get('broadcast_tx');
+    assert.ok(body, 'broadcast_tx must remain a public method; repoint this test if it moves');
+    assert.match(body, /const nodeReason = nodeReasonCode\(err\)/);
+    assert.match(body, /\.\.\.\(nodeReason \? \{ node_reason: nodeReason \} : \{\}\)/);
+});
+
+test('the node_reason guard detects an omitted value', { skip: noEncoder }, () => {
+    const registry = fs.readFileSync(REGISTRY_PAGE, 'utf8');
+    const source = fs.readFileSync(ERROR_SANITIZE, 'utf8');
+    const withoutDust = registry.replace(/^\| `DUST` \|.*\n/m, '');
+    assert.deepEqual(missingNodeReasons(withoutDust, source), ['DUST']);
 });
 
 test('every encoder method that can return -32010 is named in its registry row', { skip: noEncoder }, () => {

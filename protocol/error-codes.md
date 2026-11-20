@@ -41,7 +41,7 @@ Errors are JSON objects:
 | `INVALID_PARAMETER` | 400 | A query or body parameter is malformed, repeated, over-long, or outside its allowed values; the generic 400 for a parameter refusal when no narrower code below applies. An unclassified 4xx outside route validation is `BAD_REQUEST` | No: fix the request |
 | `INVALID_ACTION` | 400 | The `action` parameter is malformed (fee quote and preflight routes). **What is checked:** the explorer refuses a raw value longer than 256 characters, then trims surrounding whitespace and uppercases the value and refuses it unless the result is 1 to 32 characters of `A-Z`, `0-9` and `_`. That pattern is the canonical uppercase form clients should send. Thus `send` and ` SEND ` are accepted, while `send;drop`, `SEND|X` and a blank value are refused. An accepted value is forwarded to the indexer exactly as sent, not in normalized form. A well-formed name that is not an action, such as `FOO`, is answered with HTTP 200 and the indexer's verdict in the body; read that verdict to detect an unknown action | No |
 | `INVALID_HEIGHT` | 400 | The `height` parameter is not a non-negative integer (proof routes) | No |
-| `INVALID_LIMIT` | 400 | The `limit` parameter is malformed. API list routes: `limit` is not a whole number of at least 1 (a larger value is clamped to the route's maximum, not refused). Checkpoint list: `limit` is not a non-negative integer (`0` reads as 1 and a value above 100 reads as 100). `POST /{COIN}/api/history`: `limit` is not an integer from 1 through 100; values above 100 are refused rather than clamped | No |
+| `INVALID_LIMIT` | 400 | The `limit` parameter is malformed. API list routes: `limit` is not a whole number of at least 1 (a larger value is clamped to the route's maximum, not refused). Checkpoint list: `limit` is not a whole number of at least 1 (a value above 100 reads as 100). `POST /{COIN}/api/history`: `limit` is not an integer from 1 through 100; values above 100 are refused rather than clamped | No |
 | `INVALID_RANGE` | 400 | `from` and `to` are not both integers, or `to` is below `from` (block-range proof). `POST /{COIN}/api/history`: `since` or `until` is not a non-negative integer timestamp, or `since` is later than `until` | No |
 | `INVALID_CONTRACT_INDEX` | 400 | The contract index is not a non-negative integer | No |
 | `INVALID_TX_INDEX` | 400 | API and explorer data routes: the `tx_index` path segment is not a non-negative integer | No: fix the request |
@@ -202,8 +202,8 @@ A `-32010` error always carries `error.data.reason`, a stable string that is app
 | `ENVELOPE_NOT_YET_ACTIVE` | Taproot envelope recognition is not active on this network yet, so the envelope is refused rather than built for decoders to ignore | `recognitionHeight`, `chainTip`, `blocksRemaining` | No: use P2WSH until the activation height |
 | `ENVELOPE_CANCEL_BELOW_DUST` | The envelope-cancel sweep output would fall below the dust floor | `commitValue`, `fee`, `sweepValue` | No: spend via the reveal or CPFP |
 | `ENVELOPE_CANCEL_OUTPOINT_RESERVED` | The commit outpoint the cancel would sweep is reserved by a different transaction built inside the reservation window | `outpoint` | No: broadcast that transaction and rebuild, or wait for the reservation to lapse. Replaying the same cancel is never refused |
-| `NODE_REJECTED` | `broadcast_tx`: the coin node refused the signed transaction (for example a double-spend, dust output, or fee below the relay floor) | `node_code` (the node's RPC error code) | No: rebuild and re-sign |
-| `TX_ALREADY_IN_CHAIN` | `broadcast_tx`: the coin node already knows the transaction, in its mempool or in a block | `node_code` (the node's RPC error code) | No: the transaction is already broadcast; track its txid |
+| `NODE_REJECTED` | `broadcast_tx`: the coin node refused the signed transaction (for example a double-spend, dust output, or fee below the relay floor) | `node_code` (the node's RPC error code); optional `node_reason` (see below) | No: rebuild and re-sign |
+| `TX_ALREADY_IN_CHAIN` | `broadcast_tx`: the coin node already knows the transaction, in its mempool or in a block | `node_code` (the node's RPC error code); optional `node_reason` (see below) | No: the transaction is already broadcast; track its txid |
 | `UTXO_TRACKER_UNREACHABLE` | Remote tracker profile only (`UTXO_TRACKER_PROFILE=remote`): the tracker's `get_sync_status` or `get_utxos` call failed (a transport fault, an error reply or a malformed result), and this profile has no fallback. The default profile reports the same failure as `UTXO_TRACKER_ERROR` | none | Caller may retry with backoff |
 | `UTXO_TRACKER_SYNC_MISSING` | Remote tracker profile only: the tracker returned an empty sync status, a `get_utxos` reply with no `sync` field, or a `sync` without a numeric `lag`, so the encoder refuses a view the tracker did not vouch for. The default profile builds in this case | none | No: operator action (upgrade or repair the tracker); a wallet may offer a manual retry |
 | `NODE_UNREACHABLE` | The coin node did not answer an encoder query, so the requested transaction build or fee quote could not proceed (for example, the connection timed out, was refused, or was reset) | none | Caller may retry with backoff |
@@ -211,6 +211,27 @@ A `-32010` error always carries `error.data.reason`, a stable string that is app
 | `PREV_TX_NOT_FOUND` | `create_tx`: the coin node does not know a transaction the build needs, such as the txid of a caller-supplied UTXO (for a confirmed transaction, the node may lack `txindex=1`); the message names the txid | none | No: check the outpoint, or run the node with `txindex=1` |
 | `REVEAL_LEGS_INSUFFICIENT` | `create_tx`: a P2SH or P2WSH reveal's data legs, which are its only inputs, cannot pay its outputs plus the coin node's relay minimum fee, so the reveal would be invalid (a negative fee) or unrelayable and is refused rather than returned for signing | `legs`, `outputs`, `actualFee`, `minimumRelayFee` | No: not retryable as-is; lower the reveal's outputs, or rebuild the commit with more reveal headroom |
 | `ENVELOPE_COMMIT_UNDERFUNDED` | `create_tx`: a signed two-step Taproot envelope commit leaves less for the reveal fee than the encoder's dust or relay minimum, so the reveal is refused | none | No: recover the commit output with `create_envelope_cancel_tx`, then rebuild the commit with enough reveal funding |
+
+#### `broadcast_tx` `node_reason` values
+
+`node_reason` is optional. When it is absent, the encoder did not map the node's refusal to one of the values below: no known pattern matched, or the node's message carried internal detail and was withheld. These values are stable and append-only like `reason`; clients must treat an unknown value like an absent one and branch on `node_reason`, never on `message`.
+
+| `node_reason` | Meaning |
+|---|---|
+| `INPUTS_MISSING_OR_SPENT` | One or more inputs are missing or already spent |
+| `SPEND_CONFLICT` | An input conflicts with a transaction already in the mempool |
+| `REPLACEMENT_FEE` | A replacement transaction does not satisfy the node's replacement rules |
+| `TX_ALREADY_IN_CHAIN` | The transaction is already known in the mempool or blockchain |
+| `DUST` | An output is below the node's dust threshold |
+| `SCRIPT_VERIFY_FAILED` | An input script failed the node's verification rules |
+| `MEMPOOL_CHAIN_TOO_LONG` | The transaction would exceed the node's mempool chain limits |
+| `MEMPOOL_FULL` | The node's mempool is full |
+| `MEMPOOL_MIN_FEE` | The fee is below the mempool's current minimum |
+| `MIN_RELAY_FEE` | The fee is below the node's minimum relay fee |
+| `INSUFFICIENT_PRIORITY` | The transaction does not meet the node's priority requirement |
+| `RATE_LIMITED` | The node rate-limited the request |
+| `MAX_FEE_RATE` | The fee exceeds the node's configured maximum fee rate |
+| `NODE_WARMING_UP` | The node is still loading and cannot accept the transaction |
 
 ## Where the specs live
 
