@@ -101,6 +101,17 @@ test('the user guide states the oracle whole-fill edge without promising an olde
     assert.match(PAGE, /covers at least one token but not one whole fill is invalid, and the coin is kept/);
 });
 
+test('the reverse-price chart stops the oracle walk at a whole-token match', () => {
+    const reversePricing = section(PAGE, '### Reverse Price Matching');
+    assert.match(reversePricing, /whole_tokens = floor\(tokens\)/);
+    assert.match(reversePricing, /whole_tokens at least 1\?/);
+    assert.match(reversePricing, /fills = floor\(tokens \/ GIVE_AMOUNT\)/);
+    assert.match(reversePricing, /fills at least 1\?/);
+    assert.match(reversePricing, /Matched price buys no whole fill:<br>dispense invalid, coin kept/);
+    assert.doesNotMatch(reversePricing,
+        /tokens = \(COIN_AMOUNT x coin_price\) \/ oracle_price<br>units = floor\(tokens \/ GIVE_AMOUNT\)/);
+});
+
 test('the oracle edge guard fails when the generalized failure rule returns', () => {
     const general = GUIDE.replace(/\n\nFor an oracle price[^\n]*/, '\n\nFor both traditional-currency modes, a payment settles at the most recent rate it covers.');
     assert.notStrictEqual(general, GUIDE, 'test fixture no longer carries the oracle paragraph');

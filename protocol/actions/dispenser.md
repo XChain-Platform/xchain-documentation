@@ -246,11 +246,16 @@ flowchart TD
     D --> E
     E --> F{"validator or user oracle path?"}
     F -->|"validator"| G["btc_per_token = FIAT_AMOUNT / snapshot.price<br>units = floor(COIN_AMOUNT / btc_per_token)"]
-    F -->|"user oracle"| H["fetch validator GET_COIN/FIAT price<br>at oracle's effective time<br>tokens = (COIN_AMOUNT x coin_price) / oracle_price<br>units = floor(tokens / GIVE_AMOUNT)"]
+    F -->|"user oracle"| H["fetch validator GET_COIN/FIAT price<br>at oracle's effective time<br>tokens = (COIN_AMOUNT x coin_price) / oracle_price<br>whole_tokens = floor(tokens)"]
     G --> I{"units at least 1?"}
-    H --> I
     I -->|"yes"| J["Match found, first (most recent) match wins:<br>dispense units x GIVE_AMOUNT tokens"]
     I -->|"no"| K{"more snapshots<br>remain in window?"}
+    H --> M{"whole_tokens at least 1?"}
+    M -->|"yes"| N["Match found, first (most recent) match wins:<br>fills = floor(tokens / GIVE_AMOUNT)"]
+    M -->|"no"| K
+    N --> O{"fills at least 1?"}
+    O -->|"yes"| P["Dispense fills x GIVE_AMOUNT tokens"]
+    O -->|"no"| Q["Matched price buys no whole fill:<br>dispense invalid, coin kept"]
     K -->|"yes"| E
     K -->|"no"| L["No match: dispense invalid"]
 ```
