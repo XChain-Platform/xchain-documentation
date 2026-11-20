@@ -3,7 +3,7 @@
 
 # Desktop: Windows
 
-**Status: not shipped as a declared lane, but published.** The `windows` lane still reads `NOT-SHIPPED` in `tools/release/shipped-lanes.txt`, so no release is required to carry it. Even so, `v0.341.2` published code-signed Windows installers to `downloads.xchain.io` on 2026-10-07, they are named in that release's signed manifest, and the desktop update feed serves them. A Windows file that a signed manifest names is ours; anything else offered as a Windows release of XChain Wallet is not, see [Verify a release](../verify-release.md). The Microsoft Store listing is not live yet.
+**Status: Shipped.** The `windows` lane reads `SHIPPED` in `tools/release/shipped-lanes.txt`, so every full release must carry its signed x64 and arm64 installers and portable zips. `v0.341.2` first published the code-signed Windows artifacts to `downloads.xchain.io` on 2026-10-07, and `v0.343.1` is the current published release. A Windows file that a signed manifest names is ours; anything else offered as a Windows release of XChain Wallet is not, see [Verify a release](../verify-release.md). The Microsoft Store listing is not live yet.
 
 The Windows desktop build is designed to ship two artifacts from the same source tree, one installable and one portable, for both `x64` and `arm64`.
 
@@ -22,17 +22,17 @@ Both artifacts come from `electron-builder`, driven by the desktop package's bui
 
 ## Signing
 
-Windows artifacts will be Authenticode-signed under the publisher identity **Dankest, LLC**. `electron-updater` refuses to install an update whose signed publisher doesn't match the currently installed app's publisher, so the publisher name is effectively part of the update contract, not just a display string.
+Windows artifacts are Authenticode-signed under the publisher identity **Dankest, LLC**. `electron-updater` refuses to install an update whose signed publisher doesn't match the currently installed app's publisher, so the publisher name is effectively part of the update contract, not just a display string.
 
 ## Updates
 
 The NSIS installer is the update-capable artifact: `electron-updater` can download a new installer and swap it in for an existing install. **The portable zip has no update path.** If you run the wallet from the zip, check for new releases manually rather than expecting an in-app update prompt.
 
-Once the lane ships, update checks will run against the wallet's `stable` release channel, pulled from the maintainer-controlled update feed. See [Build & Release](../../build-release.md) for how the update flow works across every shell.
+Update checks run against the wallet's `stable` release channel, pulled from the maintainer-controlled update feed. See [Build & Release](../../build-release.md) for how the update flow works across every shell.
 
 ## Verifying a download
 
-There is no genuine Windows download to verify yet. Once the lane ships, [Verify a release](../verify-release.md) will give the full recipe for checking its published SHA-256 manifest and signature. Windows artifacts are outside the reproducible-build coverage (see [Reproducible Builds](../../reproducible-builds.md)), so hash and signature verification will be the integrity guarantee for this platform.
+[Verify a release](../verify-release.md) gives the full recipe for checking a published Windows download against its SHA-256 manifest and signature. Windows artifacts are outside the reproducible-build coverage (see [Reproducible Builds](../../reproducible-builds.md)), so hash and signature verification are the integrity guarantee for this platform.
 
 ## Other Windows distribution
 

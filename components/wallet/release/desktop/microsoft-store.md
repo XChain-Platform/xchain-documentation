@@ -3,7 +3,7 @@
 
 # Desktop: Microsoft Store
 
-The wallet is planned for two Windows channels: the Microsoft Store and a signed executable hosted by us ([Windows](windows.md)). Neither channel has shipped yet. This page covers the Store one.
+The wallet has two Windows channels: the shipped signed executable hosted by us ([Windows](windows.md)) and the planned Microsoft Store package. This page covers the Store one.
 
 This page carries both halves of the lane: the submission runbook an operator follows, and the listing collateral they paste into the console.
 
@@ -35,7 +35,7 @@ A Microsoft Store install and a direct-download install **do not share a wallet*
 
 There is no cross-install detection and none is planned. The supported way to carry a wallet from one install to the other is the wallet's own encrypted backup: export from the first, import into the second. The same is true on macOS between the [Mac App Store](mac-app-store.md) and direct builds, and on Linux between the [Snap Store](snap-store.md) and direct builds.
 
-Neither Windows channel has shipped yet. Once both are available, users will be able to have both on the same machine, so the separate-wallet behavior above is the expected case rather than an edge case.
+The direct-download channel has shipped. Once the Store channel is available, users will be able to have both on the same machine, so the separate-wallet behavior above will be the expected case rather than an edge case.
 
 ## Submission runbook
 
