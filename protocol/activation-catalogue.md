@@ -88,6 +88,7 @@ same chain or field.
 | `dividend_empty_allow_list_denies_activation` | `DIVIDEND_EMPTY_ALLOW_LIST_DENIES_ACTIVATION` | height |
 | `empty_allow_list_denies_activation` | `EMPTY_ALLOW_LIST_DENIES` | height |
 | `execute_fee_cap_activation` | `EXECUTE_FEE_CAP_ACTIVATION` | height |
+| `execute_native_metered_gas_activation` | `EXECUTE_NATIVE_METERED_GAS_ACTIVATION` | height |
 
 ## G through P
 

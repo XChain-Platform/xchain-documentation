@@ -18,6 +18,14 @@ For what a flag day is, how `isEnabled` evaluates it, which cohort a gate
 belongs to, and what happens to a node that misses one, see
 [Protocol Activation](./protocol-activation.md).
 
+## Native EXECUTE metering height gate
+
+`EXECUTE_NATIVE_METERED_GAS_ACTIVATION` is UNARMED on mainnet and every testnet chain until the v0.28.0
+release writes post-roll heights. Its regtest slot is UNPINNED and becomes active only when
+`XC_EXECUTE_NATIVE_METERED_GAS_REGTEST_ACTIVATION` arms it. This gate is height-keyed, so it has
+no timestamp row in the time-keyed table below. Its before and after rule is documented under
+[EXECUTE](./actions/execute.md#top-level-gas-budget-and-fees).
+
 ## Canonical activation maps
 
 These names are exported by [`protocol/constants.js`](./constants.js). The index includes

@@ -34,6 +34,10 @@ const gen = require('../bin/generate-flag-days.js');
 const { sibling } = require('./helpers/sibling_checkout.js');
 
 const noIndexer = sibling('xchain-indexer', [gen.REGISTRY]).skip;
+const nativeMeteredGasIndexer = sibling('xchain-indexer', [
+    'src/protocol_changes/gates_5.js',
+    'src/protocol_changes/shared_rows.js',
+]);
 
 // A gate a release cut armed on testnet: still parked on mainnet, gone from the testnet
 // unarmed roster, and listed among the testnet arms at a real instant (never genesis,
@@ -99,6 +103,25 @@ test('against the real indexer STATE_KEY_STORABLE is unarmed on mainnet and arme
 test('against the real indexer ORDER_GET_ADDRESS_COIN is unarmed on mainnet and armed on testnet',
     { skip: noIndexer }, () => {
         assertArmedOnTestnetOnly('ORDER_GET_ADDRESS_COIN');
+    });
+
+test('against the real indexer EXECUTE_NATIVE_METERED_GAS_ACTIVATION is unarmed on public networks and env-armed on regtest',
+    { skip: nativeMeteredGasIndexer.skip }, (t) => {
+        const gates = fs.readFileSync(path.join(nativeMeteredGasIndexer.root, 'src/protocol_changes/gates_5.js'), 'utf8');
+        const key = 'execute_native_metered_gas_activation.EXECUTE_NATIVE_METERED_GAS_ACTIVATION';
+        if (!gates.includes(key)) return t.skip('indexer gate is not present in the sibling checkout');
+        const row = gates.match(new RegExp("addGate\\('" + key.replace('.', '\\.')
+            + "', 'height', \\{([\\s\\S]*?)\\}\\);"));
+        assert.ok(row, 'EXECUTE_NATIVE_METERED_GAS_ACTIVATION height row is missing');
+        for (const marker of [
+            'mainnet: UNARMED',
+            'testnet: UNARMED',
+            'regtest: UNPINNED',
+        ]) assert.ok(row[1].includes(marker), `EXECUTE_NATIVE_METERED_GAS_ACTIVATION is missing ${marker}`);
+        const sharedRows = fs.readFileSync(
+            path.join(nativeMeteredGasIndexer.root, 'src/protocol_changes/shared_rows.js'), 'utf8');
+        assert.match(sharedRows,
+            /execute_native_metered_gas_activation\.EXECUTE_NATIVE_METERED_GAS_ACTIVATION[\s\S]*?XC_EXECUTE_NATIVE_METERED_GAS_REGTEST_ACTIVATION/);
     });
 
 test('against the real indexer STATE_VALUE_ASTRAL_ESCAPE is unarmed on mainnet and armed on testnet',

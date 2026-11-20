@@ -21,6 +21,14 @@ flowchart LR
 
 On BTC, the indexer uses implicit detection: if the transaction includes a native coin output to the fee destination address, it's validated as native coin payment against the oracle. If there is no fee output, the indexer debits XCHAIN from the user's balance. On LTC/DOGE, native coin payment is the only option; a missing fee output means the action is rejected. Both rules are about how a fee is paid, not about whether one is owed: payment mode is resolved only when the computed fee is greater than zero. An action whose fee works out to nothing (a betting market created wholly inside the duration-fee free window, for instance) needs no fee output on any chain.
 
+Top-level `EXECUTE` has a native-payment exception under
+`EXECUTE_NATIVE_METERED_GAS_ACTIVATION`. Before the gate, its native output pays only the
+`VM_EXECUTE_BASE` price while the call may run to the protocol ceiling. From the gate, the output
+buys the call's gas budget: whole paid gas units, floored at the base and capped at 1,000,000. Work
+beyond that budget fails out of gas and the fee output is kept. There is no top-level gas-budget
+field on the wire. The XCHAIN-balance lane still settles actual metered gas. See
+[EXECUTE](../protocol/actions/execute.md#top-level-gas-budget-and-fees).
+
 The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` value from the bundled coin registry (pinned per coin and network). On testnet and regtest it can be redirected at runtime with the `XCHAIN_FEE_DESTINATION_<COIN>_<NETWORK>` environment variable (e.g. `XCHAIN_FEE_DESTINATION_DOGE_TESTNET`); on mainnet the override is ignored with a warning, because fee acceptance is consensus-relevant and must not depend on operator environment. If the registry value were the unset placeholder, native-coin fee detection would be disabled and the indexer would fall back to XCHAIN-balance deduction on BTC (and reject fee-bearing actions on LTC/DOGE).
 
 ## GAS_PRICE
@@ -214,11 +222,13 @@ explorer (the indexer itself is not internet-facing):
   `supported: false` means the action is not quotable here (native fees not enabled on the chain,
   or `XEXEC`/`BATCH`: the first is never wallet-broadcast, the second's fee is the sum of its
   sub-actions' state-dependent fees).
-  `valid: null` is the third answer, returned for `DEPLOY` and `EXECUTE`. These never run in the
-  public pre-flight (they would execute caller-supplied code on a shared node), so they are priced
-  straight from the gas schedule instead: `staticQuote: true`, `validated: false`, and a fee that
-  is exactly what the chain checks the native output against, with NO validity verdict attached.
-  Size the output from it and broadcast, but tell the user the action itself is unverified.
+  `valid: null` is the third answer for `DEPLOY`, which is priced straight from the gas schedule
+  without running caller-supplied code. For top-level `EXECUTE` before
+  `EXECUTE_NATIVE_METERED_GAS_ACTIVATION`, the native quote is likewise the static base price. From
+  that gate, the EXECUTE quote uses a rollback-only dry-run gas estimate, adds a fixed safety margin,
+  floors the result at `VM_EXECUTE_BASE`, caps it at the 1,000,000 protocol ceiling, and converts
+  that budget into `requiredFeeSats`. Field names that expose estimate details are not a protocol
+  contract; clients size the output from `requiredFeeSats`.
   `valid: false` carries the handler's reason verbatim in `error`/`status`: an oracle price that
   is missing/stale, a supplied `feeOutputSats` below the acceptance floor, or the action itself
   being one the chain would reject (insufficient balance, taken ticker, expired order, ...), which
@@ -238,11 +248,12 @@ chokepoint and warns the user that a native-coin fee is forfeited if the transac
 
 > Phase-2 scope (live): the pre-flight covers every action except the VM/compound set. SEND,
 > edits, AIRDROP, DIVIDEND and the rest are quoted by the real handler, including failure
-> reasons a fee estimator could never see (insufficient balance, taken ticker, ...). `DEPLOY` and
-> `EXECUTE` get a fee but no verdict (see `valid: null` above); `XEXEC`/`BATCH` get neither.
+> reasons a fee estimator could never see (insufficient balance, taken ticker, ...). `DEPLOY` gets
+> a static fee but no verdict; native top-level `EXECUTE` uses the gated pricing described above.
+> `XEXEC`/`BATCH` get neither.
 > On LTC/DOGE the native output is the ONLY way to pay a protocol fee (no XCHAIN fee lane), so
-> "not quotable" there means "not payable": that is why the two VM actions are priced statically
-> rather than refused.
+> "not quotable" there means "not payable": that is why DEPLOY and pre-gate EXECUTE are priced
+> statically rather than refused. The gated EXECUTE quote does not make native BATCH quotes quotable.
 
 ## Changing Fees
 

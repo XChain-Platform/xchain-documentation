@@ -114,7 +114,7 @@ build step and nothing to install (contracts stay single-file and import-free).
 | external data / API | `xchain.attestation.request(providerId, payload, callbackMethod, callbackParams, opts)` | PBFT-certified; `http_get` and `llm` providers |
 | `payable receive()` | (none) | `DEPOSIT` |
 | `selfdestruct` / `delegatecall` | (none) | not in the model |
-| gas limit | `GAS_LIMIT` on deploy/execute; `sdk.suggestGasLimit(...)` | metered per the gas schedule |
+| gas limit | Top-level EXECUTE has no gas-limit wire field; emitted calls carry `gasLimit` | native EXECUTE uses its paid-output budget from `EXECUTE_NATIVE_METERED_GAS_ACTIVATION`; XCHAIN-balance settlement remains metered |
 
 The `patterns/` column maps to the pattern library in `xchain-contracts/patterns/`,
 which ships an [OpenZeppelin alias table](https://github.com/XChain-Platform/xchain-contracts/blob/master/patterns/README.md#coming-from-openzeppelin)

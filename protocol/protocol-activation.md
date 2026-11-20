@@ -259,6 +259,15 @@ feed's allow-list and block-list references. It is armed on testnet at each chai
 stays unarmed on mainnet until a release arms it there, while
 regtest exercises the gated path from genesis.
 
+`EXECUTE_NATIVE_METERED_GAS_ACTIVATION` is an indexer-only per-chain height gate for native-paid
+top-level [EXECUTE](./actions/execute.md). Below the gate, a native-paid call owes only
+`VM_EXECUTE_BASE` and may run to the protocol gas ceiling. At or above the gate, the paid native
+fee output buys the call's gas budget, floored at the base and capped at the 1,000,000 protocol
+ceiling; a call that needs more fails out of gas and the fee output is kept. The XCHAIN-balance
+settlement lane is unchanged. A top-level EXECUTE has no gas-budget field on the wire. Mainnet and
+every testnet chain are UNARMED until the v0.28.0 release assigns post-roll heights. Regtest is
+UNPINNED and is armed only through `XC_EXECUTE_NATIVE_METERED_GAS_REGTEST_ACTIVATION`.
+
 Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest stack exercises the
 post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed
 (Cohort B) gates genesis-active as well, with exceptions in every cohort:

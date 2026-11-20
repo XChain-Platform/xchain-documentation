@@ -75,7 +75,8 @@ test('render names the unpinned gates in their own sentence', () => {
     const gates = [{ gate: 'LIVE_ACTIVATION', time: 1786060800, source: 'protocol_changes/x.js' }];
     const page = gen.render(gates, [], [], [], [], [{ gate: 'NULL_ACTIVATION' }]);
     assert.match(page, /\*\*One gate has no mainnet instant\*\* \(`NULL_ACTIVATION`\)/);
-    assert.ok(!/UNARMED on mainnet/.test(page), 'the unpinned gate must not read as UNARMED');
+    assert.doesNotMatch(page, /UNARMED on mainnet[^\n]*`NULL_ACTIVATION`/,
+        'the unpinned gate must not appear in the UNARMED roster');
     assert.ok(!/no mainnet instant/.test(gen.render(gates)), 'no sentence when nothing is unpinned');
 });
 

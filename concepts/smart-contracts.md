@@ -132,7 +132,13 @@ A contract may additionally export a static `abi` object next to its methods, de
 
 Every contract receives an `xchain` object providing access to platform data and operations:
 
-Every figure in a **Gas** column below is in gas units, charged against the calling EXECUTE's `GAS_LIMIT`. A sum such as `500 + 5,000` lists the separate charges the call makes, in the order it makes them. Token amounts a call escrows or transfers are never gas and never appear in that column: they come out of the contract's own balance and are described in words.
+Every figure in a **Gas** column below is in gas units, charged against the calling EXECUTE's gas
+budget. A top-level EXECUTE has no `GAS_LIMIT` wire field; the budget comes from the protocol
+ceiling or, for a native-paid call under `EXECUTE_NATIVE_METERED_GAS_ACTIVATION`, from its paid
+output. An emitted call carries its own `gasLimit`. A sum such as `500 + 5,000` lists the separate
+charges the call makes, in the order it makes them. Token amounts a call escrows or transfers are
+never gas and never appear in that column: they come out of the contract's own balance and are
+described in words.
 
 ### Context (0 gas)
 | Method | Returns |
