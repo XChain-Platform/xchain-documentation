@@ -136,6 +136,7 @@ right user-facing copy.
 - `THROTTLED`
 - `BLOCKED_BY_USER`
 - `BRIDGE_VERSION_MISMATCH`
+- `BALANCES_UNAVAILABLE`
 - `INTERNAL_ERROR`
 
 ### ConnectedSite permission keys
