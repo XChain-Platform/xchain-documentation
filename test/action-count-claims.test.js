@@ -123,9 +123,9 @@ const WIRE_SCOPED = [
 ];
 
 const SCOPED = [
-  { file: 'components/e2e-test/architecture.md', claim: '141 action', count: 1,
+  { file: 'components/e2e-test/architecture.md', claim: '143 action', count: 1,
     why: 'test files at every depth, several per action; the recursive mocha glob and git ls-files '
-       + 'xchain-e2e-test/test/actions both count the committed tree on 2026-11-18' },
+       + 'xchain-e2e-test/test/actions both count the committed tree on 2026-11-20' },
   { file: 'components/e2e-test/README.md', claim: '33 ACTION', count: 1,
     why: 'ACTION names some test/actions suite builds a payload for, not the ACTION set; recounted by '
        + 'xchain-e2e-test bin/count-action-suites.js and pinned to the tree by its '
