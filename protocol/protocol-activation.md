@@ -333,7 +333,7 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
     `TICK_ID` rather than per literal `TICK`.
   - `ATTEST_RELAY_RESPONSE_DEADLINE_ACTIVATION`, which rejects an ATTEST relay response that lands
     on its origin chain after the request's deadline.
-- **Seven more time-keyed rules are not genesis-active on testnet either**: they were registered
+- **Six more time-keyed rules are not genesis-active on testnet either**: they were registered
   after the v0.23.0 cut, and the v0.24.0 release cut armed all of them on testnet together at one
   later shared instant of their own, while mainnet keeps them unarmed until an operator arms it
   (the instant and status are on [Flag-Day Values](./flag-days.md)):
@@ -341,8 +341,6 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
     emission, so other emissions keep the emitter's depth.
   - `ARCHIVE_REPLAY_WRAPPER_WATERMARK`, which lets the archive replay guard's checkpoint watermark
     read the wrapper chain row of each v3 archive.
-  - `LEGACY_ANCHOR_REWARD_PIN`, which stops the anchor reward mint from minting a pinned legacy
-    reward tuple again.
   - `GUARD_STAKE_SNAPSHOT_DECIMAL_STRINGS`, which hands the VM decimal strings in the
     controller-guard stake snapshot, as the primary EXECUTE path already does.
   - `HOST_CALL_BOUNDS`, the indexer twin of the VM's `HOST_CALL_BOUNDS_ACTIVATION`, which bounds
@@ -351,6 +349,12 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
     iterator, set algebra, `String.raw` and object spread work per element.
   - `CALLBACK_ARGS_EXACT`, which runs an ATTEST, XCALL or binding VOTE callback with the argument
     array its injector built.
+- **One more time-keyed rule arms testnet at an instant of its own**: the v0.24.0 release cut first
+  armed it with the six rules above, but its instant later moved past the recorded testnet history
+  it protects, so it does not share their instant; mainnet keeps it unarmed until an operator arms
+  it (the instant and status are on [Flag-Day Values](./flag-days.md)):
+  - `LEGACY_ANCHOR_REWARD_PIN`, which stops the anchor reward mint from minting a pinned legacy
+    reward tuple again.
 - **Three more time-keyed rules are not genesis-active on testnet either**: they were registered
   after the v0.24.0 cut, and the v0.25.0 release cut armed all of them on testnet together at one
   later shared instant of their own, while mainnet keeps them unarmed until an operator arms it

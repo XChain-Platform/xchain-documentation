@@ -117,7 +117,7 @@ Return the current mining loop state for operator diagnostics and CI health chec
 |---|---|---|
 | `wallet_ready` | boolean | `true` once wallet preparation has completed; gates on mine-readiness, not just server availability. It briefly returns to `false` while a wallet recreated under the running miner receives a new mining address and matures its coinbase. It stays `true` across a reorg, even one that leaves the wallet unable to fund a send; read `wallet_funded` for that. |
 | `wallet_balance` | number or null | The wallet's spendable balance in coin units from the last `getbalance` read. `null` when no read has happened or the last read failed; neither `null` nor `0` counts as funded. |
-| `wallet_funded` | boolean | `true` only when `wallet_balance` is a number above 0. Use this, not `wallet_ready`, to learn whether the wallet can still fund a send (for example after a deep `invalidate_block`). |
+| `wallet_funded` | boolean | `true` when `wallet_balance` is a number at or above `MINER_WALLET_FUNDED_FLOOR` (default `1`). Use this, not `wallet_ready`, to learn whether the wallet can still fund a send (for example after a deep `invalidate_block`). |
 | `wallet_balance_at` | number or null | Unix timestamp in milliseconds of the last balance read attempt, successful or not; `null` before the first read |
 | `mining_paused` | boolean | `true` while the auto-mine loop is paused (`pause_mining`, or a `fill_mempool`/`invalidate_block` that never resumed). If mining seems stalled, check this first. |
 | `mining_started` | boolean | `true` once wallet preparation finished and the auto-mine loop started; a pause never resets it. A miner still starting reads `mining_paused: true` with `mining_started: false`. |

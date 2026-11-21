@@ -384,6 +384,8 @@ These series are served on the metrics endpoint only when [`METRICS_ENABLED`](./
 | `xchain_oracle_publisher_batch_sign_timeouts_total` | Counter | None | PRICE batch signing rounds that timed out waiting for co-signatures. |
 | `xchain_oracle_publisher_last_published_round` | Gauge | None | Last oracle round this hub published; absent until it has published one. |
 | `xchain_oracle_publisher_unconfirmed_publishes` | Gauge | None | Publishes this hub broadcast that have not yet reached a block. |
+| `xchain_oracle_publisher_set_unresolved` | Gauge | None | 1 while the oracle_publish capability snapshot is unresolved and this hub fails closed and will not publish; tells a dark hub from a healthy one that is simply not the rotation leader. |
+| `xchain_oracle_publisher_set_unresolved_spells_total` | Counter | None | Transitions into that fail-closed state. The hub logs one warning when a spell starts and one info line, with its length, when the snapshot resolves again. |
 
 Single-source warning lines now name the live and dead upstreams (for example, `live: coingecko; dead: kraken, coinbase`) and the pairs that went single-source with their submitters, so an operator can tell which source dropped.
 

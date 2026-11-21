@@ -16,10 +16,9 @@ const { test } = require('node:test');
 const { COMPUTED_READ_BASELINE } = require('../lib/env-var-doc-coverage.js');
 
 test('computed-read baselines include every vendored regtest time-override twin', () => {
-    assert.equal(COMPUTED_READ_BASELINE.sync, 8);
-    assert.equal(COMPUTED_READ_BASELINE.sdk, 5);
-    // 14 since the computed lookahead began counting quoted-prefix keys (six explorer sites);
-    // 15 since the native-history pass-through added a second UTXO_TRACKER_URL_<COIN> site;
-    // 16 since the SSRF guard reads the four standard proxy names to log that it ignores them.
-    assert.equal(COMPUTED_READ_BASELINE.explorer, 16);
+    // These totals include computed reads, the vendored time-override twin and
+    // the whole-object escapes that joined the same ratchet.
+    assert.equal(COMPUTED_READ_BASELINE.sync, 23);
+    assert.equal(COMPUTED_READ_BASELINE.sdk, 11);
+    assert.equal(COMPUTED_READ_BASELINE.explorer, 28);
 });

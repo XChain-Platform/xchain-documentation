@@ -276,6 +276,76 @@ describe('scanSource', () => {
         const found = scanSource('/* two\n   lines */\nconst a = process.env.LATE || 1;');
         assert.equal(found.get('LATE')[0].line, 3);
     });
+
+    test('finds named reads through a file-local process.env alias', () => {
+        const source = [
+            'const localEnv = process.env;',
+            'const a = localEnv.ALPHA || 1;',
+            "const b = localEnv['BETA'];",
+            "localEnv.WRITTEN = 'not a read';",
+            'const ghost = unrelatedEnv.GHOST;',
+        ].join('\n');
+        const found = scanSource(source);
+        assert.deepEqual([...found.keys()], ['ALPHA', 'BETA']);
+        assert.equal(found.get('ALPHA')[0].default.value, '1');
+    });
+
+    test('finds reads through a registered config export', () => {
+        const source = [
+            "const { PROCESS_ENV } = require('../config.js');",
+            "const cfg = require('../config.js');",
+            'const a = PROCESS_ENV.MINER_FLOOR || 1;',
+            "const b = cfg.PROCESS_ENV['MINER_CAP'] || 100;",
+            "require('../config.js').PROCESS_ENV.WRITTEN = 'not a read';",
+        ].join('\n');
+        const found = scanSource(source, { configEnvExport: 'PROCESS_ENV' });
+        assert.deepEqual([...found.keys()], ['MINER_FLOOR', 'MINER_CAP']);
+    });
+
+    test('traces an alias of an alias, from process.env or a config export', () => {
+        const source = [
+            'const first = process.env;',
+            'const second = first;',
+            'const third = second;',
+            'use(second.HIDDEN, third.DEEPER);',
+            "const { PROCESS_ENV } = require('../config.js');",
+            'const copied = PROCESS_ENV;',
+            "const c = copied['FROM_EXPORT'];",
+            'const environment = 1;',
+            'const notView = environment.NOT_A_READ;',
+        ].join('\n');
+        const found = scanSource(source, { configEnvExport: 'PROCESS_ENV' });
+        assert.deepEqual([...found.keys()], ['HIDDEN', 'DEEPER', 'FROM_EXPORT']);
+    });
+
+    test('traces a config export destructured beside other keys or from a config binding', () => {
+        const source = [
+            "const { NETWORK, PROCESS_ENV } = require('../config.js');",
+            'use(PROCESS_ENV.BESIDE_KEY);',
+            "const cfg = require('../config');",
+            'const { PROCESS_ENV: pe, NODE_URL } = cfg;',
+            'use(pe.FROM_BINDING);',
+            'const {',
+            '    PROCESS_ENV: wrapped,',
+            "} = require('../config.js');",
+            'use(wrapped.MULTI_LINE);',
+        ].join('\n');
+        const found = scanSource(source, { configEnvExport: 'PROCESS_ENV' });
+        assert.deepEqual([...found.keys()], ['BESIDE_KEY', 'FROM_BINDING', 'MULTI_LINE']);
+    });
+
+    test('traces env destructured from process, renamed or beside other keys', () => {
+        const source = [
+            'const { env } = process;',
+            'use(env.PLAIN_KEY);',
+            'const { argv, env: e } = process;',
+            "use(e['RENAMED_KEY']);",
+            'const { env: other } = processLike;',
+            'use(other.NOT_A_READ);',
+        ].join('\n');
+        assert.deepEqual([...scanSource(source).keys()], ['PLAIN_KEY', 'RENAMED_KEY']);
+        assert.deepEqual(cov.scanComputedReads(source), []);
+    });
 });
 
 // Read a fallback that wraps onto the next line: a site recorded with
@@ -430,6 +500,70 @@ describe('scanComputedReads (the blind spot the gate cannot see into)', () => {
             "const c = env['lowercase'];",
         ].join('\n');
         assert.deepEqual(cov.scanComputedReads(source, { configView: true }), [1, 3]);
+    });
+
+    test('ratchets computed alias reads and unresolved whole-object escapes', () => {
+        const source = [
+            'const localEnv = process.env;',
+            'const a = localEnv[prefix];',
+            'consume(localEnv);',
+            "const cfg = require('../config.js');",
+            'const b = cfg.PROCESS_ENV[name];',
+            'consume(cfg.PROCESS_ENV);',
+        ].join('\n');
+        assert.deepEqual(
+            cov.scanComputedReads(source, { configEnvExport: 'PROCESS_ENV' }),
+            [2, 3, 5, 6],
+        );
+    });
+
+    test('does not ratchet the registered config export itself', () => {
+        const source = [
+            'const localEnv = process.env;',
+            'module.exports = { PROCESS_ENV: localEnv };',
+        ].join('\n');
+        assert.deepEqual(cov.scanComputedReads(source, { configEnvExport: 'PROCESS_ENV', configModule: true }), []);
+    });
+
+    test('ratchets a chained alias escape and skips identifiers that only share its prefix', () => {
+        const source = [
+            'const first = process.env;',
+            'const second = first;',
+            'const k = second[key];',
+            'let later;',
+            'later = second;',
+            'consume(second);',
+            'const environment = first2;',
+            'firstly(environment);',
+        ].join('\n');
+        assert.deepEqual(cov.scanComputedReads(source), [3, 5, 6]);
+    });
+
+    test('ratchets an env default inside a pattern and a registered key outside the exports', () => {
+        const source = [
+            'const { service, env = process.env } = opts;',
+            "const { PROCESS_ENV } = require('../config.js');",
+            'spawn(cmd, { PROCESS_ENV: PROCESS_ENV });',
+            'const local = process.env;',
+            'module.exports = {',
+            '    OTHER: 1,',
+            '    PROCESS_ENV: local,',
+            '};',
+            'module.exports.PROCESS_ENV = local;',
+        ].join('\n');
+        const inConfig = { configEnvExport: 'PROCESS_ENV', configModule: true };
+        assert.deepEqual(cov.scanComputedReads(source, inConfig), [1, 3]);
+        // Outside the config module nothing traces that export's readers, so it is an escape.
+        assert.deepEqual(cov.scanComputedReads(source, { configEnvExport: 'PROCESS_ENV' }), [1, 3, 7, 9]);
+    });
+
+    test('marks only a config module file as the place the registered export is traced', () => {
+        for (const rel of ['src/config.js', 'config.js', 'src/config/index.js']) {
+            assert.equal(cov.CONFIG_MODULE_FILE.test(rel), true, rel);
+        }
+        for (const rel of ['src/api.js', 'src/appconfig.js', 'src/config/loader.js']) {
+            assert.equal(cov.CONFIG_MODULE_FILE.test(rel), false, rel);
+        }
     });
 });
 
@@ -685,7 +819,6 @@ describe('checkComputedReads (the blind-spot ratchet)', () => {
     test('an entry with no computed list fails rather than reading as zero sites', () => {
         const bare = { vars: new Map(), docLines: [], docProse: [], sourceFiles: 1 };
         const problems = cov.checkComputedReads(new Map([['vm', bare]]));
-        assert.equal(cov.COMPUTED_READ_BASELINE.vm, 0, 'this case needs a zero-baseline component to be non-vacuous');
         assert.equal(problems.length, 1);
         assert.match(problems[0], /^vm: the survey entry carries no computed-read list/);
     });
