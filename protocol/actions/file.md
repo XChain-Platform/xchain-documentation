@@ -49,7 +49,7 @@ Before `FILE_MULTIPART` activates, versions 1 and 2 follow the unchanged version
 - `invalid: RAW_DATA (manifest carries no bytes)`
 - `invalid: RAW_DATA (empty part)`
 - `invalid: VERSION (batch)` for a part in a `BATCH`
-- `invalid: FILE_HASH (batch)` for a second `FILE` beside a manifest
+- `invalid: FILE_HASH (batch)` on the manifest itself when another `FILE` shares its `BATCH` and no earlier manifest check failed. A version 0 sibling is not refused by this rule; if two manifests share a `BATCH`, each manifest is refused.
 - `invalid: FILE_HASH (duplicate manifest)` when the source already has a valid manifest with that hash
 
 The 65,535-part ceiling bounds completion and serving bookkeeping. At that ceiling, hashing the winning part digests and reading one metadata row per part each involve about 10 MB of data. The byte ceiling is 65,535 parts times the 4,000,000-byte per-part block ceiling, or 262,140,000,000 bytes, so it cannot bind before the part count and per-part carrier limits do. Both values are exactly representable as JavaScript numbers. The practical reach is about 25.5 GB with 389,920-byte envelope parts and 531 MB with 8,114-byte Standard parts. Transaction fees and available block space are therefore the practical limits. After assembly, a reader limits inflation with the streamed cap `min(150 * stored bytes, 262140000000)`.

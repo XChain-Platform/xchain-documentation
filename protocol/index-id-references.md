@@ -79,6 +79,14 @@ on this chain: it is checked for form only (`invalid: TICK (format)`) and stored
 written with its root upper-cased. Below `LIST_TICK_COIN_ACTIVATION`, a colon item is
 an ordinary ticker name looked up as written.
 
+For a cross-chain `ORDER` or `SWAP`, where `GET_COIN` differs from the reading chain's
+coin, `GET_TICK` must be written as the remote token name in full. At or above
+`CROSS_CHAIN_REMOTE_TOKEN_ACTIVATION`, the indexer matches that name against the pinned
+remote-token snapshot, so a local `^<tickid>` is recorded
+`invalid: GET_TICK (no pinned remote token)`. Below the gate, that id resolves against
+the reading chain's ticker table rather than the `GET_COIN` chain's table. See the
+[Activation Module Catalogue](./activation-catalogue.md).
+
 `FILE.GATE_TICKER` is also resolved on input, but clients must write it in full. The
 indexer checks it through the same ticker lookup as the fields above, so a `^<tickid>`
 resolves and the `FILE` is accepted, but the value is then stored verbatim as the file's
@@ -278,8 +286,10 @@ automatically (opt out with `{ compactTickers: false }` / `{ compactAddresses: f
 It only ever emits a `^<id>` for a value it has already resolved to an existing id via the
 explorer, and it falls back to the full value whenever an id cannot be resolved, so a
 client never emits an id the indexer would not recognize. Multi-recipient (array)
-fields are left in full form by the SDK except for `LIST.ITEM` on an address list. Below
-`LIST_ADDRESS_REF_ACTIVATION`, `LIST.ITEM` addresses stay in full because the indexer
+fields are left in full form by the SDK except for `LIST.ITEM` on an address list.
+The SDK leaves a cross-chain `ORDER` or `SWAP` `GET_TICK` in full because its id belongs
+to the remote chain, while same-chain `GET_TICK` values remain eligible for compaction.
+Below `LIST_ADDRESS_REF_ACTIVATION`, `LIST.ITEM` addresses stay in full because the indexer
 resolves no `^<id>` there. At or above the gate, the SDK compacts each `ITEM` address it
 can resolve to `^<id>` and keeps unresolved items in full, so one list may contain both
 forms. For an edit with no `TYPE`, it reads the parent list's type and compacts only a

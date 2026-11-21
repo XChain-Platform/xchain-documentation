@@ -1150,9 +1150,13 @@ simultaneously on Bitcoin, Litecoin, and Dogecoin.
 
 ${outliers}${mainnetUnarmedNote}${mainnetUnpinnedNote}
 
-**Testnet and regtest are genesis-active** for the time-keyed gates: they carry
-threshold \`0\`, so a testnet or regtest stack has always run the
-post-activation behavior. ${testnetNote}${unarmedNote}
+**Testnet is genesis-active by default** for the time-keyed gates, subject to
+the derived exceptions below. ${testnetNote}${unarmedNote}
+
+**Regtest activation is defined per gate.** A regtest slot can be genesis-active,
+UNARMED, or armed by an environment override. Read the gate's registration under
+\`xchain-indexer/src/protocol_changes/\` before treating a regtest run as coverage
+of its post-activation behavior.
 
 ## Mainnet time-keyed gates
 

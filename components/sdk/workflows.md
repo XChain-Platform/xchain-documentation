@@ -187,7 +187,7 @@ To deploy a stakeable contract (one that accepts STAKE v3 actions), pass `cooldo
 const result = await sdk.deployContract(
     wif,
     {
-        code:              'module.exports = { meta: { name: "Counter", description: "Counts calls to inc.", version: "1.0.0" }, initialize: function(xchain) { xchain.state.set("n", "0"); }, inc: function(xchain) { xchain.state.set("n", xchain.math.add(xchain.state.get("n") || "0", "1")); } }',
+        code:              'module.exports = { meta: { name: "Counter", description: "Counts calls to inc.", version: "1.0.0" }, initialize: function(xchain) { if (xchain.state.get("n") !== null) throw new Error("already initialized"); xchain.state.set("n", "0"); }, inc: function(xchain) { xchain.state.set("n", xchain.math.add(xchain.state.get("n") || "0", "1")); } }',
         gasLimit:          100000,
         constructorParams: []       // optional
     },
@@ -264,7 +264,7 @@ Deploy a smart contract and optionally deposit initial tokens:
 const result = await sdk.deployAndFund(
     wif,
     {
-        code: 'module.exports = { meta: { name: "MyContract", description: "Counts calls to increment.", version: "1.0.0" }, initialize: function(xchain) { xchain.state.set("count", "0"); }, increment: function(xchain) { xchain.state.set("count", xchain.math.add(xchain.state.get("count") || "0", "1")); } }',
+        code: 'module.exports = { meta: { name: "MyContract", description: "Counts calls to increment.", version: "1.0.0" }, initialize: function(xchain) { if (xchain.state.get("count") !== null) throw new Error("already initialized"); xchain.state.set("count", "0"); }, increment: function(xchain) { xchain.state.set("count", xchain.math.add(xchain.state.get("count") || "0", "1")); } }',
         gasLimit: 100000
     },
     [

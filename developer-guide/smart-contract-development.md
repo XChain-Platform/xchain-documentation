@@ -102,6 +102,7 @@ module.exports = {
         ownerWithdraw: true   // opts this contract in to the platform WITHDRAW action for its owner
     },
     initialize: function(xchain) {
+        xchain.require(xchain.state.get('owner') === null, 'already initialized');
         xchain.state.set('owner', xchain.getSourceAddress());
         xchain.state.set('total', '0');
     },
@@ -137,7 +138,7 @@ Set `ownerWithdraw: true` for a contract the deployer is meant to be able to swe
 
 ### Constructor
 
-If a contract exports an `initialize` method, the VM calls it immediately after deployment as `initialize(xchain)`. When the DEPLOY carries `CONSTRUCTOR_PARAMS`, `initialize` reads them through `xchain.getInputParam(i)`; they are never passed as extra function parameters. That rule holds at or above the [`DEPLOY_INIT_STRICT` flag day](../protocol/flag-days.md#contract-era-flag-day); below it, `initialize` runs only when `CONSTRUCTOR_PARAMS` is non-empty. With no `CONSTRUCTOR_PARAMS`, `xchain.getInputParam(i)` returns `null`, so an `initialize` that needs a parameter should check it with `xchain.require(...)`: the failed check rejects the deploy instead of storing `null`. A contract that should not run a constructor does not export `initialize`. Constructor state changes and emissions are processed atomically with the deployment; if the constructor fails (or any of its emissions does), the contract is not deployed.
+If a contract exports an `initialize` method, the VM calls it immediately after deployment as `initialize(xchain)`. When the DEPLOY carries `CONSTRUCTOR_PARAMS`, `initialize` reads them through `xchain.getInputParam(i)`; they are never passed as extra function parameters. That rule holds at or above the [`DEPLOY_INIT_STRICT` flag day](../protocol/flag-days.md#contract-era-flag-day); below it, `initialize` runs only when `CONSTRUCTOR_PARAMS` is non-empty. With no `CONSTRUCTOR_PARAMS`, `xchain.getInputParam(i)` returns `null`, so an `initialize` that needs a parameter should check it with `xchain.require(...)`: the failed check rejects the deploy instead of storing `null`. `initialize` remains an ordinary exported method that any later `EXECUTE` can name. A constructor that stores an owner, administrator, beneficiary, or accounting state must refuse a second call before changing state, for example with `xchain.require(xchain.state.get('owner') === null, 'already initialized')`. A contract that should not run a constructor does not export `initialize`. Constructor state changes and emissions are processed atomically with the deployment; if the constructor fails (or any of its emissions does), the contract is not deployed.
 
 Constructors may emit any action a method can, including `emit.execute`, so a contract can register itself with a registry contract in the same transaction that deploys it. The constructor runs at call depth 0; remember the contract's derived address holds no tokens yet, so token-moving emissions (`emit.send`, …) from a constructor will fail the deployment unless the tokens were somehow pre-funded.
 
@@ -551,7 +552,10 @@ module.exports = {
     // param. punish compares the caller against it, so without this the
     // owner check can never pass.
     initialize: function(xchain) {
-        xchain.state.set('owner', xchain.getInputParam(0));
+        xchain.require(xchain.state.get('owner') === null, 'already initialized');
+        var owner = xchain.getInputParam(0);
+        xchain.require(owner, 'owner address required');
+        xchain.state.set('owner', owner);
     },
 
     // Anyone can check: does this pubkey hold at least 100 XCHAIN against this contract?
@@ -729,9 +733,16 @@ module.exports = {
         version:     '1.0.0'
     },
     initialize: function(xchain) {
-        xchain.state.set('beneficiary', xchain.getInputParam(0));
-        xchain.state.set('token', xchain.getInputParam(1));
-        xchain.state.set('totalAmount', xchain.getInputParam(2));
+        xchain.require(xchain.state.get('beneficiary') === null, 'already initialized');
+        var beneficiary = xchain.getInputParam(0);
+        var token = xchain.getInputParam(1);
+        var totalAmount = xchain.getInputParam(2);
+        xchain.require(beneficiary, 'beneficiary required');
+        xchain.require(token, 'token required');
+        xchain.require(totalAmount, 'total amount required');
+        xchain.state.set('beneficiary', beneficiary);
+        xchain.state.set('token', token);
+        xchain.state.set('totalAmount', totalAmount);
         xchain.state.set('startBlock', String(xchain.getBlockHeight()));
         xchain.state.set('vestingBlocks', xchain.getInputParam(3) || '1000');
         xchain.state.set('claimed', '0');

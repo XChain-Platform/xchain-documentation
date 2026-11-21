@@ -65,6 +65,12 @@ test('SDK contracts guide assigns DEPLOY v1 to stakeable contracts', () => {
   assert.doesNotMatch(contracts, /v0 \(no constructor\)|v1 \(with constructor\)/);
 });
 
+test('SDK contracts guide shows the emitted float warning', () => {
+  const contracts = read('components/sdk/contracts.md');
+  assert.match(contracts, /WARNING: decimal number literal \(1\.5\) detected at line 1/);
+  assert.doesNotMatch(contracts, /Float literal \(1\.5\) at line 1/);
+});
+
 test('contract slash reference documents gateway validation', () => {
   const staking = read('protocol/contract-staking.md');
   assert.match(staking, /#### Throws and argument validation/);

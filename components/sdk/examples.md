@@ -1153,29 +1153,38 @@ if (result.valid) {
 
 ## Custom Message Signing
 
-Sites can generate their own messages instead of using the SDK's default format. This lets the server verify using any tool, the SDK, `bitcoinjs-message`, or the coin node's `verifymessage` RPC.
+Sites can define their own challenge wording instead of using the SDK's default format. Include `{nonce}` so the signed challenge carries its nonce, and store it server-side for single-use verification; `requireNonce: true` refuses a message that leaves it out.
 
 ```js
 const sdk = new XChainSDK({ network: 'bitcoin-mainnet' });
+const pendingChallenges = new Map();
+const address = 'bc1quseraddr...';
 
-// Site generates its own message (no SDK needed for this part)
-const myMessage = `Welcome to MyCoolSite!\nPlease sign to verify wallet ownership.\nNonce: ${crypto.randomUUID()}`;
+// The SDK fills the placeholders before sending the challenge to the client.
+const challenge = sdk.generateChallenge(address, {
+    message: 'Welcome!\nAddress: {address}\nNonce: {nonce}\nExpires: {expiresAt}',
+    requireNonce: true
+});
+pendingChallenges.set(challenge.nonce, {
+    challenge: challenge.challenge,
+    expiresAt: challenge.expiresAt
+});
 
-// Pass it through generateChallenge for consistent metadata tracking
-const challenge = sdk.generateChallenge('bc1quseraddr...', { message: myMessage });
-// challenge.challenge === myMessage (unchanged)
-// challenge.nonce, challenge.timestamp still returned for bookkeeping
+// The client signs the exact challenge string returned by the server.
+const signed = sdk.signMessage(challenge.challenge, wif);
 
-// Client signs it
-const signed = sdk.signMessage(myMessage, wif);
-
-// Server verifies using SDK
-const result = sdk.verifyOwnership('bc1quseraddr...', myMessage, signed.signature);
+// The client returns the nonce with the signature. The server consumes it once.
+const pending = pendingChallenges.get(challenge.nonce);
+if (!pending || Date.now() > Date.parse(pending.expiresAt)) throw new Error('Challenge expired');
+const result = sdk.verifyOwnership(address, pending.challenge, signed.signature);
+pendingChallenges.delete(challenge.nonce);
 
 // OR verify without the SDK at all:
 const bitcoinMessage = require('bitcoinjs-message');
-const valid = bitcoinMessage.verify(myMessage, 'bc1quseraddr...', signed.signature);
+const valid = bitcoinMessage.verify(pending.challenge, address, signed.signature);
 ```
+
+For custom messages, `bound` is true only when the SDK filled `{nonce}`, or when an SDK-generated nonce appears as a whole delimited token. A caller-supplied nonce found literally, as a substring of static text, or only in another filled field is unbound. It returns `bound: false` and logs an `UnboundChallengeWarning` once per SDK instance, because its signature can be replayed. Sites that sign fixed text on purpose can call `signMessage` and `verifyMessage` directly, with no SDK-provided replay protection.
 
 ---
 

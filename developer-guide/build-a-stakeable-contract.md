@@ -72,9 +72,11 @@ module.exports = {
     // arguments come from xchain.getInputParam(n), not from a function
     // parameter, the same convention as every other method below.
     initialize: function(xchain) {
+        xchain.require(xchain.state.get('admin') === null, 'already initialized');
         var adminAddress = xchain.getInputParam(0);
-        // Store the admin's base-chain address in state. Set once at
-        // construction; slashStaker compares getSourceAddress() against it.
+        xchain.require(adminAddress, 'admin address required');
+        // Store the admin's base-chain address in state; slashStaker compares
+        // getSourceAddress() against it.
         xchain.state.set('admin', adminAddress);
     },
 
@@ -121,6 +123,7 @@ module.exports = {
 
 A few things to notice:
 
+- **Initialization is guarded.** `initialize` remains callable through `EXECUTE` after deployment, so its first statement refuses a second call before an attacker can replace the admin.
 - **Two identity spaces, and they never mix.** Method callers, admins, and `SLASH_DESTINATION` are **base-chain addresses**; `xchain.getSourceAddress()` returns one. Stakers are identified by their **Ed25519 signing pubkey**, which is what `getStake`, `slash`, and `STAKE v3` are keyed on. Passing a caller address to `getStake` returns `'0'` for every real staker. Because a contract can only authenticate a caller by address, admin identity must be stored as an address, never as a pubkey: the VM exposes no caller-pubkey accessor, so caller-bound stake gating is not expressible.
 - The contract reads stakes with `xchain.contract.getStake(pubkey, tick)`. The `pubkey` is the Ed25519 signing key the staker used (passed in via `STAKE v3`). Stakers are identified by pubkey, not by address.
 - The threshold uses `isAtLeastExact` because [`xchain.math` comparisons are tolerance-based](../concepts/smart-contracts.md#deterministic-math).
@@ -344,6 +347,7 @@ For more examples, see [user-guide/use-cases.md#native-multi-chain-staking](../u
 
 - [ ] You have explicitly chosen `COOLDOWN_BLOCKS`, checked it against the activation delay of every target chain, and verified it matches the behavior you want stakers to commit to. Long cooldowns punish exit; short cooldowns can let bad actors un-stake before consequences land.
 - [ ] You have explicitly chosen `SLASH_DESTINATION` and the receiving address (if not `BURN`) is one you control or have publicly committed to in writing.
+- [ ] `initialize` refuses a second call before changing admin or accounting state.
 - [ ] You have tested the contract end-to-end on regtest (DEPLOY v1 → STAKE v3 → EXECUTE → slash → UNSTAKE v1 → cooldown completion).
 - [ ] You have considered what happens if you (the deployer) lose access to your admin key. Slashing pathways gated on admin-only access become permanently unreachable in that case.
 - [ ] You have documented the staking rules for prospective stakers in a place they will see *before* they lock tokens up.

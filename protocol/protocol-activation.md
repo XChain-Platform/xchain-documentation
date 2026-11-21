@@ -268,9 +268,12 @@ settlement lane is unchanged. A top-level EXECUTE has no gas-budget field on the
 every testnet chain are UNARMED until the v0.28.0 release assigns post-roll heights. Regtest is
 UNPINNED and is armed only through `XC_EXECUTE_NATIVE_METERED_GAS_REGTEST_ACTIVATION`.
 
-Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest stack exercises the
-post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed
-(Cohort B) gates genesis-active as well, with exceptions in every cohort:
+Regtest runs every cohort according to its per-gate activation threshold. Many gates use threshold
+0, but some time-keyed rows are UNARMED or require a regtest environment override, and some
+height-keyed gates are unpinned. Check
+the gate's registration and [Flag-Day Values](./flag-days.md) before treating a fresh regtest run as
+coverage of its post-activation behavior. Testnet runs the time-keyed (Cohort A) and
+BTC-height-keyed (Cohort B) gates genesis-active as well, with exceptions in every cohort:
 
 - **Nine Cohort A rules are not genesis-active on testnet** (values and current status on
   [Flag-Day Values](./flag-days.md), which derives them from the registry and is the one place they

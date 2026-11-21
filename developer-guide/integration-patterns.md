@@ -370,6 +370,7 @@ module.exports = {
   },
 
   initialize: function(xchain) {
+    if (xchain.state.get('owner') !== null) throw new Error('already initialized');
     xchain.state.set('owner', xchain.getSourceAddress());
     // requiredTick and minimumAmount are set via configure()
   },

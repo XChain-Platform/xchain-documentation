@@ -29,6 +29,7 @@ const readJson = (rel) => JSON.parse(readDoc(rel));
 
 const send   = readDoc('protocol/actions/send.md');
 const batch  = readDoc('protocol/actions/batch.md');
+const fileDoc = readDoc('protocol/actions/file.md');
 const gated  = readDoc('protocol/token-gated-content.md');
 const uses   = readDoc('user-guide/use-cases.md');
 const tis    = readDoc('protocol/token-information-standard.md');
@@ -112,6 +113,20 @@ test('the TIS and glossary group packs by publisher, GATE_TICKER and KEY_HASH', 
     const pack = lineStarting(terms, '**Pack**:', 'key-terms.md');
     assert.match(pack, /by the same publisher sharing the same `GATE_TICKER` and `KEY_HASH`/,
         'the Pack glossary entry no longer includes the publisher in the pack key');
+});
+
+test('multipart pages assign each batch refusal to the action that receives it', () => {
+    const fileRefusal = lineStarting(fileDoc, '- `invalid: FILE_HASH (batch)`', 'file.md');
+    assert.match(fileRefusal, /on the manifest itself when another `FILE` shares its `BATCH`/,
+        'file.md again assigns the manifest refusal to a second FILE');
+    const packStep = lineStarting(gated, '3. Issuer publishes one manifest', 'token-gated-content.md');
+    assert.match(packStep, /the manifest itself is refused and joins no pack/,
+        'token-gated-content.md no longer says the manifest receives the refusal');
+    const formatZero = lineStarting(batch, '- A `BATCH` may contain at most one format 0 `FILE`', 'batch.md');
+    assert.match(formatZero, /Nothing on the indexing path enforces that format 0 limit/,
+        'batch.md again claims that no multipart FILE limit is enforced');
+    assert.match(formatZero, /a version 2 part in any `BATCH` is refused as `invalid: VERSION \(batch\)`/,
+        'batch.md no longer documents the multipart part refusal');
 });
 
 test('the pages state that gating covers only same-chain gated FILEs', () => {

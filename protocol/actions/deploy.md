@@ -121,6 +121,7 @@ flowchart TD
   - Constructor gas is added to the deployment gas: `total_gas = deploy_gas + constructor_gas`
   - If the constructor fails (reverts, out of gas, etc.), the entire deployment is rolled back; the contract is not stored
   - The caller pays the combined gas even on constructor failure
+- `initialize` remains callable by name through a later `EXECUTE`. Contracts must refuse a second call before changing owner, administrator, beneficiary, or accounting state.
 - A derived address is created for the contract in the format `C:<CHAIN>:<ACTION_INDEX>` (e.g., `C:BTC:500`). This address participates in the standard balance system for token custody via DEPOSIT/WITHDRAW.
 
 ### Staking fields (v1/v3)

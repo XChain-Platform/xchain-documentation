@@ -281,7 +281,7 @@ Detect float literals in contract source. Contracts should use `xchain.math` for
 
 ```js
 let warnings = sdk.contracts.checkFloatUsage('var price = 1.5;');
-// ['Float literal (1.5) at line 1: use xchain.math for deterministic arithmetic']
+// ['WARNING: decimal number literal (1.5) detected at line 1; use xchain.math for deterministic arithmetic']
 ```
 
 ### `sdk.contracts.checkCodeSize(sourceCode)`

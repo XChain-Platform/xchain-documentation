@@ -64,6 +64,30 @@ test('whitespace before a concatenated bracket key stays computed', () => {
     assert.deepStrictEqual(cov.scanComputedReads(view, { configView: true }), [1]);
 });
 
+test('wrapped bracket reads stay in exactly one named or computed partition', () => {
+    const computed = 'const a = process.env\n    [key];';
+    assert.equal(cov.scanSource(computed).size, 0);
+    assert.deepStrictEqual(cov.scanComputedReads(computed), [1]);
+
+    const concatenated = "const x = 1;\nconst a = process.env\n    ['P_' + coin];";
+    assert.equal(cov.scanSource(concatenated).size, 0);
+    assert.deepStrictEqual(cov.scanComputedReads(concatenated), [2]);
+
+    const literal = "const b = process.env[\n    'GAMMA'\n];";
+    assert.deepStrictEqual([...cov.scanSource(literal).keys()], ['GAMMA']);
+    assert.deepStrictEqual(cov.scanComputedReads(literal), []);
+
+    const multiline = 'const c = process.env[\n    key\n];';
+    assert.deepStrictEqual(cov.scanComputedReads(multiline), [1]);
+});
+
+test('an operator between an env read and a later fallback ends the search', () => {
+    assert.equal(defaultOf('const t = Number(process.env.X_S) * 1000 || 5000;'), null);
+    assert.equal(defaultOf('const r = process.env.RETRIES * 2 || 6;'), null);
+    assert.equal(defaultOf("const m = process.env.MODE === 'a' || 'b';"), null);
+    assert.equal(defaultOf('const t = parseInt(process.env.X, 10) * 1000 || 5000;'), null);
+});
+
 test('literal arithmetic is reduced with JavaScript precedence', () => {
     const cases = [
         ['10 + 1', '11'],

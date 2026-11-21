@@ -453,7 +453,7 @@ These fire on the `actions` channel and on the `address` channel of each address
 `data` names: its `source`, its `destinations`, or on `COINPAY_REQUIRED` its `payer_address` and
 `payee_address`.
 
-The indexer mints `ORDER_MATCH`, `ORDER_EXPIRE`, `COINPAY_EXPIRE`, `SWAP_MATCH`, `SWAP_EXPIRE`,
+The indexer mints `ORDER_MATCH`, `ORDER_EXPIRE`, `COINPAY_EXPIRE`, `SWAP_MATCH`, `CROSS_SETTLE`, `SWAP_EXPIRE`,
 `DISPENSER_CLOSE`, `DISPENSER_EXPIRE` and `BET_EXPIRE` itself, so their frames have `source: null`
 and name their parties in `destinations` instead: the addresses that placed the two matched orders
 or swaps, the expired order, swap or dispenser, the market a `BET_EXPIRED` refunds (its creator
@@ -461,6 +461,9 @@ only; each refunded bettor gets `ADDRESS_UPDATE`), or the payer and payee of an 
 payment. Royalty and fee recipients are not parties. `destinations` is absent on other lifecycle
 frames, and absent on these when the party lookup fails. These actions' `NEW_ACTION` frames still
 have `source: null` and `destinations: []` and go to the `actions` channel only.
+
+For `CROSS_SETTLE`, `destinations` names the placer of the local order or swap. The payout address
+receives its balance change separately, and a retirement names no party because it changes no offer.
 
 #### ORDER_MATCH
 
@@ -549,6 +552,20 @@ Emitted when an ORDER_MATCH has `settlement_type = coinpay`. Contains the obliga
     "action_index": "45850",
     "source": null,
     "destinations": ["1abc...", "1def..."],
+    "status": null
+  }
+}
+```
+
+#### CROSS_SETTLE
+
+```json
+{
+  "type": "CROSS_SETTLE",
+  "data": {
+    "action_index": "45855",
+    "source": null,
+    "destinations": ["1abc..."],
     "status": null
   }
 }
@@ -837,7 +854,7 @@ live fan-out. Clients must tolerate and de-duplicate those residual lifecycle du
 
 A replay rebuilds, for each missed action row and in live order, the `NEW_ACTION` and every
 lifecycle event the live feed derives from that row (`ORDER_MATCH`, `COINPAY_REQUIRED`,
-`COINPAY_FULFILLED`, `COINPAY_EXPIRED`, `ORDER_EXPIRED`, `SWAP_MATCH`, `SWAP_EXPIRED`, `DISPENSE`,
+`COINPAY_FULFILLED`, `COINPAY_EXPIRED`, `ORDER_EXPIRED`, `SWAP_MATCH`, `CROSS_SETTLE`, `SWAP_EXPIRED`, `DISPENSE`,
 `DISPENSER_CLOSED`, `DISPENSER_EXPIRED`, `BET`, `BET_EXPIRED`, `ATTESTATION_REQUEST`,
 `ATTESTATION_RESPONSE`), on each requested channel the live frame reached. It does not rebuild:
 

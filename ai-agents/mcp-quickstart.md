@@ -75,7 +75,7 @@ export XCHAIN_MCP_POLICY=/path/to/policy.json # or the server stays read-only
 
 ```json
 {
-  "allowedActions": ["SEND", "EXECUTE"],
+  "allowedActions": ["SEND"],
   "maxPerAction":  { "SEND": { "MYTOKEN": "100", "*": "10" } },
   "maxPerWindow":  { "hours": 24, "perTick": { "MYTOKEN": "500" }, "maxActions": 50 },
   "allowedDestinations": ["DTqQ...storefront"]
@@ -104,7 +104,7 @@ sequenceDiagram
     end
 ```
 
-Notes: `confirmAbove` is rejected in the MCP policy file, there is no human in this loop, use hard caps. Every action in `allowedActions` needs a usable cap: an upper-case entry for it under `maxPerAction` (keys match exactly, so `send` does not cap `SEND`), or a usable `maxPerWindow.perTick` entry. The server refuses to start otherwise, and also when the policy would fail the agent session's own validation (for example `maxPerWindow` without positive `hours`). Fund the agent's address like a spending account, not a vault.
+Notes: `confirmAbove` is rejected in the MCP policy file, there is no human in this loop, use hard caps. Every action in `allowedActions` needs a `'*'` entry in its upper-case `maxPerAction` table, or `maxPerWindow.perTick` needs a `'*'` entry. Keys match exactly, so `send` does not cap `SEND`, and a table that names only some tokens leaves every other token unbounded. Use `'*': '0'` beside named tokens to refuse all other tokens. The server refuses to start otherwise, and also when the policy would fail the agent session's own validation (for example `maxPerWindow` without positive `hours`). Keep `EXECUTE` and other actions whose value cannot be derived from their own fields out of an amount-capped policy: contract code can decide what they move, so no amount cap can bind an `EXECUTE` spend on this rail and the server refuses it. Fund the agent's address like a spending account, not a vault.
 
 ## An agent-authored contract must name itself
 

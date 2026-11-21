@@ -109,6 +109,7 @@ module.exports = {
         version:     '1.0.0'
     },
     initialize: function(xchain) {
+        xchain.require(xchain.state.get('owner') === null, 'already initialized');
         xchain.state.set('owner', xchain.getSourceAddress());
         xchain.state.set('counter', '0');
     },
@@ -124,7 +125,7 @@ module.exports = {
 };
 ```
 
-When `EXECUTE` is called with `method: 'increment'`, the VM loads the contract, finds the named method on the exported object, and calls it with the `xchain` gateway as the sole argument.
+When `EXECUTE` is called with `method: 'increment'`, the VM loads the contract, finds the named method on the exported object, and calls it with the `xchain` gateway as the sole argument. The same dispatch can name `initialize`, so the example refuses a second initialization before replacing its owner or resetting its counter.
 
 A contract may additionally export a static `abi` object next to its methods, describing them (one-line summaries, named/typed parameters, read-only flags) for wallets and explorers. It is display metadata only, never read by the VM or the indexer; see [Contract ABI](../protocol/contract-abi.md). Do not confuse it with `meta` above: `meta` says what the contract *is* and is required by consensus, while `abi` says what its *methods* look like and is advisory.
 
