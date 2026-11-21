@@ -176,7 +176,7 @@ xchain-e2e-test/
 ├── src/                          # Service connector classes (10 files)
 ├── test/
 │   ├── initial_check.test.js     # Mocha root hooks (beforeAll/afterAll)
-│   ├── actions/                  # 141 action test files (live, ordered), covering 33 ACTION names
+│   ├── actions/                  # 143 action test files (live, ordered), covering 33 ACTION names
 │   ├── helpers/                  # 65 modules (action helpers + federation/fee/utility helpers)
 │   ├── unit/                     # 350+ unit tests (stubbed, no services)
 │   ├── integration/              # 150+ integration tests (stubbed I/O)
