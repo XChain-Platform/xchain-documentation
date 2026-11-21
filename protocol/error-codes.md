@@ -29,6 +29,7 @@ Errors are JSON objects:
 | `RELAY_DENIED` | 403 | `/relay` refuses private/loopback/metadata destinations (SSRF guard) | No |
 | `UNKNOWN_COIN` | 404 | The `{COIN}` prefix is not served by this explorer | No: check `/{COIN}/api/status` |
 | `NOT_FOUND` | 404 | No row for that lookup | No |
+| `ICON_NOT_FOUND` | 404 | `GET /icon/default.png`: neither the legacy default icon nor the fixed unknown-coin fallback image is installed, so the explorer cannot complete a missing token icon's redirect | No: operator action is required to restore the fallback image |
 | `ACTION_NOT_YET_INDEXED` | 404 | The action index lies above what this explorer's indexer has committed so far; the body carries `indexed_through` and the response a `Retry-After` header | Yes: the indexer is catching up; honor `Retry-After` |
 | `CHECKPOINT_NOT_FOUND` | 404 | No quorum-signed checkpoint at that height | Maybe: checkpoints lag the tip |
 | `RATE_LIMITED` | 429 | Per-IP request budget exhausted (app-wide default 180/min; some routes have tighter limits, see [explorer rate limiting](../components/explorer/configuration.md#rate-limiting)). On `POST /{COIN}/api/native_history`, this may be the UTXO tracker's own 429 passed back once; later requests receive `TRACKER_UNAVAILABLE` until the explorer's pause for that tracker ends | Yes: back off; honor `RateLimit-*` headers and `Retry-After` when present |
