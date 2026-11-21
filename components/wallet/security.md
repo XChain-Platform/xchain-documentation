@@ -105,10 +105,10 @@ sequenceDiagram
     Signer-->>WalletHost: signed transaction
 ```
 
-These checks make encoder tampering blocking rather than merely visible. They also run on the dApp bridge's `signAction` path for `SEND` and `SWEEP`: the built transaction is checked against the approved intent before signing, and a mismatch is refused with nothing signed or broadcast. Known limits on the bridge path:
+These checks make encoder tampering blocking rather than merely visible. They also run on the dApp bridge's `signAction` path for `SEND` and `SWEEP`: the built transaction is checked against the approved intent before signing, and a mismatch is refused with nothing signed or broadcast. Bridge-path safeguards include:
 
-- The bridge approval does not yet show the miner fee.
-- On two-step data transactions, the outputs of the second transaction are not yet checked against the approval.
+- The bridge approval shows the miner fee.
+- On two-step data transactions, the P2SH and P2WSH carrier scripts and the Taproot reveal are checked against the approval before signing.
 
 The other limits are explicit: a bare `MULTISIGN` carrier is recognized by output shape without an independent content-byte check, carrier output value is not independently predicted on chunk lanes, and wallet-owned change outputs are accepted. The confirmation screen's total debit and exact fee display remain important review data for those cases.
 
