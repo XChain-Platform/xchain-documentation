@@ -3,11 +3,11 @@
 
 # Desktop: Microsoft Store
 
-The wallet has two Windows channels: the shipped signed executable hosted by us ([Windows](windows.md)) and the planned Microsoft Store package. This page covers the Store one.
+The wallet has two Windows channels: the shipped signed executable hosted by us ([Windows](windows.md)) and the Microsoft Store package at https://apps.microsoft.com/detail/9nqn9qbq6gg3. This page covers the Store one.
 
 This page carries both halves of the lane: the submission runbook an operator follows, and the listing collateral they paste into the console.
 
-**The lane is built and is waiting on an identity.** The packaging, the store tiles and the store-specific behaviour exist and are held in place by tests. What does not exist yet is the publisher account and the identity values it assigns, so nothing can be submitted today.
+**The listing is live.** XChain Wallet is in the Microsoft Store at https://apps.microsoft.com/detail/9nqn9qbq6gg3, starting with 0.343.0 for x64 and arm64. The packaging, the store tiles and the store-specific behaviour are held in place by tests. The release gate still lists the `msstore` lane as `NOT-SHIPPED` in `tools/release/shipped-lanes.txt`, because the signed release manifest does not carry the Store package yet.
 
 ## How this channel differs from the direct download
 
