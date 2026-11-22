@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-11-22
+
+### Added
+- Documented multipart FILE manifests, parts, assembly, funding waves, explorer streaming and wallet publishing flows.
+- Documented metered gas for native-paid EXECUTE behind its activation, which ships unarmed.
+- Documented native wallet history settings, routes and error codes, plus the ScopedPaySigner wallet signer.
+
+### Changed
+- Raised multipart FILE documentation to 65,535 parts, with transaction cost as the practical limit and gated files bounded at 64 MiB.
+- Documented STATE_KEY_STORABLE, ORDER_GET_ADDRESS_COIN, STATE_VALUE_ASTRAL_ESCAPE and LINT_REGEX_GROUP_DEPTH on testnet only.
+- Regenerated the multipart flag day and activation references with mainnet left unarmed.
+- Corrected explorer error codes, WebSocket catch-up codes, SDK examples and the 143 action test file count.
+
+### Fixed
+- Fixed the reverse oracle price matching flowchart and the Windows download status on the wallet pages.
+
 ### Fixed
 - Corrected the Token Information Standard JSON examples and defined verification of URL hash pins over exact response bytes.
 
