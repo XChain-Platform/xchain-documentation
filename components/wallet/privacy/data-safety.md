@@ -23,6 +23,8 @@ The token-metadata row is the one that matters most on this form: when the metad
 
 Remote token media (images, audio, video) is not fetched at all: the app's content policy admits no remote origin for images and has no path for audio or video, so those elements never load. Only the metadata document itself is fetched.
 
+**The background activity check sends nothing new.** On Android, the background activity check runs a few times a day while the app is suspended and asks `explorer.xchain.io` for the confirmed and pending activity of at most 20 of the wallet's own public addresses. That is the same request the app makes while it is open, so the endpoint table gains no row. When something changed, the device posts one local notification, "New activity", with no amount or address. The app keeps the public addresses it checks in a file on the device, outside the encrypted vault. The check is off while Tor routing is on and can be switched off in Settings under Watch. Every alert the app shows is a local notification posted by the device itself, with no push service and nothing new collected or shared.
+
 ## Form answers
 
 ### Data collection and sharing
