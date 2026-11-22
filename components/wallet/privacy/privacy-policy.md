@@ -170,7 +170,7 @@ Because we hold no data about you, the usual requests (access, deletion, correct
 - Turn off coin statistics in Settings under Privacy, which stops the requests to CoinGecko.
 - Turn off token information fetching in Settings under Privacy.
 - Point the explorer and encoder at your own servers in Settings.
-- Turn off notifications, which ends the live connection to the explorer.
+- Turn off notifications and the background check to end the live connection to the explorer.
 - On the desktop app, route everything through Tor.
 - In the browser extension, avoid the transaction detail view if you would rather not load block-explorer icons, since that one has no setting. On every other shell the icons are never loaded in the first place.
 - Uninstall the app, or clear the site's data in the web wallet. Everything it stored is on your device and goes with it, and there is no server copy to delete. Make sure you have your recovery phrase first, because we cannot restore it for you.
