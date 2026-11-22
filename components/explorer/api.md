@@ -1946,7 +1946,11 @@ For a native-paid top-level `EXECUTE` from `EXECUTE_NATIVE_METERED_GAS_ACTIVATIO
 dry-run gas estimate, adds a fixed safety margin, floors it at the execution base, caps it at the
 protocol gas ceiling, and returns the converted paid-output budget in `requiredFeeSats`. Clients
 should depend on `requiredFeeSats`, not any auxiliary estimate or margin field. Before the gate,
-the native EXECUTE quote remains the static base price. Native BATCH quotes remain refused.
+the native EXECUTE quote remains the static base price.
+On LTC and DOGE, where the native coin is the only way to pay, a `BATCH` is quoted from one
+in-order dry-run of its exact wire: each sub-command is priced against the state the earlier ones
+leave, an `EXECUTE` sub-command the way a lone `EXECUTE` is, and `requiredFeeSats` clears the
+batch's in-order acceptance floor (`minAcceptable`). On BTC a native `BATCH` quote stays refused.
 
 `preflight` answers "would the indexer accept this action?" independently of native-fee support, returning `{ supported, valid, status, error, guardInert, feeExempt, denied, xchainFee, feeMode, feeTick, feeTokenBalance, feeAffordable, blockIndex, blockTime }`. `xchainFee` is the protocol fee the action would owe as an XCHAIN-denominated decimal string, taken from the same dry-run that produced the verdict, so a confirm screen can disclose the fee without a second call to `feequote` (it is `null` when the run staged no fee record, and absent when no verdict was produced). Sizing a native-coin fee output still needs `feequote`, which prices that fee against the oracle.
 

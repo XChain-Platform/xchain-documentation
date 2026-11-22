@@ -179,7 +179,11 @@ console.log(estimate.actionString); // the serialized action string
 For a top-level `EXECUTE` under `EXECUTE_NATIVE_METERED_GAS_ACTIVATION`, that quote's `requiredFeeSats`
 represents a dry-run gas estimate plus the indexer's fixed safety margin, bounded by the execution
 base and protocol ceiling. The encoder uses that value for the native fee output; it does not add a
-gas-budget field to the EXECUTE wire data. Native BATCH quotes remain unsupported.
+gas-budget field to the EXECUTE wire data.
+On LTC and DOGE, where the native coin is the only way to pay, a `BATCH` is quoted from one
+in-order dry-run of its exact wire: each sub-command is priced against the state the earlier ones
+leave, an `EXECUTE` sub-command the way a lone `EXECUTE` is, and `requiredFeeSats` clears the
+batch's in-order acceptance floor (`minAcceptable`). On BTC a native `BATCH` quote stays refused.
 
 ```js
 const estimate = await sdk.estimateFees(
