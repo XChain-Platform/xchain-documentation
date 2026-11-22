@@ -192,7 +192,7 @@ At this point the artifact has been authenticated. You can install or run it.
 
 ## What the signature proves, per surface
 
-Byte-exact verification is only possible for artifacts served from our own download host. Three of the four store surfaces re-package or re-sign what we submit, so for those the manifest proves what was submitted, not what was delivered to you. This is a property of the stores, not something we can close:
+Byte-exact verification is only possible for artifacts served from our own download host. Every store surface below re-packages or re-signs what we submit, so for those the manifest proves what was submitted, not what was delivered to you. This is a property of the stores, not something we can close:
 
 | Where you got it | What the manifest proves |
 |---|---|
@@ -200,6 +200,7 @@ Byte-exact verification is only possible for artifacts served from our own downl
 | Chrome Web Store | The store repacks our zip into a store-signed CRX. You cannot hash the CRX against our manifest; comparison is content-level at best. The store's own signature is what protects delivery. |
 | Google Play | Play re-signs and derives per-device APKs from the AAB we upload. Nothing you receive hashes to our manifest. |
 | App Store | Apple re-encrypts and thins the ipa. App Store users cannot hash what they were served. |
+| Microsoft Store | Microsoft re-signs the MSIX package when it is ingested, so the installed package does not hash to what we submitted. The Store's own signature is what protects delivery. |
 
 If byte-exact verification matters to you, take the artifact from downloads.xchain.io rather than from a store.
 
