@@ -145,129 +145,133 @@ watcher.start(10000);
 
 ## Pattern 3: Token-Gated Access
 
-Gate access to content, features, or services based on whether a user holds a specific token. This pattern covers balance checks, wallet ownership proof, session management, real-time invalidation, and on-chain gating via smart contracts.
+Gate access to content, features, or services based on whether a proven wallet address holds a specific token. This pattern covers login, exact holding checks, session management, real-time invalidation, and on-chain gating via smart contracts.
 
-> **Built-in wallet verification:** The XChain SDK has built-in wallet verification methods (`sdk.generateChallenge()`, `sdk.signMessage()`, `sdk.verifyOwnership()`) that handle challenge generation, message signing, and signature verification. See the [Wallet & Auth Reference](../components/sdk/wallet.md) for the full API and the [SDK Examples](../components/sdk/examples.md#challenge-response-wallet-verification) for end-to-end code. The patterns below show both the raw `bitcoinjs-message` approach and the SDK approach.
+> **Built-in wallet login:** Use `login` for one wallet prompt, verify its result on the server with `sdk.auth.verifyLogin`, then check the proven address with `sdk.auth.holdsAtLeast`. The wallet creates and signs the challenge; the site never constructs one from client-supplied identity data.
 
 ```mermaid
 flowchart TD
-    A["Step 1: Balance check<br>Query explorer for token balance"] --> B{"Balance check alone<br>sufficient for production?"}
-    B -->|"No, anyone can claim an address"| C["Step 2: Challenge-response<br>Issue nonce, verify signed message"]
-    C --> D["Step 3: Session and caching<br>Issue session token, recheck balance on a schedule"]
-    D --> E["Step 4: WebSocket invalidation<br>Revoke session on balance-change event"]
+    A["Step 1: Define the holding check<br>Use only with a proven address"] --> B["Step 2: Login once<br>Fetch nonce, prompt wallet, verify result"]
+    B --> C["Run the holding check<br>with the verified address and chain"]
+    C --> D["Step 3: Session and caching<br>Issue session token, recheck holdings on a schedule"]
+    D --> E["Step 4: WebSocket invalidation<br>Revoke session on a holdings change"]
     E --> F{"Gating logic must be<br>trustless and on-chain?"}
-    F -->|"No, server-controlled is fine"| G["Off-chain gating<br>server checks balance, serves content"]
+    F -->|"No, server-controlled is fine"| G["Off-chain gating<br>server checks holdings, serves content"]
     F -->|"Yes"| H["Step 5: On-chain gating<br>contract checks balance, records latest access result"]
 ```
 
-### Step 1: Balance Check
+### Step 1: Check Holdings for a Proven Address
 
-The simplest form, query the explorer to see if an address holds enough of a token:
+Use the SDK's exact amount comparison after login has proven the address. `sdk.auth.holdsAtLeast(address, tick, min, { chainId })` returns `{ holds, amount }`, where `amount` is a bignumber rather than a JavaScript `number`:
 
 ```js
-const { bignumber, largerEq } = require('mathjs');
-
-async function checkBalance(address, requiredTick, minimumAmount) {
-  const balances = await sdk.explorer.getBalances(address);
-  const entry = balances.find(b => b.tick === requiredTick);
-  if (!entry) return false;
-  return largerEq(bignumber(entry.amount), bignumber(minimumAmount));
+async function checkHolding(address, tick, minimum, chainId) {
+  return sdk.auth.holdsAtLeast(address, tick, minimum, { chainId });
 }
 ```
 
-A balance check alone is **not sufficient for production use**. Anyone can claim to own an address by submitting it as a query parameter. You need to verify that the user actually controls the private key for that address.
+Never run this authorization check on an address supplied by a query string, form field, or other unproven client input. A holdings lookup proves only that the address has tokens, not that the visitor controls it. Use the verified address returned by Step 2.
 
-### Step 2: Wallet Ownership Proof (Challenge-Response)
+### Step 2: Login and Verify the Wallet Result
 
-To prove a user controls an address, issue a random challenge string and require them to sign it with their wallet. The server verifies the signature against the claimed address.
+Fetch a single-use nonce from the server at page load. Inside the click handler, call `window.xchain.login({ appId, nonce })` before any asynchronous work so the wallet launch retains the user gesture and shows one prompt:
 
 ```js
-const crypto = require('crypto');
-const bitcoinMessage = require('bitcoinjs-message');
+const APP_ID = 'music.example';
+let loginNonce;
 
-// Store pending challenges (use Redis or a database in production)
-const challenges = new Map();
+fetch('/auth/login-nonce', { method: 'POST' })
+  .then(response => response.json())
+  .then(({ nonce }) => { loginNonce = nonce; });
 
-// Issue a challenge
-app.post('/auth/challenge', (req, res) => {
-  const { address } = req.body;
-  if (!address) return res.status(400).json({ error: 'address required' });
+document.querySelector('#login').addEventListener('click', async () => {
+  if (!loginNonce) return;
 
-  const nonce = crypto.randomBytes(32).toString('hex');
-  const timestamp = Date.now();
-  const message = `XChain token-gate login\nAddress: ${address}\nNonce: ${nonce}\nTimestamp: ${timestamp}`;
+  const nonce = loginNonce;
+  loginNonce = undefined;
+  const result = await window.xchain.login({ appId: APP_ID, nonce });
 
-  challenges.set(nonce, { address, message, timestamp });
-
-  // Expire challenges after 5 minutes
-  setTimeout(() => challenges.delete(nonce), 5 * 60 * 1000);
-
-  res.json({ message, nonce });
-});
-
-// Verify the signed challenge
-app.post('/auth/verify', async (req, res) => {
-  const { nonce, signature } = req.body;
-
-  const challenge = challenges.get(nonce);
-  if (!challenge) return res.status(400).json({ error: 'Invalid or expired challenge' });
-
-  // Prevent replay
-  challenges.delete(nonce);
-
-  // Check that the challenge hasn't expired (5-minute window)
-  if (Date.now() - challenge.timestamp > 5 * 60 * 1000) {
-    return res.status(400).json({ error: 'Challenge expired' });
-  }
-
-  // Verify signature matches the claimed address
-  try {
-    const valid = bitcoinMessage.verify(challenge.message, challenge.address, signature);
-    if (!valid) return res.status(401).json({ error: 'Invalid signature' });
-  } catch {
-    return res.status(401).json({ error: 'Signature verification failed' });
-  }
-
-  // Signature valid; now check the token balance
-  const hasToken = await checkBalance(challenge.address, 'MYTOKEN', '1');
-  if (!hasToken) {
-    return res.status(403).json({ error: 'Address does not hold required token' });
-  }
-
-  // Issue a session token (see Step 3)
-  const sessionToken = createSession(challenge.address);
-  res.json({ sessionToken, address: challenge.address });
+  // result carries ok, address, chainId, challenge, signature,
+  // signatureFormat, and addresses.
+  const response = await fetch('/auth/verify', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ nonce, result }),
+  });
+  // Store the returned session token using the site's normal session policy.
 });
 ```
 
-**Client-side flow:** The user's wallet (browser extension, mobile app, or CLI) signs the challenge message using the standard Bitcoin `signmessage` operation. Most Bitcoin, Litecoin, and Dogecoin wallets support this natively. The signature is sent back to the server for verification.
+The MIT `@dankest-llc/xchain-connect` package sends the same `login` request to the wallet on extension, web, desktop, and mobile transports. Use it when `window.xchain` is not available or the site needs one integration for every device.
 
-**Library choice by chain:**
+Consume the nonce and verify the complete result on the server. Production deployments should keep nonces in a shared store with an expiry:
 
-| Chain | Verification library | Notes |
-|---|---|---|
-| Bitcoin | `bitcoinjs-message` | Supports legacy, segwit (P2SH-P2WPKH), and native segwit |
-| Litecoin | `bitcoinjs-message` with Litecoin network params | Same format, different address prefix |
-| Dogecoin | `bitcoinjs-message` with Dogecoin network params | Same format, different address prefix |
+```js
+const crypto = require('crypto');
+
+const APP_ID = 'music.example';
+const ORIGIN = 'https://music.example';
+const loginNonces = new Set();
+
+app.post('/auth/login-nonce', (req, res) => {
+  const nonce = crypto.randomBytes(32).toString('base64url');
+  loginNonces.add(nonce);
+  setTimeout(() => loginNonces.delete(nonce), 5 * 60 * 1000);
+  res.json({ nonce });
+});
+
+app.post('/auth/verify', async (req, res) => {
+  const { nonce, result } = req.body;
+  if (!loginNonces.delete(nonce)) {
+    return res.status(400).json({ error: 'Invalid or expired nonce' });
+  }
+
+  const verified = await sdk.auth.verifyLogin(result, {
+    appId: APP_ID,
+    origin: ORIGIN,
+    nonce,
+    maxAgeMs: 5 * 60 * 1000,
+  });
+  if (!verified.valid) {
+    return res.status(401).json({ error: verified.error });
+  }
+
+  const { holds, amount } = await checkHolding(
+    verified.address,
+    'MYTOKEN',
+    '1',
+    verified.chainId,
+  );
+  if (!holds) {
+    return res.status(403).json({ error: 'Address does not hold required token' });
+  }
+
+  const sessionToken = createSession(verified.address, verified.chainId);
+  res.json({ sessionToken, address: verified.address, amount: amount.toString() });
+});
+```
+
+`sdk.auth.verifyLogin(result, { appId, origin, nonce, maxAgeMs })` returns `{ valid, address, chainId, addresses, error }` and never throws for an invalid login. It verifies every returned address, checks both `legacy` and `bip322-simple` signature formats, and caps `maxAgeMs` at 60 minutes. Treat `verified.address`, not the unverified top-level result or request body, as the session identity.
 
 ### Step 3: Session Management and Caching
 
-Re-checking the balance on every request is expensive and slow. Once ownership is proven, issue a short-lived session and re-verify the balance periodically.
+Re-checking holdings on every request is expensive and slow. Once login is verified, issue a short-lived session keyed to the verified address and re-check its holdings periodically.
 
 ```js
 const sessions = new Map();
 
-function createSession(address) {
+function createSession(address, chainId) {
   const token = crypto.randomBytes(32).toString('hex');
   sessions.set(token, {
     address,
+    chainId,
     verifiedAt: Date.now(),
-    lastBalanceCheck: Date.now(),
+    lastHoldingCheck: Date.now(),
   });
   return token;
 }
 
-// Middleware: validate session and re-check balance on a schedule
+// Middleware: validate session and re-check holdings on a schedule
 function requireToken(tick, minimum, { recheckIntervalMs = 60000 } = {}) {
   return async (req, res, next) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
@@ -276,15 +280,20 @@ function requireToken(tick, minimum, { recheckIntervalMs = 60000 } = {}) {
     const session = sessions.get(token);
     if (!session) return res.status(401).json({ error: 'Invalid session' });
 
-    // Re-check balance if the cached check is stale
+    // Re-check holdings if the cached check is stale
     const now = Date.now();
-    if (now - session.lastBalanceCheck > recheckIntervalMs) {
-      const stillHolds = await checkBalance(session.address, tick, minimum);
-      if (!stillHolds) {
+    if (now - session.lastHoldingCheck > recheckIntervalMs) {
+      const { holds } = await checkHolding(
+        session.address,
+        tick,
+        minimum,
+        session.chainId,
+      );
+      if (!holds) {
         sessions.delete(token);
         return res.status(403).json({ error: 'Token balance no longer sufficient' });
       }
-      session.lastBalanceCheck = now;
+      session.lastHoldingCheck = now;
     }
 
     req.gateAddress = session.address;
@@ -322,8 +331,10 @@ await sdk.connectWs();
 function watchSession(sessionToken, address, tick, minimum) {
   const unsub = sdk.onAddress(address, async (event) => {
     if (event.type === 'ADDRESS_UPDATE') {
-      const stillHolds = await checkBalance(address, tick, minimum);
-      if (!stillHolds) {
+      const session = sessions.get(sessionToken);
+      if (!session || session.address !== address) return;
+      const { holds } = await checkHolding(address, tick, minimum, session.chainId);
+      if (!holds) {
         sessions.delete(sessionToken);
         unsub(); // stop watching
         // Optionally: push a notification to the client via their WebSocket
