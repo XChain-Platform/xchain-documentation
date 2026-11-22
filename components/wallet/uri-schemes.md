@@ -144,6 +144,10 @@ Both the PSBT sign form's paste inbox and the camera scanner accept UR frames al
 
 The paste-inbox in `MultisigSigningSession.jsx` accepts these envelopes (received as XCW QR frames or pasted as the raw JSON string). The session state machine routes each round's contribution to the right slot and surfaces a green check.
 
+### Signing-request link
+
+`core/src/uri/multisigSessionLink.js` builds and parses `xchain://multisig-sign?req=<req>` with no coin code and an empty or `/` path. The plain `req` parameter, not a BIP21 `req-` prefix, is at most 1,048,576 characters and contains only the unpadded base64url encoding of the UTF-8 JSON for one envelope whose `kind` is `multisig-request-signature`, `multisig-request-nonce`, or `multisig-request-partial`; reply and finalized envelopes are refused. The wallet checks this form before legacy path-style XChain links, opens the multisig signing session with a valid link filled in, and refuses a malformed link instead of opening another screen; see the [protocol reference](../../protocol/xchain-uri-scheme.md#multisig-sign).
+
 ## Sign-in challenge
 
 Sign-In with XChain challenges are not URI-encoded by the wallet; they're produced and consumed by the bridge (`@xchain-wallet/bridge-spec`). Sign-in challenges are not classified by `detectQrContent`; the bridge layer handles them independently.
