@@ -162,7 +162,7 @@ The injected script is built deterministically: same source → same bytes. Repr
 | `signMessage` | Origin requesting message signature |
 | `signPsbt` | Origin requesting PSBT signature |
 | `signAction` | Origin requesting XChain action signature (with optional broadcast) |
-| `signIn` | Origin requesting Sign-In with XChain |
+| `signIn` | Origin requesting Login with XChain |
 | `internalSign` | Wallet itself initiating a sign (Send, Issue, etc.) |
 
 Each approval surface is built from the same review pattern as the wallet's internal sign screens: form values + decoded summary + raw PSBT bytes, with an explicit user-confirm. See [Security & Threat Model; Sign-screen safety rails](security.md#sign-screen-safety-rails).
