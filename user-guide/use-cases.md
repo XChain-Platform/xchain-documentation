@@ -239,7 +239,7 @@ XChain actions involved: ORDER, DISPENSER.
 
 ## Smart Contracts and Programmable Logic
 
-XChain has a built-in smart contract layer that runs on top of every supported chain (Bitcoin, Litecoin, and Dogecoin today). Contracts are written in JavaScript, deployed permanently on the blockchain, and executed by the same nodes that process token transactions. There is no separate contract chain, no separate validator network, and no separate token to buy: your existing wallet, your existing balances, and your existing XCHAIN gas fees are all you need.
+XChain has a built-in smart contract layer that runs on top of every supported chain (Bitcoin, Litecoin, and Dogecoin today). Contracts are written in JavaScript, deployed permanently on the blockchain, and executed by the same nodes that process token transactions. There is no separate contract chain, validator network, or token. Wallet-sent DEPLOY and EXECUTE actions pay protocol fees priced in XCHAIN: Bitcoin can use BTC or an XCHAIN balance, while Litecoin and Dogecoin require a native-coin fee output or reject the action. Contract-emitted actions consume gas within the execution that emitted them instead of carrying a wallet fee output, and wallet transactions still need native coin for the ordinary miner fee. See [Gas and Fees](../concepts/gas.md) for the full rules.
 
 ### Programmable Tokens
 

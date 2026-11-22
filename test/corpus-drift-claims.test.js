@@ -338,3 +338,21 @@ test('falsification: a custodial trading-screen explanation is caught', () => {
     assert.notEqual(stale, page, 'the custody sentence moved; re-point this falsification');
     assert.equal(offendingLines(tradingReviewSection(stale), TRADING_REVIEW_OVERCLAIM).length, 1);
 });
+
+const VERSION_COMPAT_OVERCLAIM = /\bold(er)? versions remain valid\b/i;
+const VERSION_PAGES = ['getting-started/key-terms.md', 'getting-started/what-is-xchain.md'];
+
+test('version docs allow action-specific activation and retirement', () => {
+    for (const rel of VERSION_PAGES) {
+        const page = readDoc(rel);
+        assert.deepEqual(offendingLines(page, VERSION_COMPAT_OVERCLAIM), [], rel);
+        assert.match(page, /defines which versions it accepts/, rel);
+        assert.match(page, /activation height/, rel);
+        assert.match(page, /version can be retired/, rel);
+    }
+});
+
+test('falsification: the unconditional version promise is caught', () => {
+    const stale = 'Newer versions add fields; older versions remain valid so existing software continues to work.';
+    assert.equal(offendingLines(stale, VERSION_COMPAT_OVERCLAIM).length, 1);
+});
