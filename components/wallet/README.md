@@ -50,6 +50,7 @@ The wallet exposes all 32 current user-encodable ACTION types, a built-in DEX su
 | [Shell; Extension](shell-extension.md) | Chrome MV3 architecture, manifest, service worker, content script, injected provider, approval popup |
 | [Shell; Desktop](shell-desktop.md) | Electron main / renderer split, OS keychain, WebHID hardware transports, electron-builder packaging, auto-updater |
 | [Shell; Web](shell-web.md) | Vite SPA, mobile responsiveness, extension-detect banner, session-only key handling |
+| [Shell; Watch](shell-watch.md) | Apple Watch and Wear OS phone-managed boundaries, alert delivery, privacy, and mobile auto pay behavior |
 | [Build & Release](build-release.md) | Synchronized versioning, Chrome Web Store submission, electron-builder, signing, release-hashes |
 | [Reproducible Builds](reproducible-builds.md) | Level-2 reproducibility: scope, scaffolding audit, run-twice verification, drift sources |
 | [Testing](testing.md) | Smoke gates, Playwright E2E, a11y audit, repro-build audit, manifest audit, bridge-e2e, hw-sign-e2e |
