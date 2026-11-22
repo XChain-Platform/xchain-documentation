@@ -93,6 +93,16 @@ These are the remaining limits visible in the current implementation.
 | External security review | Pending, required before a general-availability mainnet release |
 | Reservation coverage | Open for separate web tabs, dApp bridge approvals, native-coin spends, and multi-token spends; eligible extension and desktop confirmation flows share a host |
 
+## Watch apps
+
+The Apple Watch and Wear OS apps hold no keys and approve nothing. A pending request on the wrist offers only Open on phone, and every transaction is reviewed and signed on the phone.
+
+| Threat | Answer |
+|---|---|
+| Stolen watch | Holds no keys and acts on nothing. Cached balances sit behind the watch passcode, and turning Show wallet on watch off wipes them on next contact |
+| Spoofed message | Only the operating system's channel between apps of the same developer team, WatchConnectivity, or of the same package and signature, the Wear OS Data Layer, is trusted. The phone acts on no watch message but refresh, detail, mark read, and open on phone |
+| Compromised phone app | Out of scope: it already holds the keys |
+
 ## Verification
 
 Every claim on this page and on [Security & Threat Model](security.md) is meant to be checkable against the wallet's own source and test suite, not just asserted in prose. The bridge end-to-end test suite covers connect, unsupported actions, and close-as-reject behavior. The unlock-flow tests and unlock-throttle tests cover AES-GCM authentication, Argon2id use, and rate limits. The action-decoder tests plus `test/unit/flows/confirmChecks.test.js` and `test/unit/flows/composeActionForConfirm.test.js` cover readable intent and encoder-tamper refusal. The onboarding tests cover the persist boundary, while `test/unit/flows/reservationLedger.test.js` and the extension reservation-race test cover the shared-ledger behavior and its shell boundary. Run the relevant groups with `pnpm test:unit`, `pnpm test:smoke`, or `pnpm test:e2e:regtest` from the wallet repository.
