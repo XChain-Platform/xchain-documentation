@@ -57,7 +57,7 @@ The Hub DB is a local, read-only copy of cross-chain infrastructure tables synce
 
 - `price_snapshots`: deduplicated cross-chain validator COIN/FIAT prices (PRICE v0)
 - `oracle_prices`: cross-chain user TOKEN/FIAT oracle prices (PRICE v1) with 24-hour lock window
-- Cross-chain settlement: `cross_chain_matches`, `cross_chain_calls`, `capability_snapshots`, `bridge_transfers`, `policy_snapshots`, `list_snapshots`
+- Cross-chain settlement: `cross_chain_matches`, `cross_chain_calls`, `capability_snapshots`, `bridge_transfers`, `policy_snapshots`, `list_snapshots`, `remote_token_snapshots`
 - Federation state: `state_checkpoints`, `anchor_reward_attestations`, `attestation_responses`
 
 The staking tables (`stakes`, `delegations`, `validator_rewards`) are not mirrored: they are Indexer DB tables written during block processing.
@@ -79,7 +79,7 @@ The separation serves several purposes:
 
 ## Naming Convention
 
-All MariaDB databases follow a structured naming convention:
+The per-chain databases (each chain and network's Decoder and Indexer database) follow a structured naming convention:
 
 ```
 XChain_{CHAIN}_{NETWORK}_{COMPONENT}
@@ -101,7 +101,11 @@ XChain_{CHAIN}_{NETWORK}_{COMPONENT}
 
 Testnet databases follow the same pattern with `Testnet` as the network segment.
 
-For the full specification, see [`../protocol/Database_Naming_Structure.md`](../protocol/database-naming-structure.md).
+### Non-chain databases
+
+The hub keeps its state in a single cross-chain database, so its name has no chain or network segment. The name is set by the required `HUB_DB_NAME` variable, and the xchain-node installer provisions `XChain_Hub` (see [Hub database](../components/hub/database.md)). Other cross-chain schemas an operator configures, such as the explorer's checkpoint mirror (shown as `XChain_Hub_Mirror` in the [explorer configuration](../components/explorer/configuration.md#checkpoint-schema-hub-mirror-tables)), are named in that service's config and are not bound by the per-chain pattern.
+
+For the full specification, see [`../protocol/database-naming-structure.md`](../protocol/database-naming-structure.md).
 
 ---
 
@@ -129,7 +133,7 @@ The Indexer DB has 100+ tables organized into five categories:
 - `balances`: materialized view of current holdings per address per ticker (computed from credits minus debits)
 - `fees`: gas fees collected per action
 
-Every token movement creates both a credit and a debit entry. The invariant `token_supply == SUM(all credits) - SUM(all debits)` is checked after issuance actions.
+Every token movement creates both a credit and a debit entry. After every block, the indexer checks each token touched in that block against the net ledger total and balances plus escrows; a mismatch halts the indexer. See [Ledger](../concepts/ledger.md#block-level-sanity-checks).
 
 **Action-specific tables**: one or more tables per ACTION type, storing the parameters and state for each action kind. For actions that can be edited, cancelled, or expired, additional status tables track state transitions. Examples include tables for orders, dispensers, dividends, airdrops, broadcasts, files, links, lists, callbacks, swaps, and sweeps. The COINPay subsystem adds four additional tables: `coinpay_obligations` (pending native coin payment obligations created by ORDER_MATCH), `coinpays` (fulfilled payments), `coinpay_expires` (expired obligations), and `coinpay_statuses` (obligation status history). The `order_matches` table also includes a `settlement_type` column (`instant` or `coinpay`) to distinguish native coin pair matches.
 
@@ -153,7 +157,7 @@ Writes are batched in groups of up to 200 blocks (flush may trigger earlier unde
 
 The hub uses MariaDB (not LevelDB) with tables storing configuration, validator state, oracle data, cross-chain attestations, governance proposals, and more. The database name comes from the required `HUB_DB_NAME` environment variable; there is no default, and the hub will not start without it (e.g. `XChain_Hub`, the name the xchain-node installer provisions). Config parameters are stored in the `configs` table with a `(coin, network, module, param_name)` unique key. Cross-chain price data is aggregated into `price_snapshots` (validator PRICE v0) and `oracle_prices` (user PRICE v1); these are also broadcast to connected indexers via the `/hub-db/subscribe` WebSocket channel.
 
-See [`../components/hub/CONFIGURATION.md`](../components/hub/configuration.md) for the full schema reference.
+See [`../components/hub/configuration.md`](../components/hub/configuration.md) for the full schema reference.
 
 ---
 
@@ -167,8 +171,8 @@ On chain reorganization, the indexer rolls back across all 80+ affected tables i
 
 ## Further Reading
 
-- Full Indexer DB schema and table definitions: [`../components/indexer/DATABASE.md`](../components/indexer/database.md)
-- Database naming specification: [`../protocol/Database_Naming_Structure.md`](../protocol/database-naming-structure.md)
+- Full Indexer DB schema and table definitions: [`../components/indexer/database.md`](../components/indexer/database.md)
+- Database naming specification: [`../protocol/database-naming-structure.md`](../protocol/database-naming-structure.md)
 
 ---
 

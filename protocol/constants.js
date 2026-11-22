@@ -187,14 +187,14 @@ const ATTEST_MAX_EXPIRIES_PER_BLOCK = 25;
 // the next block. Mirrors both sibling caps in value and carry-forward semantics.
 //
 // CONSENSUS-VISIBLE, like both siblings: the cap decides which block a settlement
-// lands in. Unlike ATTEST_MAX_EXPIRIES_PER_BLOCK it has no fleet-wide replay behind
-// it, and the fresh-genesis testnet restart does not cover mainnet, so enforcing it
-// on an already-live chain would reinterpret settled history. The operator ruled on
-// 2026-08-11 that it lands behind a flag day rather than ungated: the gate is
-// CROSS_SETTLE_PER_BLOCK_CAP in the indexer's protocol_changes.js, genesis-active on
-// testnet and regtest and unarmed on mainnet until the operator ratifies the anchor.
-// The value below is the cap; the gate decides when it applies. Before the flag day a
-// mainnet block settles the full effective backlog, exactly as it always has.
+// lands in. CROSS_SETTLE_PER_BLOCK_CAP in the indexer's protocol_changes.js gates
+// the behavior, and the gate is armed at genesis on every network, including
+// mainnet. The mainnet genesis arm is replay-safe because indexed mainnet history
+// contains no finalized cross-chain match for the cap to defer. The capped prefix
+// therefore applies to every historical and future block on every network, and
+// overflow carries forward in the total order above. The value below defines the
+// capped quantity, while the gate remains the authority for when it applies.
+// Keep both facts aligned with the indexer's registry and settlement pass.
 const CROSS_SETTLE_MAX_PER_BLOCK = 25;
 
 // ── Cross-chain bridge (protocol/xchain-bridge.md) ──────────────────────────
@@ -202,10 +202,10 @@ const CROSS_SETTLE_MAX_PER_BLOCK = 25;
 // CHAIN per block. Overflow carries forward in (snapshot_block, transfer_id) order
 // and is never dropped, the XCALL and CROSS_SETTLE discipline.
 //
-// UNGATED, unlike CROSS_SETTLE_MAX_PER_BLOCK above: that cap re-sliced history a
-// chain had already indexed and therefore needed its own flag day, while this one
+// Unlike CROSS_SETTLE_MAX_PER_BLOCK above, this cap needs no separate gate. It
 // ships inside XCHAIN_BRIDGE_ACTIVATION, below which no chain has ever applied an
-// XBRIDGE settle leg. There is no history for it to reinterpret.
+// XBRIDGE settle leg. There is no bridge-settlement history for it to reinterpret.
+// CROSS_SETTLE keeps its gate even though that gate is armed at genesis everywhere.
 //
 // Canonical authority for xchain-indexer/src/protocol/constants.js.
 const XBRIDGE_MAX_PER_BLOCK = 25;
@@ -249,6 +249,14 @@ const LIST_UNION_MAX_MEMBERS = 16;
 // Cross-repo twin: xchain-wallet packages/core THRESHOLD_SCALE. These two must
 // move together or the disagreement returns.
 const THRESHOLD_SCALE = 18;
+
+const MULTIPART_FILE_MAX_PARTS = 65535;
+const MULTIPART_FILE_MAX_BYTES = 262140000000;
+const FILE_MULTIPART_ACTIVATION_TIME = {
+    mainnet: null,
+    testnet: 1794787200,
+    regtest: 0,
+};
 
 // ── Chunked DEPLOY (DEPLOY v4 carriers + DEPLOY v2/v3 assemble) ─────────────
 // A contract whose base64(code) exceeds the single-tx budget is split across
@@ -318,11 +326,12 @@ const BATCH_WEIGHT_BUDGET = 250;
 // one invalid row, roughly constant whatever the action. Two classes cost
 // more and are weighted for different reasons:
 //
-//   - FAN-OUT (AIRDROP, DIVIDEND): one sub-command writes a row PER
-//     RECIPIENT. The weight is a FLAT 25 rather than `1 + recipients`
-//     because the recipient count is not on the wire, and resolving it would
-//     re-run each handler's own list resolution and filtering before the
-//     batch is even known to be valid.
+//   - FAN-OUT (AIRDROP, DIVIDEND): the table base is 25 because the
+//     recipient count is not on the wire. DIVIDEND stays flat. At or above
+//     BATCH_AIRDROP_LEG_WEIGHT_ACTIVATION, AIRDROP multiplies this base by
+//     the leg count already present in its wire params; below it AIRDROP is
+//     flat. The multiplier lives in the weighing code on both sides, never
+//     in this vendored table.
 //   - VM (DEPLOY, EXECUTE, XEXEC): contract code runs. 30 is the smallest
 //     round weight at which a full batch of worst-case VM sub-commands stays
 //     under the 250 ordinary-equivalent bound at every measured cost ratio.
@@ -480,14 +489,14 @@ const CHECKPOINT_COMMITMENT_ACTIVATION = {
 // verification (the signed preimage changes), so hubs and every verifier (indexers, SDK, explorer,
 // sync) must run the new code before the armed height.
 //
-// Mainnet is unpinned (null). Testnet ships on the UNARMED sentinel until the cut after the fleet
-// roll arms one BTC height. Regtest is 0 so the rail drill exercises it.
+// Mainnet is unpinned (null). Testnet is armed per chain by the <COIN>:testnet keys; the bare
+// testnet key is only the fallback. Regtest is 0 so the rail drill exercises it.
 const CHECKPOINT_SUPERSEDE_ACTIVATION = {
     mainnet: null,
-    'BTC:testnet': 158557, // UNARMED: the next cut sets it
-    'LTC:testnet': 4949697, // UNARMED: the next cut sets it
-    'DOGE:testnet': 68035864, // UNARMED: the next cut sets it
-    testnet: 9999999999,       // UNARMED: the next cut sets it
+    'BTC:testnet': 158557,
+    'LTC:testnet': 4949697,
+    'DOGE:testnet': 68035864,
+    testnet: 9999999999,
     regtest: 0,
 };
 
@@ -701,14 +710,14 @@ const ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION = {
 // where stake-weighted quorum is active. Consensus-relevant (it moves the archive head and
 // wrapper-section quorum verdicts), so hubs must run the new code before the armed height.
 //
-// Mainnet is unpinned (null). Testnet ships on the UNARMED sentinel until the cut after the
-// fleet roll arms one BTC height. Regtest is 0: with no rolled epoch the set equals oracle_publish.
+// Mainnet is unpinned (null). Testnet is armed per chain by the <COIN>:testnet keys; the bare
+// testnet key is only the fallback. Regtest is 0: with no rolled epoch the set equals oracle_publish.
 const ARCHIVE_ROLLCALL_PRESENCE_ACTIVATION = {
     mainnet: null,
-    'BTC:testnet': 158557, // UNARMED: the next cut sets it
-    'LTC:testnet': 4949697, // UNARMED: the next cut sets it
-    'DOGE:testnet': 68035864, // UNARMED: the next cut sets it
-    testnet: 9999999999,       // UNARMED: the next cut sets it
+    'BTC:testnet': 158557,
+    'LTC:testnet': 4949697,
+    'DOGE:testnet': 68035864,
+    testnet: 9999999999,
     regtest: 0,
 };
 
@@ -879,6 +888,17 @@ const CROSS_CHAIN_ROYALTY_ACTIVATION = {
 const ATTEST_ADMISSION_ACTIVATION = {
     mainnet: 961000,      // ARMED: BTC anchor ~2026-08-04 (same anchor as STAKE_WEIGHTED_QUORUM); deploy ALL indexers before this height
     testnet: 0,
+    regtest: 0,
+};
+
+// Gate the state-hash class for the batch-completion stamp on a surviving v5 attest head.
+// Keep the per-chain testnet values aligned with the consensus gate registry.
+const ATTEST_BATCH_HEAD_STATE_HASH_ACTIVATION = {
+    mainnet: 9999999999,
+    'BTC:testnet': 156230,
+    'LTC:testnet': 4912984,
+    'DOGE:testnet': 67989993,
+    testnet: 9999999999,
     regtest: 0,
 };
 
@@ -1313,7 +1333,8 @@ const DISPENSER_CANCEL_GRACE_ACTIVATION = {
 // gate from DISPENSER_CANCEL_GRACE_ACTIVATION because capture eligibility and row
 // retention change independently.
 //
-// Mainnet and testnet remain unarmed so existing history is not reinterpreted.
+// Mainnet remains unarmed so existing history is not reinterpreted. Testnet is
+// armed at the cut's flag day under the ruling that every testnet gate arms.
 // Regtest is genesis-active so the grace-aware purge path is exercised there.
 const DISPENSER_PURGE_GRACE_ACTIVATION = {
     mainnet: 9999999999,
@@ -1327,9 +1348,9 @@ const DISPENSER_PURGE_GRACE_ACTIVATION = {
 // The earlier parent clock keeps the capture set open across the first block
 // past the indexer's close-delay boundary.
 //
-// Mainnet waits on the dispenser history re-measure ruled 2026-10-17, and
-// testnet remains unarmed so existing history is not reinterpreted. Regtest is
-// genesis-active so the parent-anchored floor is exercised there.
+// Mainnet waits on the dispenser history re-measure ruled 2026-10-17. Testnet is
+// armed at the cut's flag day under the ruling that every testnet gate arms.
+// Regtest is genesis-active so the parent-anchored floor is exercised there.
 const DISPENSER_CANCEL_GRACE_PARENT_FLOOR_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 1792454400,
@@ -1342,8 +1363,11 @@ const DISPENSER_CANCEL_GRACE_PARENT_FLOOR_ACTIVATION = {
 // This keeps one registration for values that resolve to the same table key and
 // avoids a duplicate-key insert selecting a different dispenser by accident.
 //
-// Mainnet and testnet remain unarmed so existing history is not reinterpreted.
-// Regtest is genesis-active so the address-id collapse path is exercised there.
+// Testnet is armed at its cut flag day and regtest is genesis-active. Mainnet
+// remains unarmed: from batch capture activation at 1786838400 until this gate
+// is armed, collation-equivalent raw spellings can select the first expiration
+// through a duplicate-key insert. Arming changes persisted rows and needs a
+// fleet flag day plus a historical audit.
 const DISPENSER_ADDRESS_ID_COLLAPSE_ACTIVATION = {
     mainnet: 9999999999,
     testnet: 1792454400,
@@ -1781,8 +1805,8 @@ const TRAIN_ACTIVATION = {
     // a floor above genesis would leave the pre-floor range resolving to nothing.
     '1.0.0': { mainnet: 0, testnet: 0, regtest: 0 },
     // The XCHAIN bridge rule set, armed at the v0.19.0 cut. Mainnet holds the house
-    // sentinel: the mainnet arm is the next milestone and nothing arms there before the
-    // checkpoint cross-check lands, so no mainnet node ever reaches this boundary.
+    // sentinel until a release train sizes the mainnet arm. The checkpoint cross-check
+    // is already enforced on every network where the bridge is armed.
     // Testnet: SIZED 2026-09-16, re-cut 16:33Z, from chain_tip TBTC 152,716 + 71 blocks,
     // which is ceil(10 h / 508.8 s per block measured over the preceding 99 blocks), about
     // 10.0 h. The first sizing (11:53Z, 152,716 itself) was overrun by the chain while the
@@ -1904,9 +1928,9 @@ const SWEEP_ZERO_LEG_ACTIVATION = {
 // 67,889,993 measured 2026-09-12), so one testnet number is already passed on two of them at
 // boot and unreachable on the third.
 //
-// Mainnet is the house sentinel on every key: bridge milestone 1 is a hub-trusted mint (a
-// compromised hub supplies both the transfer record and the roster that verifies it), so
-// nothing arms on mainnet before the ANCHOR-checkpoint cross-check of the lock is built.
+// Mainnet is the house sentinel on every key until a release train sizes the mainnet arm.
+// The destination already checks every credit against the origin chain's quorum-signed
+// ANCHOR checkpoint on each network where the bridge is armed.
 // Testnet is SIZED AT THE v0.19.0 CUT, one dated instant per chain, from the three chain tips
 // and their last-99-block cadences read in one sitting (2026-09-16 16:33Z, the re-cut after
 // the 11:53Z sizing was overrun: TBTC 152,716 at 508.8 s per block, TLTC 4,887,644 at 141.8 s,
@@ -2412,7 +2436,7 @@ const ADMIT_CHAIN_MARGIN_ACTIVATION = Object.freeze({
     'DOGE:mainnet': null,
     'DOGE:testnet': 67989993,
     'LTC:mainnet':  null,
-    'LTC:testnet':  4949697, // UNARMED: the next cut sets it
+    'LTC:testnet':  4949697,
     regtest:        0,
 });
 
@@ -2507,6 +2531,9 @@ module.exports = {
     LIST_META_DESCRIPTION_MAX_BYTES,
     LIST_UNION_MAX_MEMBERS,
     THRESHOLD_SCALE,
+    MULTIPART_FILE_MAX_PARTS,
+    MULTIPART_FILE_MAX_BYTES,
+    FILE_MULTIPART_ACTIVATION_TIME,
     STAKE_WEIGHTED_QUORUM_ACTIVATION,
     EQUIV_HEADER_ACTIVATION,
     CANONICAL_REORG_BUFFER,
@@ -2555,6 +2582,7 @@ module.exports = {
     RETRACTION_SIGNING_ACTIVATION,
     CROSS_CHAIN_ROYALTY_ACTIVATION,
     ATTEST_ADMISSION_ACTIVATION,
+    ATTEST_BATCH_HEAD_STATE_HASH_ACTIVATION,
     ATTEST_REQUEST_CAPS,
     ATTEST_RELAY_ACTIVATION,
     ATTEST_RELAY_FEE_ACTIVATION,

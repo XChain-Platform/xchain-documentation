@@ -3,7 +3,9 @@
 
 # Desktop: Windows
 
-The Windows desktop build ships two artifacts from the same source tree, one installable and one portable, for both `x64` and `arm64`.
+**Status: Shipped.** The `windows` lane reads `SHIPPED` in `tools/release/shipped-lanes.txt`, so every full release must carry its signed x64 and arm64 installers and portable zips. `v0.341.2` first published the code-signed Windows artifacts to `downloads.xchain.io` on 2026-10-07, and `v0.343.1` is the current published release. A Windows file that a signed manifest names is ours; anything else offered as a Windows release of XChain Wallet is not, see [Verify a release](../verify-release.md). The Microsoft Store listing is not live yet.
+
+The Windows desktop build is designed to ship two artifacts from the same source tree, one installable and one portable, for both `x64` and `arm64`.
 
 ## Artifacts
 
@@ -12,7 +14,7 @@ The Windows desktop build ships two artifacts from the same source tree, one ins
 | NSIS installer (`.exe`) | A guided installer. Not one-click: the user can change the install directory. Installs per-user, not per-machine, and does not delete app data on uninstall. |
 | Portable zip (`.zip`) | A zip archive of the app, for running without installing. |
 
-Windows ships **two separate installers, one per architecture**, rather than a single combined installer covering both. Each artifact's filename carries its architecture, so a download always states which one it is.
+Windows ships **two separate installers, one per architecture**, rather than a single combined installer covering both. Each artifact's filename carries its architecture, so a download will state which one it is.
 
 ## How it's built
 
@@ -30,7 +32,7 @@ Update checks run against the wallet's `stable` release channel, pulled from the
 
 ## Verifying a download
 
-See [Verify a release](../verify-release.md) for the full recipe: importing the release key, checking the published SHA-256 manifest, and verifying the GPG signature over it. Windows artifacts are not part of the reproducible-build coverage (see [Reproducible Builds](../../reproducible-builds.md)); hash and signature verification is the available integrity guarantee for this platform.
+[Verify a release](../verify-release.md) gives the full recipe for checking a published Windows download against its SHA-256 manifest and signature. Windows artifacts are outside the reproducible-build coverage (see [Reproducible Builds](../../reproducible-builds.md)), so hash and signature verification are the integrity guarantee for this platform.
 
 ## Other Windows distribution
 

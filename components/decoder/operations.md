@@ -22,7 +22,7 @@ On startup, the decoder:
 2. Starts the Express JSON-RPC API server on `DECODER_API_PORT`
 3. Validates the database name (alphanumeric + underscores only)
 4. Creates the database if it doesn't exist
-5. Creates all 10 tables if they don't exist
+5. Creates all 11 tables if they don't exist
 6. Waits for the coin node to reach 99% verification progress
 7. Begins parsing from the configured start block (or last parsed block + 1)
 
@@ -233,7 +233,7 @@ Two cases are deliberately not treated as a reorg:
 
 ### Deep reorg halt (REORG_HALT)
 
-Soft-expired dispensers are hard-purged once they are the safe depth deep (126 blocks, or 5006 on litecoin testnet; see [Database: dispensers](database.md#dispensers)). A rollback that crosses that window could not resurrect them, so the decoder stops the rollback at the ceiling and writes a durable marker: a row in the `events` table with `code = 'REORG_HALT'`. The decoder keeps parsing forward and reports `reorg_halted: true` on `health`, `GET /status` and `GET /live`; the next reorg refuses to roll back and stops the process. The marker survives restarts and is only ever superseded, never deleted. See [Troubleshooting](#decoder-halted-after-a-deep-reorg-reorg_halt) for recovery.
+Soft-expired dispensers are hard-purged once they are the safe depth deep (126 blocks, or 5006 on litecoin testnet; see [Database: dispensers](database.md#dispensers)). A rollback that crosses that window could not resurrect them, so the decoder stops the rollback at the ceiling and writes a durable marker: a row in the `events` table with `code = 'REORG_HALT'`. The decoder keeps parsing forward and reports `reorg_halted: true` on `health`, `GET /status` and `GET /live`; the next reorg refuses to roll back and parks the parse loop instead of exiting, while the process stays up and reports `reorg_halt_parked: true`. The marker survives restarts and is only ever superseded, never deleted. See [Troubleshooting](#decoder-halted-after-a-deep-reorg-reorg_halt) for recovery.
 
 ## Mempool Tracking
 

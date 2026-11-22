@@ -195,11 +195,13 @@ One stake of **25000 XCHAIN** clears every capability floor at once:
 | `http_get` attestation provider | 10000 |
 | `llm` attestation provider | 25000 |
 
-`full_node` is listed for completeness: the tier ships inert (reward share zero,
-no initial verifier set) and cannot be earned on any network until its
-activation flag day. Clearing its floor changes nothing today, and there is
-nothing for an operator to configure for it. See
-[Rewards, and what is not live yet](../getting-started/running-a-validator.md#rewards-and-what-is-not-live-yet).
+`full_node` is listed for completeness: the tier ships inert and cannot be
+earned on any network today. It pays nothing until a consensus rail mints
+oracle-round rewards, `FULLNODE.REWARD_SHARE` is above zero, and an initial
+`FULLNODE.GENESIS_VERIFIERS` set is seeded. Clearing its floor changes nothing
+today, and there is nothing for an operator to configure for it. See [Rewards,
+and what is not live yet](../getting-started/running-a-validator.md#rewards-and-what-is-not-live-yet)
+and [NODEPROOF](../protocol/actions/nodeproof.md#bootstrap-and-degradation).
 
 On testnet, XCHAIN is a faucet token anyone can mint (10000 per transaction,
 50000 per address). You do not have to do that by hand:

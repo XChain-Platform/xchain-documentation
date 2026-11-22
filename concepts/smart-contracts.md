@@ -109,6 +109,7 @@ module.exports = {
         version:     '1.0.0'
     },
     initialize: function(xchain) {
+        xchain.require(xchain.state.get('owner') === null, 'already initialized');
         xchain.state.set('owner', xchain.getSourceAddress());
         xchain.state.set('counter', '0');
     },
@@ -124,7 +125,7 @@ module.exports = {
 };
 ```
 
-When `EXECUTE` is called with `method: 'increment'`, the VM loads the contract, finds the named method on the exported object, and calls it with the `xchain` gateway as the sole argument.
+When `EXECUTE` is called with `method: 'increment'`, the VM loads the contract, finds the named method on the exported object, and calls it with the `xchain` gateway as the sole argument. The same dispatch can name `initialize`, so the example refuses a second initialization before replacing its owner or resetting its counter.
 
 A contract may additionally export a static `abi` object next to its methods, describing them (one-line summaries, named/typed parameters, read-only flags) for wallets and explorers. It is display metadata only, never read by the VM or the indexer; see [Contract ABI](../protocol/contract-abi.md). Do not confuse it with `meta` above: `meta` says what the contract *is* and is required by consensus, while `abi` says what its *methods* look like and is advisory.
 
@@ -132,7 +133,13 @@ A contract may additionally export a static `abi` object next to its methods, de
 
 Every contract receives an `xchain` object providing access to platform data and operations:
 
-Every figure in a **Gas** column below is in gas units, charged against the calling EXECUTE's `GAS_LIMIT`. A sum such as `500 + 5,000` lists the separate charges the call makes, in the order it makes them. Token amounts a call escrows or transfers are never gas and never appear in that column: they come out of the contract's own balance and are described in words.
+Every figure in a **Gas** column below is in gas units, charged against the calling EXECUTE's gas
+budget. A top-level EXECUTE has no `GAS_LIMIT` wire field; the budget comes from the protocol
+ceiling or, for a native-paid call under `EXECUTE_NATIVE_METERED_GAS_ACTIVATION`, from its paid
+output. An emitted call carries its own `gasLimit`. A sum such as `500 + 5,000` lists the separate
+charges the call makes, in the order it makes them. Token amounts a call escrows or transfers are
+never gas and never appear in that column: they come out of the contract's own balance and are
+described in words.
 
 ### Context (0 gas)
 | Method | Returns |
@@ -273,7 +280,7 @@ block **after** the one where it was applied; the same one-block visibility rule
 | `xchain.contract.getStake(pubkey, token)` | 100 | Sum of active stake for `(pubkey, token)` targeting this contract. Returns `'0'` if none. |
 | `xchain.contract.getTotalStaked(token)` | 100 | Total active stake of `token` across all stakers of this contract. |
 | `xchain.contract.getStakers(token)` | 100 | Top stakers of `token` on this contract: `[{pubkey, amount}, ...]`, sorted descending, capped at 1000. |
-| `xchain.contract.slash(pubkey, token, amount)` | 500 | Slash `amount` of `token` from one staker on this contract. Routed to the deploy-time `SLASH_DESTINATION`. Authorization is implicit. |
+| `xchain.contract.slash(pubkey, token, amount)` | 500 | Slash `amount` of `token` from one staker on this contract. Routed to the deploy-time `SLASH_DESTINATION`. Authorization is implicit; malformed arguments throw. See [argument validation](../protocol/contract-staking.md#throws-and-argument-validation). |
 
 ## Deterministic Execution
 
@@ -304,6 +311,10 @@ Every contract execution is bounded by hard limits:
 | State value size | 64 KB per value |
 | Code size | 64 KB per contract |
 | Log entries | 100 per execution (1 KB each) |
+
+When `STATE_KEY_STORABLE_ACTIVATION` is active (testnet at the arm listed in [Flag-Day Values](../protocol/flag-days.md), regtest from genesis, and mainnet still unarmed), `state.set()` also refuses keys longer than 256 UTF-16 units or containing a code point above U+FFFF; `state.delete()` is unchanged.
+
+When `STATE_VALUE_ASTRAL_ESCAPE` is active (testnet at the arm listed in [Flag-Day Values](../protocol/flag-days.md), regtest from genesis, and mainnet still unarmed), the indexer stores a state value's JSON text with each character above U+FFFF, such as an emoji, written as its `\uXXXX\uXXXX` escape pair. `JSON.parse` of the stored text returns the same value, and text with no such character is stored unchanged.
 
 Gas is the primary execution bound. The wall-clock timeout exists only as a safety net for gas metering bugs; it should never trigger under normal operation.
 
@@ -363,7 +374,7 @@ The contract sends a string payload; the provider tells the validators how to in
 The `redundancy` option in `xchain.attestation.request(..., { redundancy: N, deadlineBlocks: N, feeTick: 'XCHAIN', feeAmount: '0.5' })` controls how many independent validators must agree before the response is written to chain. `feeTick` and `feeAmount` are optional; setting `feeAmount > 0` escrows the fee from the calling contract and splits it among responsible validators on fulfillment (refunded on expiry or error). Three `redundancy` values are allowed:
 
 - **`redundancy: 1`**: the cheapest path. One validator's answer becomes the final answer. No agreement round, no PBFT, no judge. Right for non-critical queries where speed and cost matter more than independent verification.
-- **`redundancy: 3` or `5`**: multiple validators fetch independently. They exchange proposals and agree on a canonical answer. For `http_get`, "agree" means exact byte equality. For `llm`, a separate judge model decides whether the candidates are semantically equivalent. If quorum can't be reached the request expires on its deadline.
+- **`redundancy: 3` or `5`**: multiple validators fetch independently. They exchange proposals and agree on a canonical answer. For `http_get`, "agree" means exact byte equality. For `llm`, a separate judge model decides whether the candidates are semantically equivalent. If quorum can't be reached the request expires after its deadline; under an expiry backlog its callback can land a few blocks later because the [ATTEST expiry sweep](../protocol/actions/attest.md#version-2-expire) is capped per block.
 
 Higher redundancy doesn't change the API the contract sees; the callback signature is identical regardless. It just changes the trust model of the answer and the fee the request escrows.
 
@@ -433,7 +444,7 @@ Provider-level limits the contract should know about:
 - **Body encoding on response.** `RESPONSE_PAYLOAD` travels **base64-encoded** on the wire in ATTEST v1. The indexer decodes it to UTF-8 for storage and delivers it to the callback as a UTF-8 string. Binary content round-trips correctly as long as it is valid UTF-8 after decoding; arbitrary binary is not a supported use case.
 - **`getResponse(requestId)` is read-only.** It returns the previously-stored response after the callback has already fired, useful for contracts that want to revisit a past answer from a different method.
 
-For the wire-level lifecycle see [`protocol/actions/ATTEST.md`](../protocol/actions/attest.md); for provider-specific payloads see [`protocol/providers/`](../protocol/providers/).
+For the wire-level lifecycle see [`protocol/actions/attest.md`](../protocol/actions/attest.md); for provider-specific payloads see [`protocol/providers/`](../protocol/providers/).
 
 ## Stakeable Contracts
 
@@ -477,7 +488,8 @@ xchain.contract.slash(pubkey, 'XCHAIN', '50');
 - The slash can only target stakers of **this** contract. The accessor is scoped to the executing contract; cross-contract slashing isn't possible.
 - Slashed tokens go to the destination locked at deploy time.
 - The slash reaches active stakes first; if there's a remainder, it pulls from any cooldown-queued balance the staker has already begun withdrawing. (Stakers can't escape an imminent slash by unstaking.)
-- Over-slash is silently capped at the staker's available balance. No error if you ask for more than they have.
+- Over-slash is silently capped at the staker's available balance. Asking for more than the available balance does not throw, but malformed arguments do; see [Throws and argument validation](../protocol/contract-staking.md#throws-and-argument-validation).
+- Where `SLASH_GRID_ACTIVATION` is active, the amount is floored to the token's decimals. A request below one base unit deducts nothing and writes no `slash_events` row; see [Amount precision and flooring](../protocol/contract-staking.md#amount-precision-and-flooring).
 - Atomic with the calling EXECUTE: if the method reverts after the slash, the slash rolls back too.
 
 ### What This Enables
@@ -489,7 +501,7 @@ xchain.contract.slash(pubkey, 'XCHAIN', '50');
 - **Conditional escrow with teeth**: two parties stake against a deal; an arbitrator (or [an AI judge](#asking-the-outside-world-the-attestation-framework)) decides if the deal was kept and slashes accordingly.
 - **DAO membership locks**: members stake to participate; the DAO's contract slashes for spam or rule-breaking.
 
-For the wire format, isolation rules, cooldown sweep behavior, and the on-chain `slash_events` table, see [`protocol/Contract_Staking.md`](../protocol/contract-staking.md).
+For the wire format, isolation rules, cooldown sweep behavior, and the on-chain `slash_events` table, see [`protocol/contract-staking.md`](../protocol/contract-staking.md).
 
 ## Error Handling
 
@@ -514,7 +526,7 @@ Deployed contracts are **immutable** in API version 1. There is no mechanism to 
 
 **Programmable token logic:**
 - **Conditional logic**: "Execute this SEND only if the caller holds at least 1000 of token X"
-- **Token vesting**: Automatically release tokens on a schedule based on block height
+- **Token vesting**: Unlock tokens on a schedule based on block height; the beneficiary claims the vested amount with an EXECUTE call
 - **Automated market makers**: Continuous-pricing liquidity pools using constant-product formulas
 - **Multi-condition escrow**: Release funds when multiple conditions are met
 - **Governance (DAOs)**: Token-weighted voting with on-chain proposal and execution

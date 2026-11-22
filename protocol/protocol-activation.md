@@ -101,7 +101,7 @@ re-runs an action handler, a deploy validator, or the VM.
 | Service | Carries |
 |---|---|
 | `xchain-indexer` | `protocol_changes.js` (contract-era gates) + the state-commitment and validator-era activation modules |
-| `xchain-vm` | the seven contract-era VM gate constants (async ban, binary-alloc metering, deploy-linter hardening, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) plus the own-date `REST_PATTERN_METER_GATE_BLOCK_TIME` (destructuring rest-pattern metering and the deploy rejection of rest positions the meter cannot reach; it does not ride the contract-era instant, its value is on [Flag-Day Values](./flag-days.md), and its indexer twin is `REST_PATTERN_METER`) plus the own-date `TOSTRING_SIZE_METER_GATE_BLOCK_TIME` (the toString size meter module in `index/tostring_size_meter.js`, whose rule is `index/armed_harness/tostring_size_meter.js`; while active, the metered URI, escape, `parseInt` and `parseFloat` globals convert a non-string argument once and charge the converted length, and `padStart` and `padEnd` coerce their length before charging; it sits at the unarmed sentinel on mainnet, testnet runs it from the v0.25.0 shared instant and regtest from genesis, and its indexer twin is `TOSTRING_SIZE_METER`) plus `JSON_STRINGIFY_HOOK_GATE_BLOCK_TIME` (hook-aware depth guarding for values transformed by `JSON.stringify`; it keys on its own flag day, arms testnet at its own instant and stays inert on mainnet until the operator arms it, its status is on [Flag-Day Values](./flag-days.md), and its indexer twin is `JSON_STRINGIFY_HOOK`) plus five constant-less contract-era riders that key on the binary-alloc instant instead of minting a constant ([Cohort A riders that mint no constant](#cohort-a-riders-that-mint-no-constant)) plus fourteen per-coin height-keyed maps: `PKG3_SANDBOX_ACTIVATION` (the armed runtime half of VM deploy-lint Pkg 3, [below](#additional-armed-gates-service-carried)), the genesis-armed `EXEC_LINT_ACTIVATION` and `LINT_GLOBAL_ALIAS_ACTIVATION`, `LINT_BANNED_WITH_ACTIVATION` (the deploy linter's `with`-statement ban, which the indexer's DEPLOY lint resolves through its `vm_lint_banned_with_heights` registry row; armed on testnet at each chain's own height, unarmed on mainnet until an operator arms it; regtest runs it from genesis), the mainnet-unarmed `LINT_OPTIONAL_CHAIN_ACTIVATION` ([VM gates](#vm-gates-service-carried)), `BIGINT_SURFACE_STRIP_ACTIVATION` in `index/bigint_surface_strip_heights.js` (armed on testnet at each chain's own height, unarmed on mainnet until an operator arms it; regtest runs it from genesis), `LINT_DESTRUCTURE_ACTIVATION` in `index/lint_destructure_heights.js` (the deploy linter's destructuring checks, which the indexer's DEPLOY lint resolves through its `vm_lint_destructure_heights` registry row; armed on testnet at each chain's own height, unarmed on mainnet until an operator arms it; regtest runs it from genesis), and seven maps that are null on every mainnet and testnet chain until an operator arms them, with regtest running each from genesis and each twinned by the indexer registry row named after it: `LINT_SYNTAX_DEPTH_ACTIVATION` in `index/lint_syntax_depth_heights.js` (deploy and execute-time lint refuse a source nested past the fixed syntactic depth before any recursive pass runs; twin `vm_lint_syntax_depth_heights`), `GAS_CEILING_EXHAUSTED_ACTIVATION` in `index/gas_ceiling_exhausted_heights.js` (a run whose gas tracker crossed its ceiling settles as out of resource with gasUsed at the ceiling, whichever path it reached the host by; twin `gas_ceiling_exhausted_heights`), `RESOURCE_FAULT_SIGNAL_ACTIVATION` in `index/resource_fault_signal_heights.js` (out_of_stack requires a trip report from the in-isolate depth guards rather than a thrown value a contract can construct, and a memory-limit disposal settles as out_of_memory instead of timeout; twin `resource_fault_signal_heights`), `HOST_ERROR_STACK_STRIP_ACTIVATION` in `index/host_error_stack_strip_heights.js` (an error thrown on the host side reaches the contract with an empty stack instead of harness frame text; twin `host_error_stack_strip_heights`), `JSON_STRINGIFY_REENTRY_ACTIVATION` in `index/json_stringify_reentry_heights.js` (a nested `JSON.stringify` on the value-hook path returns its own result instead of overwriting the outer call's; twin `json_stringify_reentry_heights`), `HOST_FAULT_HALT_ACTIVATION` in `index/host_fault_halt_heights.js` (a wrapper compile or setup fault halts the host instead of settling as a contract error; it is null on every mainnet and testnet chain, regtest runs it from genesis, and its indexer twin is the `host_fault_halt_heights` registry row) and `NATIVE_STACK_TERMINAL_ACTIVATION` in `index/native_stack/activation.js` (a native stack overflow becomes the same terminal out_of_stack the depth counter raises, and frames and pushed argument lists count against the depth budget; twin `native_stack_terminal_heights`) plus eight network-keyed block-time maps, all unarmed on mainnet: `ACCESSOR_OWN_KEY_ACTIVATION` in `readonly-accessors.js` (a readonly snapshot lookup resolves only own keys, so an inherited name such as `constructor` reads as absent; testnet and regtest run it from genesis, and its indexer twin is `READONLY_ACCESSOR_OWN_KEY`), `GAS_CEILING_SUCCESS_ACTIVATION` in `gas.js` (a run that reached the host as a success although a charge crossed the gas ceiling inside the isolate fails instead; it is a static on `GasTracker`, not a module export; it is armed on testnet at its own instant and unarmed on mainnet, regtest runs it from genesis, and its indexer twin is `GAS_CEILING_SUCCESS`), `ITER_SET_METER_ACTIVATION` in `index/runtime/activations.js` (meters iterator helpers, String well-formedness and the Set algebra family, and while active also turns on call-spread metering; testnet runs it from its own instant and regtest from genesis, and its indexer twin is `ITER_SET_METER`), `APPLY_LENGTH_METER_ACTIVATION` in `index/apply_length_meter.js` (charges long-argument `Function.prototype.apply` by argument count and `ArrayBuffer` `resize`, `transfer` and `transferToFixedLength` by their new byte length; testnet runs it from its own instant and regtest from genesis, and its indexer twin is `APPLY_LENGTH_METER`), `HOST_CALL_BOUNDS_ACTIVATION` in `index/host_call_bounds.js` (an emission refused at the cap is not billed, a value that contains itself throws a catchable TypeError instead of faulting out_of_stack, and a host-call argument holds the same nesting a plain `JSON.stringify` of it does; testnet runs it from the v0.24.0 shared instant and regtest from genesis, and its indexer twin is `HOST_CALL_BOUNDS`), `STRING_RECEIVER_METER_ACTIVATION` in `index/string_receiver_meter.js` (meters the String receiver length; testnet runs it from the v0.25.0 shared instant and regtest from genesis, and its indexer twin is `STRING_RECEIVER_METER`), `STRING_RESULT_METER_ACTIVATION` in `index/string_result_meter.js` (meters String HTML and `String.raw` results; testnet runs it from the v0.25.0 shared instant and regtest from genesis, and its indexer twin is `STRING_RESULT_METER`) and `PER_ELEMENT_METER_ACTIVATION` in `index/per_element_meter.js` (charges iterator-helper callbacks and yields, Set algebra over a non-Set argument, `String.raw` segments and object spread and rest per element; testnet runs it from the v0.24.0 shared instant and regtest from genesis, and its indexer twin is `PER_ELEMENT_METER`) |
+| `xchain-vm` | the seven contract-era VM gate constants (async ban, binary-alloc metering, deploy-linter hardening, state-key NUL-reject, state-key type normalization, metering eval-order fix, call-spread metering) plus the own-date `REST_PATTERN_METER_GATE_BLOCK_TIME` (destructuring rest-pattern metering and the deploy rejection of rest positions the meter cannot reach; it does not ride the contract-era instant, its value is on [Flag-Day Values](./flag-days.md), and its indexer twin is `REST_PATTERN_METER`) plus the own-date `TOSTRING_SIZE_METER_GATE_BLOCK_TIME` (the toString size meter module in `index/tostring_size_meter.js`, whose rule is `index/armed_harness/tostring_size_meter.js`; while active, the metered URI, escape, `parseInt` and `parseFloat` globals convert a non-string argument once and charge the converted length, and `padStart` and `padEnd` coerce their length before charging; it sits at the unarmed sentinel on mainnet, testnet runs it from the v0.25.0 shared instant and regtest from genesis, and its indexer twin is `TOSTRING_SIZE_METER`) plus `JSON_STRINGIFY_HOOK_GATE_BLOCK_TIME` (hook-aware depth guarding for values transformed by `JSON.stringify`; it keys on its own flag day, arms testnet at its own instant and stays inert on mainnet until the operator arms it, its status is on [Flag-Day Values](./flag-days.md), and its indexer twin is `JSON_STRINGIFY_HOOK`) plus five constant-less contract-era riders that key on the binary-alloc instant instead of minting a constant ([Cohort A riders that mint no constant](#cohort-a-riders-that-mint-no-constant)) plus fourteen per-coin height-keyed maps: `PKG3_SANDBOX_ACTIVATION` (the armed runtime half of VM deploy-lint Pkg 3, [below](#additional-armed-gates-service-carried)), the genesis-armed `EXEC_LINT_ACTIVATION` and `LINT_GLOBAL_ALIAS_ACTIVATION`, `LINT_BANNED_WITH_ACTIVATION` (the deploy linter's `with`-statement ban, which the indexer's DEPLOY lint resolves through its `vm_lint_banned_with_heights` registry row; armed on testnet at each chain's own height, unarmed on mainnet until an operator arms it; regtest runs it from genesis), the mainnet-unarmed `LINT_OPTIONAL_CHAIN_ACTIVATION` ([VM gates](#vm-gates-service-carried)), `BIGINT_SURFACE_STRIP_ACTIVATION` in `index/bigint_surface_strip_heights.js` (armed on testnet at each chain's own height, unarmed on mainnet until an operator arms it; regtest runs it from genesis), `LINT_DESTRUCTURE_ACTIVATION` in `index/lint_destructure_heights.js` (the deploy linter's destructuring checks, which the indexer's DEPLOY lint resolves through its `vm_lint_destructure_heights` registry row; armed on testnet at each chain's own height, unarmed on mainnet until an operator arms it; regtest runs it from genesis), and seven maps that are null on every mainnet chain until an operator arms them, armed on testnet at each chain's own height, with regtest running each from genesis and each twinned by the indexer registry row named after it: `LINT_SYNTAX_DEPTH_ACTIVATION` in `index/lint_syntax_depth_heights.js` (deploy and execute-time lint refuse a source nested past the fixed syntactic depth before any recursive pass runs; twin `vm_lint_syntax_depth_heights`), `GAS_CEILING_EXHAUSTED_ACTIVATION` in `index/gas_ceiling_exhausted_heights.js` (a run whose gas tracker crossed its ceiling settles as out of resource with gasUsed at the ceiling, whichever path it reached the host by; twin `gas_ceiling_exhausted_heights`), `RESOURCE_FAULT_SIGNAL_ACTIVATION` in `index/resource_fault_signal_heights.js` (out_of_stack requires a trip report from the in-isolate depth guards rather than a thrown value a contract can construct, and a memory-limit disposal settles as out_of_memory instead of timeout; twin `resource_fault_signal_heights`), `HOST_ERROR_STACK_STRIP_ACTIVATION` in `index/host_error_stack_strip_heights.js` (an error thrown on the host side reaches the contract with an empty stack instead of harness frame text; twin `host_error_stack_strip_heights`), `JSON_STRINGIFY_REENTRY_ACTIVATION` in `index/json_stringify_reentry_heights.js` (a nested `JSON.stringify` on the value-hook path returns its own result instead of overwriting the outer call's; twin `json_stringify_reentry_heights`), `HOST_FAULT_HALT_ACTIVATION` in `index/host_fault_halt_heights.js` (a wrapper compile or setup fault halts the host instead of settling as a contract error; it is null on every mainnet chain and armed on testnet at each chain's own height, later than the other six, regtest runs it from genesis, and its indexer twin is the `host_fault_halt_heights` registry row) and `NATIVE_STACK_TERMINAL_ACTIVATION` in `index/native_stack/activation.js` (a native stack overflow becomes the same terminal out_of_stack the depth counter raises, and frames and pushed argument lists count against the depth budget; twin `native_stack_terminal_heights`) plus ten network-keyed block-time maps, all unarmed on mainnet: `ACCESSOR_OWN_KEY_ACTIVATION` in `readonly-accessors.js` (a readonly snapshot lookup resolves only own keys, so an inherited name such as `constructor` reads as absent; testnet and regtest run it from genesis, and its indexer twin is `READONLY_ACCESSOR_OWN_KEY`), `GAS_CEILING_SUCCESS_ACTIVATION` in `gas.js` (a run that reached the host as a success although a charge crossed the gas ceiling inside the isolate fails instead; it is a static on `GasTracker`, not a module export; it is armed on testnet at its own instant and unarmed on mainnet, regtest runs it from genesis, and its indexer twin is `GAS_CEILING_SUCCESS`), `ITER_SET_METER_ACTIVATION` in `index/runtime/activations.js` (meters iterator helpers, String well-formedness and the Set algebra family, and while active also turns on call-spread metering; testnet runs it from its own instant and regtest from genesis, and its indexer twin is `ITER_SET_METER`), `STATE_KEY_STORABLE_ACTIVATION` in `index/runtime/activations.js` (while active, `state.set()` refuses keys longer than 256 UTF-16 units or containing a code point above U+FFFF so every accepted key fits the indexer's `contract_state.state_key` column; testnet runs it from its own instant and regtest from genesis, and its indexer twin is `STATE_KEY_STORABLE`), `LINT_REGEX_GROUP_DEPTH_ACTIVATION` in `index/runtime/lint_gates/regex_group_depth.js` (re-exported by `index/runtime/activations.js`; while active, the deploy linter and the execute-time lint refuse a regex literal whose groups nest more than 64 deep, before acorn validates its body by recursion; testnet runs it from its own instant and regtest from genesis, and its indexer twin is `LINT_REGEX_GROUP_DEPTH`), `APPLY_LENGTH_METER_ACTIVATION` in `index/apply_length_meter.js` (charges long-argument `Function.prototype.apply` by argument count and `ArrayBuffer` `resize`, `transfer` and `transferToFixedLength` by their new byte length; testnet runs it from its own instant and regtest from genesis, and its indexer twin is `APPLY_LENGTH_METER`), `HOST_CALL_BOUNDS_ACTIVATION` in `index/host_call_bounds.js` (an emission refused at the cap is not billed, a value that contains itself throws a catchable TypeError instead of faulting out_of_stack, and a host-call argument holds the same nesting a plain `JSON.stringify` of it does; testnet runs it from the v0.24.0 shared instant and regtest from genesis, and its indexer twin is `HOST_CALL_BOUNDS`), `STRING_RECEIVER_METER_ACTIVATION` in `index/string_receiver_meter.js` (meters the String receiver length; testnet runs it from the v0.25.0 shared instant and regtest from genesis, and its indexer twin is `STRING_RECEIVER_METER`), `STRING_RESULT_METER_ACTIVATION` in `index/string_result_meter.js` (meters String HTML and `String.raw` results; testnet runs it from the v0.25.0 shared instant and regtest from genesis, and its indexer twin is `STRING_RESULT_METER`) and `PER_ELEMENT_METER_ACTIVATION` in `index/per_element_meter.js` (charges iterator-helper callbacks and yields, Set algebra over a non-Set argument, `String.raw` segments and object spread and rest per element; testnet runs it from the v0.24.0 shared instant and regtest from genesis, and its indexer twin is `PER_ELEMENT_METER`) |
 | `xchain-hub` | the nine validator-era gate modules it consumes (checkpoint, equivocation header, stake-weighted quorum, anchor reward, archive reward, cross-chain royalty canonical, retraction signing, attestation relay, price signature tally). The tenth Cohort B gate, attestation admission, is indexer-only |
 | `xchain-decoder` | the six activation maps consumed in the decoder's own parse path: `ORACLE_FEE_OUTPUT_ACTIVATION`, `ORACLE_FEE_SET_CAPTURE_ACTIVATION`, `DISPENSER_EXPIRY_REALIGN_ACTIVATION` and `BATCH_SUBCOMMAND_OUTPUT_CAPTURE_ACTIVATION` (block-time-keyed) plus `ENVELOPE_RECOGNITION_ACTIVATION` and `ENVELOPE_CARRIER_RECOGNITION_ACTIVATION` (per-chain local height) |
 | `xchain-sync`, `xchain-explorer`, `xchain-sdk` | the subset each needs to verify or display |
@@ -221,8 +221,8 @@ and `FEE` with no leading zero and within the length caps `PRICE_V1_VALUE_MAX_LE
 the operator arms it, is armed on BTC, LTC and DOGE testnet at an instant of its own, and regtest
 is genesis-active. That testnet instant is in the registry row
 `price_scale_activation.PRICE_V1_CANONICAL_ACTIVATION`
-(`xchain-indexer/src/protocol_changes/shared_rows_2.js`). [Flag-Day Values](./flag-days.md) reads
-only the mainnet slot of a registry row like this one, so it lists the gate once mainnet is armed.
+(`xchain-indexer/src/protocol_changes/shared_rows_2.js`). [Flag-Day Values](./flag-days.md) lists its
+testnet instant among the testnet arms and adds the gate to the mainnet table once mainnet is armed.
 
 `ANCHOR_FOLD_ACTIVATION` gates [ANCHOR](./actions/anchor.md) version 3, the folded bundle that
 carries every checkpointed chain section plus at most one archive section in one transaction. It
@@ -243,8 +243,9 @@ the same regtest variable arms both gates at the same height.
 `ATTEST_BATCH_HEAD_STATE_HASH_ACTIVATION` gates the state-hash class for the batch-completion stamp
 on a surviving version 5 attestation head. At or above it, a version 6 continuation that completes
 with a reassembly or quorum failure changes the state hash through the stamped head, so a follower
-that drops the stamp halts on the mismatch. The height map remains unarmed on mainnet and testnet;
-regtest is genesis-active.
+that drops the stamp halts on the mismatch. Mainnet stays unarmed until a release arms it there.
+Testnet is armed at each chain's own height (`BTC:testnet` 156230, `LTC:testnet` 4912984,
+`DOGE:testnet` 67989993), and regtest is genesis-active.
 
 `BRIDGE_POLICY_DETACH` gates the destination half of a bridged policy list detach, described under
 [policy inheritance](./token-bridge.md#policy-inheritance). It is read at the destination chain's
@@ -258,9 +259,21 @@ feed's allow-list and block-list references. It is armed on testnet at each chai
 stays unarmed on mainnet until a release arms it there, while
 regtest exercises the gated path from genesis.
 
-Regtest runs every cohort **genesis-active** (threshold 0), so a fresh regtest stack exercises the
-post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and BTC-height-keyed
-(Cohort B) gates genesis-active as well, with exceptions in every cohort:
+`EXECUTE_NATIVE_METERED_GAS_ACTIVATION` is an indexer-only per-chain height gate for native-paid
+top-level [EXECUTE](./actions/execute.md). Below the gate, a native-paid call owes only
+`VM_EXECUTE_BASE` and may run to the protocol gas ceiling. At or above the gate, the paid native
+fee output buys the call's gas budget, floored at the base and capped at the 1,000,000 protocol
+ceiling; a call that needs more fails out of gas and the fee output is kept. The XCHAIN-balance
+settlement lane is unchanged. A top-level EXECUTE has no gas-budget field on the wire. Mainnet and
+every testnet chain are UNARMED until the v0.28.0 release assigns post-roll heights. Regtest is
+UNPINNED and is armed only through `XC_EXECUTE_NATIVE_METERED_GAS_REGTEST_ACTIVATION`.
+
+Regtest runs every cohort according to its per-gate activation threshold. Many gates use threshold
+0, but some time-keyed rows are UNARMED or require a regtest environment override, and some
+height-keyed gates are unpinned. Check
+the gate's registration and [Flag-Day Values](./flag-days.md) before treating a fresh regtest run as
+coverage of its post-activation behavior. Testnet runs the time-keyed (Cohort A) and
+BTC-height-keyed (Cohort B) gates genesis-active as well, with exceptions in every cohort:
 
 - **Nine Cohort A rules are not genesis-active on testnet** (values and current status on
   [Flag-Day Values](./flag-days.md), which derives them from the registry and is the one place they
@@ -323,7 +336,7 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
     `TICK_ID` rather than per literal `TICK`.
   - `ATTEST_RELAY_RESPONSE_DEADLINE_ACTIVATION`, which rejects an ATTEST relay response that lands
     on its origin chain after the request's deadline.
-- **Seven more time-keyed rules are not genesis-active on testnet either**: they were registered
+- **Six more time-keyed rules are not genesis-active on testnet either**: they were registered
   after the v0.23.0 cut, and the v0.24.0 release cut armed all of them on testnet together at one
   later shared instant of their own, while mainnet keeps them unarmed until an operator arms it
   (the instant and status are on [Flag-Day Values](./flag-days.md)):
@@ -331,8 +344,6 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
     emission, so other emissions keep the emitter's depth.
   - `ARCHIVE_REPLAY_WRAPPER_WATERMARK`, which lets the archive replay guard's checkpoint watermark
     read the wrapper chain row of each v3 archive.
-  - `LEGACY_ANCHOR_REWARD_PIN`, which stops the anchor reward mint from minting a pinned legacy
-    reward tuple again.
   - `GUARD_STAKE_SNAPSHOT_DECIMAL_STRINGS`, which hands the VM decimal strings in the
     controller-guard stake snapshot, as the primary EXECUTE path already does.
   - `HOST_CALL_BOUNDS`, the indexer twin of the VM's `HOST_CALL_BOUNDS_ACTIVATION`, which bounds
@@ -341,6 +352,12 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
     iterator, set algebra, `String.raw` and object spread work per element.
   - `CALLBACK_ARGS_EXACT`, which runs an ATTEST, XCALL or binding VOTE callback with the argument
     array its injector built.
+- **One more time-keyed rule arms testnet at an instant of its own**: the v0.24.0 release cut first
+  armed it with the six rules above, but its instant later moved past the recorded testnet history
+  it protects, so it does not share their instant; mainnet keeps it unarmed until an operator arms
+  it (the instant and status are on [Flag-Day Values](./flag-days.md)):
+  - `LEGACY_ANCHOR_REWARD_PIN`, which stops the anchor reward mint from minting a pinned legacy
+    reward tuple again.
 - **Three more time-keyed rules are not genesis-active on testnet either**: they were registered
   after the v0.24.0 cut, and the v0.25.0 release cut armed all of them on testnet together at one
   later shared instant of their own, while mainnet keeps them unarmed until an operator arms it
@@ -357,6 +374,49 @@ post-activation behavior end to end. Testnet runs the time-keyed (Cohort A) and 
   [Flag-Day Values](./flag-days.md)):
   - `ISSUE_CARET_TICK_NO_CREATE`, which refuses token creation through a caret `^<id>` TICK that
     resolves to no existing token.
+- **One more time-keyed rule is not genesis-active on testnet**: it arms testnet at an instant of its
+  own, while mainnet keeps it unarmed until an operator arms it (the instant and status are on
+  [Flag-Day Values](./flag-days.md)):
+  - `FILE_MULTIPART`, which accepts FILE versions 1 (multipart manifest) and 2 (file part); before it
+    activates both versions are rejected as an unknown version (see [FILE](./actions/file.md)).
+- **One more time-keyed rule is not genesis-active on testnet**: it arms testnet at an instant of its
+  own, while mainnet keeps it unarmed until an operator arms it (the instant and status are on
+  [Flag-Day Values](./flag-days.md)):
+  - `STATE_KEY_STORABLE`, the indexer twin of the VM's `STATE_KEY_STORABLE_ACTIVATION`, which makes
+    `state.set()` refuse keys that cannot fit the indexer's `contract_state.state_key` column.
+- **One more time-keyed rule is not genesis-active on testnet**: it arms testnet at an instant of its
+  own, while mainnet keeps it unarmed until an operator arms it (the instant and status are on
+  [Flag-Day Values](./flag-days.md)):
+  - `ORDER_GET_ADDRESS_COIN`, which checks a cross-chain ORDER's `GET_ADDRESS` against the address
+    format of `GET_COIN`'s network, as SWAP does; before it the local chain's format applies (see
+    [ORDER](./actions/order.md)).
+- **One more time-keyed rule is not genesis-active on testnet**: it arms testnet at an instant of its
+  own, while mainnet keeps it unarmed until an operator arms it (the instant and status are on
+  [Flag-Day Values](./flag-days.md)):
+  - `STATE_VALUE_ASTRAL_ESCAPE`, an indexer-only rule under which every contract state write stores
+    the value's JSON text with each character above U+FFFF written as its `\uXXXX\uXXXX` escape
+    pair, so the `contract_state.state_value` column accepts it; `JSON.parse` returns the same value
+    either way.
+- **One more time-keyed rule is not genesis-active on testnet**: it arms testnet at an instant of its
+  own, while mainnet keeps it unarmed until an operator arms it (the instant and status are on
+  [Flag-Day Values](./flag-days.md)):
+  - `LINT_REGEX_GROUP_DEPTH`, the indexer twin of the VM's `LINT_REGEX_GROUP_DEPTH_ACTIVATION`, which
+    makes the deploy linter and the execute-time lint refuse a regex literal whose groups nest more
+    than 64 deep.
+- **Five more time-keyed rules are not genesis-active on testnet**: each arms BTC, LTC and DOGE
+  testnet at an instant of its own through a per-chain key, which the indexer prefers over the bare
+  testnet key, while mainnet keeps them unarmed until an operator arms it (the instant and status are
+  on [Flag-Day Values](./flag-days.md)):
+  - `AMOUNT_REPRESENTABILITY_ACTIVATION`, which requires an amount to be a plain unsigned decimal
+    numeral whose integer part fits the ledger's DECIMAL(60,18) capacity.
+  - `DISPENSER_FRESHNESS_PROVEN_USE_ACTIVATION`, under which the local fresh-address verdict counts
+    only activity that proves use of the dispenser's `GET_ADDRESS`.
+  - `DISPENSER_SETTLEMENT_PRICE_ACTIVATION`, which rejects a FIAT dispenser create or refill that
+    has no price a payment at that block could settle against.
+  - `LIST_EDIT_REMOVE_ACTIVATION`, which lets a Version 2 DISPENSER, ORDER or SWAP edit carry `0` in
+    `ALLOW_LIST` or `BLOCK_LIST` to remove that list.
+  - `PRICE_V1_CANONICAL_ACTIVATION`, which requires the canonical PRICE v1 `VALUE` and `FEE` form
+    (see [PRICE](./actions/price.md)).
 - **Cohort C (state commitment) is armed at future _per-chain_ heights on testnet, not from genesis**
   (`STATE_COMMITMENT_ACTIVATION`: `BTC:testnet 145000`, `LTC:testnet 4805000`,
   `DOGE:testnet 67000000`), because it gates on each chain's own local block height rather than a

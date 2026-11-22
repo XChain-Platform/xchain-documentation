@@ -131,17 +131,21 @@ function lineAt(text, index) {
 const withoutComments = stripComments;
 
 /**
- * The mainnet_time argument of a call, when it is a literal this page covers.
+ * A time argument of a call, when it can affect this page.
  *
- * Returns null for anything else: a literal outside the time-keyed window, an
- * identifier, or a call shape with too few arguments. Null means "not a row
- * this page would have carried", which is what makes the check below quiet
- * about declarations that were never its business.
+ * A registry constant is resolved when supplied. Returns null for any value
+ * below the time-keyed floor, unknown identifiers, empty slots, or calls with
+ * too few arguments. The bare UNARMED name is time-keyed by syntax alone.
+ *
+ * Anything else (arithmetic, hex, a member access, a call) returns
+ * `{ unreadable: text }` rather than null. Null means "read, and cannot affect
+ * this page"; an expression was never read, so its value is unknown and the
+ * completeness guard has to refuse it instead of treating it as quiet.
  *
  * `open` is the index of the `(` of a call or the `[` of an array row; the
  * arguments are read the same way from either.
  */
-function mainnetTimeLiteral(text, open) {
+function timeSlotLiteral(text, open, slotIndex, constants = new Map()) {
     if (text[open] !== '(' && text[open] !== '[') return null;
 
     const args = [];
@@ -156,12 +160,18 @@ function mainnetTimeLiteral(text, open) {
             depth--;
         } else if (ch === ',' && depth === 0) { args.push(text.slice(start, i)); start = i + 1; }
     }
-    if (args.length < 3) return null;
+    if (args.length <= slotIndex) return null;
 
-    const raw = args[2].trim().replace(/_/g, '');
-    if (!/^\d+$/.test(raw)) return null;
-    const time = Number(raw);
-    return (time >= TIMESTAMP_FLOOR && time < SENTINEL_FLOOR) ? time : null;
+    const slot = args[slotIndex].trim();
+    if (slot === 'UNARMED') return { time: 'UNARMED', via: null };
+    const raw = slot.replace(/_/g, '');
+    let time;
+    let via = null;
+    if (/^\d+$/.test(raw)) time = Number(raw);
+    else if (constants.has(slot)) { time = constants.get(slot); via = slot; }
+    else if (slot === '' || /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(slot)) return null;
+    else return { unreadable: slot };
+    return time >= TIMESTAMP_FLOOR ? { time, via } : null;
 }
 
 /**
@@ -180,11 +190,48 @@ function objectBody(text, open) {
     return null;
 }
 
+/** Reads a property expression through its top-level comma or closing bracket. */
+function propertyValue(text, start) {
+    let depth = 0;
+    let quote = null;
+    for (let i = start; i < text.length; i++) {
+        const ch = text[i];
+        if (quote !== null) {
+            if (ch === '\\') i++;
+            else if (ch === quote) quote = null;
+            continue;
+        }
+        if (ch === "'" || ch === '"' || ch === '`') quote = ch;
+        else if (ch === '(' || ch === '[' || ch === '{') depth++;
+        else if (ch === ')' || ch === ']' || ch === '}') {
+            if (depth === 0) return { text: text.slice(start, i).trim(), end: i };
+            depth--;
+        } else if (ch === ',' && depth === 0) {
+            return { text: text.slice(start, i).trim(), end: i };
+        }
+    }
+    return { text: text.slice(start).trim().replace(/;$/, ''), end: text.length };
+}
+
+function propertyText(body, pattern) {
+    pattern.lastIndex = 0;
+    const match = pattern.exec(body);
+    return match === null ? null : propertyValue(body, match.index + match[0].length).text;
+}
+
 /** A `const NAME = {` activation map in a sibling module. */
 const SIBLING_MAP = /const\s+([A-Z][A-Z0-9_]*)\s*=\s*\{/g;
 
-/** A `mainnet:` threshold inside such a map, bare or keyed per coin. */
-const SIBLING_MAINNET_SLOT = /(?:^|[{,\s])(mainnet|['"][A-Z]+:mainnet['"])\s*:\s*([^,}\n]*)/g;
+/** A plain network key in any object-literal spelling JavaScript treats alike. */
+function networkKeySource(network) {
+    return `(?:${network}|'${network}'|"${network}")`;
+}
+
+/** The key of a mainnet threshold inside such a map, plain or keyed per coin. */
+const SIBLING_MAINNET_SLOT = new RegExp(
+    `(?:^|[{,\\s])(${networkKeySource('mainnet')}|['"][A-Z]+:mainnet['"])\\s*:\\s*`,
+    'g',
+);
 
 /**
  * What the sibling scan makes of a `mainnet:` value: a number it read, a shape
@@ -263,12 +310,17 @@ function collectSiblingGates(indexerSrc, add) {
  * same shape in a `const NAME = {` declaration and in an `addGate` row.
  */
 function collectMapSlots(body, gate, source, label, add, unreadable) {
-    for (const slot of body.matchAll(SIBLING_MAINNET_SLOT)) {
-        const read = readMainnetSlot(slot[2]);
-        const where = `${label}: ${gate}.${slot[1]} = ${slot[2].trim() || '(nothing this scan can read)'}`;
+    SIBLING_MAINNET_SLOT.lastIndex = 0;
+    let slot;
+    while ((slot = SIBLING_MAINNET_SLOT.exec(body)) !== null) {
+        const value = propertyValue(body, SIBLING_MAINNET_SLOT.lastIndex);
+        SIBLING_MAINNET_SLOT.lastIndex = Math.max(SIBLING_MAINNET_SLOT.lastIndex, value.end);
+        const key = slot[1].replace(/^(['"])(.*)\1$/, '$2');
+        const read = readMainnetSlot(value.text);
+        const where = `${label}: ${gate}.${key} = ${value.text || '(nothing this scan can read)'}`;
         if (read.kind === 'unreadable') unreadable.push(where);
         else if (read.kind !== 'number') continue;
-        else if (slot[1] === 'mainnet') add(gate, read.time, source);
+        else if (key === 'mainnet') add(gate, read.time, source);
         else if (read.time >= TIMESTAMP_FLOOR && read.time < SENTINEL_FLOOR) unreadable.push(`${where} is a block TIME, so this page would carry it`);
     }
 }
@@ -279,8 +331,10 @@ const GATE_ROW = /addGate\(\s*'([A-Za-z0-9_/]+)\.([A-Z][A-Z0-9_]*)'\s*,\s*'([a-z
 /** A whole string literal in any quoting, with no escapes or nested quotes. */
 const STRING_LITERAL = /^(['"`])([^'"`\\]*)\1$/;
 
-/** A bare `mainnet:` slot inside a table body. */
-const BARE_MAINNET_SLOT = /(?:^|[{,\s])mainnet\s*:\s*([^,}\n]*)/;
+/** The key of a plain mainnet slot inside a table body. */
+const BARE_MAINNET_SLOT = new RegExp(
+    `(?:^|[{,\\s])${networkKeySource('mainnet')}\\s*:\\s*`,
+);
 
 /**
  * The first `count` top-level arguments of the call whose `(` sits at `open`, as
@@ -346,10 +400,11 @@ function assertEveryGateRowParsed(sources) {
         let loud = unit !== null && unit[2] === 'time';
         if (unit === null && args[2] && args[2].text.startsWith('{')) {
             const body = objectBody(text, args[2].index);
-            const slot = body === null ? null : BARE_MAINNET_SLOT.exec(body);
-            const value = slot === null ? '' : slot[1].trim();
+            const value = body === null ? '' : propertyText(body, BARE_MAINNET_SLOT) || '';
+            const read = readMainnetSlot(value);
             loud = value === 'UNARMED'
-                || (TIME_LITERAL.test(value) && Number(value.replace(/_/g, '')) >= TIMESTAMP_FLOOR);
+                || read.kind === 'unreadable'
+                || (read.kind === 'number' && read.time >= TIMESTAMP_FLOOR);
         }
         if (loud) unread.push(`${sources.where(call.index)}: ${text.slice(call.index, call.index + 80).replace(/\s+/g, ' ')}`);
     }
@@ -399,25 +454,79 @@ function collectGateRows(sources, add) {
     }
 }
 
+// The coins the indexer resolves a `'<COIN>:<network>'` key for, as
+// `config['COINS']` in xchain-indexer/src/config/currencies.js. The registry is
+// read as text, so the list is restated here and a test pins it to that file.
+const COINS = ['BTC', 'LTC', 'DOGE'];
+
+/** A slot's text read as a block time: a decimal literal, `UNARMED` through core.js, else null. */
+function slotValue(sources, text, where, gate) {
+    if (text === 'UNARMED') return unarmedValue(sources, where, gate);
+    return TIME_LITERAL.test(text) ? Number(text.replace(/_/g, '')) : null;
+}
+
+/**
+ * What each coin resolves to on `network` for one time row's table `body`, as
+ * `[coin, value]` pairs: the coin-qualified key first, then the bare key, the
+ * order `resolveThreshold` in the indexer's core.js applies. An absent slot,
+ * `null`, `UNPINNED` and identifiers resolve to null. Any compound expression
+ * this scan cannot classify is refused for both bare and coin-qualified slots.
+ * A coin-qualified key naming a coin outside COINS is refused too, because the
+ * indexer would never look it up.
+ */
+function resolveRowCoins(sources, body, network, where, gate) {
+    const slotText = (key) => {
+        return propertyText(body, new RegExp(`(?:^|[,\\s{])${key}\\s*:\\s*`));
+    };
+    for (const m of body.matchAll(new RegExp(`['"]([A-Za-z0-9_]+):${network}['"]\\s*:`, 'g'))) {
+        if (!COINS.includes(m[1])) {
+            throw new Error(`${where}: ${gate} keys ${network} for the coin ${m[1]}, which is not one of ${COINS.join(', ')}, so protocol/flag-days.md would drop the slot.`);
+        }
+    }
+    const bare = slotText(networkKeySource(network));
+    if (bare !== null && !/^(?:null|UNPINNED|[A-Za-z_$][A-Za-z0-9_$]*)$/.test(bare)
+        && slotValue(sources, bare, where, gate) === null) {
+        throw new Error(`${where}: ${gate} keys ${network} with \`${bare}\`, which this generator cannot read, so protocol/flag-days.md would drop the gate.`);
+    }
+    return COINS.map((coin) => {
+        const own = slotText(`['"]${coin}:${network}['"]`);
+        if (own !== null && !/^(?:null|UNPINNED)$/.test(own) && slotValue(sources, own, where, gate) === null) {
+            throw new Error(`${where}: ${gate} keys ${coin}:${network} with \`${own}\`, which this generator cannot read, so protocol/flag-days.md would drop the gate.`);
+        }
+        const text = own !== null ? own : bare;
+        return [coin, text === null ? null : slotValue(sources, text, where, gate)];
+    });
+}
+
 /**
  * One network's slot of every registry `addGate(..., 'time', { ... })` row, into
  * `add` as `(gate, value)`: a decimal literal, or `UNARMED` resolved through
  * core.js. The caller's `add` decides the range, so the one reader serves the
  * testnet arms (a real instant) and both UNARMED lists (the sentinel).
+ *
+ * A row may key a network per coin beside a bare slot, and the indexer prefers
+ * the coin key. The page publishes one value per gate, so the value is the one
+ * every coin resolves to; a row whose coins resolve differently is refused,
+ * because publishing either value would misstate the others.
  */
 function collectGateRowSlots(sources, network, add) {
     assertEveryGateRowParsed(sources);
-    const slot = new RegExp(`(?:^|[,\\s])${network}\\s*:\\s*([^,}\\n]*)`);
     for (const row of sources.scannable.matchAll(GATE_ROW)) {
         if (row[3] !== 'time') continue;
         const body = objectBody(sources.scannable, row.index + row[0].length - 1);
         if (body === null) continue;
-        const match = slot.exec(body);
-        if (match === null) continue;
-        const text = match[1].trim();
-        const value = text === 'UNARMED'
-            ? unarmedValue(sources, sources.where(row.index), row[2])
-            : (TIME_LITERAL.test(text) ? Number(text.replace(/_/g, '')) : null);
+        const where = sources.where(row.index);
+        const resolved = resolveRowCoins(sources, body, network, where, row[2]);
+        const values = new Set(resolved.map(([, value]) => value));
+        if (values.size > 1) {
+            throw new Error(
+                `${where}: ${row[2]} resolves ${network} to different values per coin `
+                + `(${resolved.map(([coin, value]) => `${coin} ${value === null ? 'none' : value}`).join(', ')}), `
+                + 'so protocol/flag-days.md cannot publish one value for it.\n\n'
+                + 'Make every coin resolve to the same slot or render the split in bin/generate-flag-days.js deliberately.',
+            );
+        }
+        const [value] = values;
         if (value !== null) add(row[2], value);
     }
 }
@@ -440,8 +549,8 @@ function collectGateRowSlots(sources, network, add) {
  * row, and the evidence that was meant to exclude that (regenerate today's
  * registry, see nothing throw) cannot see it: every call in today's registry is
  * single-quoted, so no arm of the check is exercised at all. A call is loud only
- * when its mainnet_time slot holds a literal inside the time-keyed window, which
- * is exactly the condition under which a row went missing.
+ * when either network slot holds a timestamp, a parked sentinel, or a registry
+ * time constant. Those are exactly the values one of this page's lists publishes.
  *
  * An identifier in that slot is resolved when it names one of the registry's own
  * `const NAME_MAINNET_TIME = <digits>;` declarations (see `registryCalls`), and
@@ -459,19 +568,35 @@ function collectGateRowSlots(sources, network, add) {
  * in the part files' shape, and is checked by the same arm: the row's `[` is
  * where a call's `(` is, and the arguments read identically from either.
  */
-function assertEveryDeclarationParsed(sources, parsedCalls, parsedConstLines, parsedNames) {
+function assertEveryDeclarationParsed(sources, parsedCalls, parsedConstLines, parsedNames, checkConstants = true) {
     const unparsed = [];
     const registry = sources.scannable;
+    const constants = registryConstants(sources);
 
     for (const m of registry.matchAll(/(?:addChange\s*\(|\[)\s*(['"])([A-Za-z0-9_]+)\1\s*,\s*(['"])[0-9.]+\3\s*,/g)) {
         if (parsedCalls.has(m.index)) continue;
         if (parsedNames.has(m[2])) continue;
-        const time = mainnetTimeLiteral(registry, m.index + m[0].search(/[([]/));
-        if (time === null) continue;
-        unparsed.push(`${sources.where(m.index)}: declaration of ${m[2]} at mainnet_time ${time}`);
+        const open = m.index + m[0].search(/[([]/);
+        const slots = [
+            ['mainnet_time', timeSlotLiteral(registry, open, 2, constants)],
+            ['testnet_time', timeSlotLiteral(registry, open, 3, constants)],
+        ];
+        // An unreadable slot is refused on its own: the other slot resolving to
+        // a quiet value says nothing about what this one would have published.
+        const unreadable = slots.filter(([, resolved]) => resolved !== null && resolved.unreadable !== undefined);
+        for (const [slot, resolved] of unreadable) {
+            const expr = resolved.unreadable.split('\n')[0].slice(0, 60);
+            unparsed.push(`${sources.where(m.index)}: declaration of ${m[2]} at ${slot} with an unreadable expression \`${expr}\``);
+        }
+        if (unreadable.length > 0) continue;
+        const hit = slots.find(([, resolved]) => resolved !== null);
+        if (!hit) continue;
+        const [slot, resolved] = hit;
+        const via = resolved.via === null ? '' : ` (via ${resolved.via})`;
+        unparsed.push(`${sources.where(m.index)}: declaration of ${m[2]} at ${slot} ${resolved.time}${via}`);
     }
 
-    for (const m of registry.matchAll(/const\s+[A-Z][A-Z0-9_]*_MAINNET_TIME\s*=/g)) {
+    for (const m of checkConstants ? registry.matchAll(/const\s+[A-Z][A-Z0-9_]*_MAINNET_TIME\s*=/g) : []) {
         const line = lineAt(registry, m.index);
         if (parsedConstLines.has(line)) continue;
         unparsed.push(`${sources.where(m.index)}: ${sources.raw.split('\n')[line - 1].trim()}`);
@@ -482,10 +607,10 @@ function assertEveryDeclarationParsed(sources, parsedCalls, parsedConstLines, pa
             'the protocol_changes registry declares gates this generator cannot read, so protocol/flag-days.md '
             + 'would publish an inventory that calls itself complete and is not:\n  '
             + unparsed.join('\n  ')
-            + "\n\ncollectGates reads addChange('NAME', 'version', <digits>, ...) or the part-file row "
-            + "['NAME', 'version', <digits>, ...] with single quotes and a literal time, and "
+            + "\n\nThe collectors read addChange('NAME', 'version', <mainnet>, <testnet>, ...) or the part-file row "
+            + "['NAME', 'version', <mainnet>, <testnet>, ...] with single quotes and readable time slots, and "
             + 'const NAME_MAINNET_TIME = <digits>;. A decimal literal may carry `_` separators in either '
-            + 'position. Either write the declaration in one of those shapes or widen the parse in '
+            + 'position; a time slot is a literal, a registry constant name or UNARMED. Either write the declaration in one of those shapes or widen the parse in '
             + 'bin/generate-flag-days.js deliberately.',
         );
     }
@@ -627,7 +752,9 @@ function registryConstants(sources) {
  * REFUSAL LIVES HERE rather than in the completeness check, because
  * `collectTestnetArms`, `collectTestnetUnarmed` and `collectMainnetUnarmed`
  * read the same calls and have no completeness check behind them: a shape this
- * parse cannot read has to be loud on every arm or it is loud on one.
+ * parse cannot read has to be loud on every arm or it is loud on one. The
+ * completeness check refuses an unreadable slot too, but only for the calls
+ * this pattern does not match.
  */
 function registryCalls(sources) {
     const scannable = sources.scannable;
@@ -641,7 +768,7 @@ function registryCalls(sources) {
         // A decimal literal, separators and all. Written as the separator
         // grammar rather than a `_`-strip so `_1786060800` stays an identifier:
         // stripping first reads a leading-underscore NAME as a number.
-        if (/^\d(?:_?\d)*$/.test(text)) return Number(text.replace(/_/g, ''));
+        if (TIME_LITERAL.test(text)) return Number(text.replace(/_/g, ''));
 
         // An identifier: the registry constant's value when the const pass saw
         // it, the core.js sentinel for the house `UNARMED` name (the way the
@@ -673,6 +800,17 @@ function registryCalls(sources) {
             testnet: slot(m[3], m[1], m.index),
         });
     }
+    const parsedNames = new Set(calls.map((call) => call.gate));
+    for (const d of declaredTimeConstants(sources)) {
+        if (!consumed.has(d.name)) parsedNames.add(d.prefix);
+    }
+    assertEveryDeclarationParsed(
+        sources,
+        new Set(calls.map((call) => call.index)),
+        new Set(),
+        parsedNames,
+        false,
+    );
     return { calls, consumed };
 }
 
@@ -747,8 +885,9 @@ function collectGates(indexerSrc = INDEXER_SRC) {
  * must be surfaced as the exception rather than left silently contradicting
  * the prose. Read from the same three declaration shapes as the mainnet parse:
  * a `const NAME_TESTNET_TIME = <digits>;` line, a literal nonzero testnet_time
- * slot (the fourth argument) in an addChange call or part-file row, and the bare
- * `testnet:` slot of an `addGate('<stem>.<NAME>', 'time', { ... })` row. The
+ * slot (the fourth argument) in an addChange call or part-file row, and the testnet
+ * slot of an `addGate('<stem>.<NAME>', 'time', { ... })` row, resolved per coin
+ * (`'<COIN>:testnet'` first, then the bare `testnet:`). The
  * gate-row pass was once missing, so three gates that arm testnet on an instant
  * of their own were published as genesis-active there.
  */
@@ -828,6 +967,28 @@ function collectMainnetUnarmed(indexerSrc = INDEXER_SRC) {
     return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
 }
 
+/**
+ * Registry time rows whose MAINNET slot is `null` or the registry's `UNPINNED`
+ * alias, as `{ gate }` sorted by name. That value parks an inert placeholder no
+ * operator has ratified: it is not the UNARMED sentinel, so
+ * `collectMainnetUnarmed` rightly skips it and `collectGates` finds no instant.
+ * A row that keys mainnet per coin is not listed, because one coin may carry a
+ * real instant.
+ */
+function collectMainnetUnpinned(indexerSrc = INDEXER_SRC) {
+    const sources = registrySources(indexerSrc);
+    assertEveryGateRowParsed(sources);
+    const found = new Map();
+    for (const row of sources.scannable.matchAll(GATE_ROW)) {
+        if (row[3] !== 'time') continue;
+        const body = objectBody(sources.scannable, row.index + row[0].length - 1);
+        if (body === null || /['"][A-Za-z0-9_]+:mainnet['"]\s*:/.test(body)) continue;
+        const slot = propertyText(body, BARE_MAINNET_SLOT);
+        if (slot !== null && /^(?:null|UNPINNED)$/.test(slot)) found.set(row[2], { gate: row[2] });
+    }
+    return [...found.values()].sort((a, b) => a.gate.localeCompare(b.gate));
+}
+
 /** Every activation map the documentation canon publishes, sorted for stable output. */
 function collectCanonicalActivationMaps(constantsPath = CANONICAL_CONSTANTS) {
     const resolved = require.resolve(constantsPath);
@@ -859,7 +1020,8 @@ function coordinatedFlagDay(gates) {
     return { time: ranked[0][0], count: ranked[0][1] };
 }
 
-function render(gates, testnetArms = [], testnetUnarmed = [], mainnetUnarmed = [], canonicalActivationMaps = []) {
+function render(gates, testnetArms = [], testnetUnarmed = [], mainnetUnarmed = [], canonicalActivationMaps = [],
+                mainnetUnpinned = []) {
     const anchor = coordinatedFlagDay(gates);
     const others = gates.filter((g) => g.time !== anchor.time);
 
@@ -927,6 +1089,18 @@ function render(gates, testnetArms = [], testnetUnarmed = [], mainnetUnarmed = [
           + '`*_activation.js` module can park a mainnet sentinel too, and those are not '
           + 'enumerated here.';
 
+    // A registry row can also park mainnet on `null`, an inert placeholder rather than the
+    // sentinel. It is off on mainnet exactly like an UNARMED gate, but the registry and the
+    // consensus fingerprint keep the two states apart, so the page does too.
+    const mainnetUnpinnedNote = mainnetUnpinned.length === 0
+        ? ''
+        : `\n\n**${mainnetUnpinned.length === 1 ? 'One gate has no mainnet instant' : `${mainnetUnpinned.length} gates have no mainnet instant`}** `
+          + `(${mainnetUnpinned.map((g) => `\`${g.gate}\``).join(', ')}): the registry row leaves the `
+          + 'mainnet slot `null`, an inert placeholder no operator has ratified and not the UNARMED '
+          + 'sentinel, so mainnet has **never** run the post-activation behavior and will not until '
+          + 'a real instant is written. They carry no row in the table below. Each names its reason '
+          + 'in its registration comment under `xchain-indexer/src/protocol_changes/`.';
+
     return `<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!-- Copyright © 2025-2026 Dankest, LLC -->
 <!-- GENERATED FILE. Do not edit: run \`node bin/generate-flag-days.js\`. -->
@@ -947,6 +1121,14 @@ For what a flag day is, how \`isEnabled\` evaluates it, which cohort a gate
 belongs to, and what happens to a node that misses one, see
 [Protocol Activation](./protocol-activation.md).
 
+## Native EXECUTE metering height gate
+
+\`EXECUTE_NATIVE_METERED_GAS_ACTIVATION\` is UNARMED on mainnet and every testnet chain until the v0.28.0
+release writes post-roll heights. Its regtest slot is UNPINNED and becomes active only when
+\`XC_EXECUTE_NATIVE_METERED_GAS_REGTEST_ACTIVATION\` arms it. This gate is height-keyed, so it has
+no timestamp row in the time-keyed table below. Its before and after rule is documented under
+[EXECUTE](./actions/execute.md#top-level-gas-budget-and-fees).
+
 ## Canonical activation maps
 
 These names are exported by [\`protocol/constants.js\`](./constants.js). The index includes
@@ -966,11 +1148,15 @@ simultaneously on Bitcoin, Litecoin, and Dogecoin.
 | **UTC instant** | ${utcInstant(anchor.time)} |
 | **Gates riding it** | ${anchor.count} |
 
-${outliers}${mainnetUnarmedNote}
+${outliers}${mainnetUnarmedNote}${mainnetUnpinnedNote}
 
-**Testnet and regtest are genesis-active** for the time-keyed gates: they carry
-threshold \`0\`, so a testnet or regtest stack has always run the
-post-activation behavior. ${testnetNote}${unarmedNote}
+**Testnet is genesis-active by default** for the time-keyed gates, subject to
+the derived exceptions below. ${testnetNote}${unarmedNote}
+
+**Regtest activation is defined per gate.** A regtest slot can be genesis-active,
+UNARMED, or armed by an environment override. Read the gate's registration under
+\`xchain-indexer/src/protocol_changes/\` before treating a regtest run as coverage
+of its post-activation behavior.
 
 ## Mainnet time-keyed gates
 
@@ -988,7 +1174,7 @@ here; they are inventoried on
 function generate(indexerSrc = INDEXER_SRC) {
     return render(collectGates(indexerSrc), collectTestnetArms(indexerSrc),
                   collectTestnetUnarmed(indexerSrc), collectMainnetUnarmed(indexerSrc),
-                  collectCanonicalActivationMaps());
+                  collectCanonicalActivationMaps(), collectMainnetUnpinned(indexerSrc));
 }
 
 if (require.main === module) {
@@ -1009,6 +1195,6 @@ if (require.main === module) {
 
 module.exports = {
     collectGates, collectTestnetArms, collectTestnetUnarmed, collectMainnetUnarmed,
-    collectCanonicalActivationMaps, coordinatedFlagDay, render, generate, utcInstant, utcDate,
-    DOC_ROOT, INDEXER_SRC, REGISTRY, OUTPUT, CANONICAL_CONSTANTS, TIMESTAMP_FLOOR, SENTINEL_FLOOR,
+    collectMainnetUnpinned, collectCanonicalActivationMaps, coordinatedFlagDay, render, generate, utcInstant, utcDate,
+    DOC_ROOT, INDEXER_SRC, REGISTRY, OUTPUT, CANONICAL_CONSTANTS, TIMESTAMP_FLOOR, SENTINEL_FLOOR, COINS,
 };

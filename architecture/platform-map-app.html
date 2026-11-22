@@ -275,7 +275,7 @@
     { "id": "r13", "source": "hub", "target": "hubdb", "label": "config / consensus / oracle state", "kind": "write" },
     { "id": "r14", "source": "hub", "target": "encoder", "label": "publishes ANCHOR / ATTEST / PRICE actions", "kind": "rpc" },
     { "id": "r15", "source": "sync", "target": "indexerdb", "label": "snapshots + follows state", "kind": "read" },
-    { "id": "r16", "source": "sync", "target": "decoderdb", "label": "snapshots decoded txs (8 of 10 tables)", "kind": "read" },
+    { "id": "r16", "source": "sync", "target": "decoderdb", "label": "snapshots decoded txs (8 of 11 tables)", "kind": "read" },
     { "id": "r17", "source": "sync", "target": "replicas", "label": "REST snapshots + WebSocket block feed", "kind": "async" },
     { "id": "r18", "source": "miner", "target": "coinnode", "label": "auto-mines mempool (regtest)", "kind": "rpc" },
     { "id": "r19", "source": "sdk", "target": "encoder", "label": "create_tx / broadcast", "kind": "rpc" },
@@ -391,7 +391,7 @@
       "description": "How a validator or replica node acquires and verifies platform state without trusting the source.",
       "steps": [
         { "n": 1, "node": "sync", "edge": "r15", "action": "Sync server snapshots the indexer DB and tails new blocks." },
-        { "n": 2, "node": "sync", "edge": "r16", "action": "Decoder DB is snapshotted too (8 of 10 tables; mempool_transactions and dispenser_extension_undo excluded by design)." },
+        { "n": 2, "node": "sync", "edge": "r16", "action": "Decoder DB is snapshotted too (8 of 11 tables; mempool_transactions, dispenser_extension_undo and block_tx_index_end excluded by design)." },
         { "n": 3, "node": "sync", "edge": "r17", "action": "Replicas bootstrap over REST snapshots then follow the WebSocket block feed." },
         { "n": 4, "node": "replicas", "action": "ClientApplier applies transactionally (batches of 100, rollback support); merkle epochs and pinned-validator checkpoint quorum verify the stream." }
       ]

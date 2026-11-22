@@ -78,8 +78,10 @@ selected height for a private venue without scheduling either public network.
 section-count rule. A v3 with `SECTION_COUNT` 0 is an empty fold and is never a legal v3 wire:
 at or above this gate it is `invalid: SECTION_COUNT (empty fold)`. Before activation, indexers
 retain the earlier acceptance behavior only for consensus replay compatibility; that behavior
-does not make a zero-section fold valid for publishers to emit. The reject gate is currently
-UNARMED on every network pending the historical empty-fold audit.
+does not make a zero-section fold valid for publishers to emit. The reject gate uses the house
+UNARMED sentinel on mainnet. Testnet is armed per chain through its `BTC:testnet`, `LTC:testnet`
+and `DOGE:testnet` keys; the bare `testnet` key is only the UNARMED fallback for a chain with no
+key of its own. Regtest is `0`, so the reject rule is live from genesis wherever v3 is armed.
 
 `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION` is the companion gate for the v3 archive
 section's verdict scope (see [Version 3 only](#version-3-only) below). It carries the fold's values
@@ -416,7 +418,7 @@ EQUIV|XCHECKPOINT|XANCPUB|archive|NETWORK|MATCH_BATCH_SEQ|SNAPSHOT_BLOCK|0||XANC
 ```
 
 These bytes are byte-identical across the hub producer (`StateAnchorPublisher.attestationCanonical`),
-the indexer verifier (`actions/anchor/index.js` `rewardCanonical`) and this spec; a divergence forks the
+the indexer verifier (`consensus/anchor_reward_derive.js` `rewardCanonical`) and this spec; a divergence forks the
 derived reward row. An `ASIG_n` counts only if its pubkey is in the SAME `oracle_publish` snapshot at
 `SNAPSHOT_BLOCK` used for the root quorum **and** the Ed25519 signature verifies.
 
@@ -465,9 +467,11 @@ exact bytes):
   Before co-signing, a hub signature-verifies each group whose `consensus_proof` is a non-empty
   signature array against the archived `price` capability group at `reference_block`. For an
   object-form batch proof or an empty proof array, the hub instead requires every row to
-  byte-match a row it holds. Recovery signature-verifies both non-empty signature-array groups
-  and object-form batch proofs; a batch proof is checked over its complete signed round range
-  against the `price` group at its `btc_block_height`. An empty-array `skipped` row has no
+  byte-match a row it holds. Recovery signature-verifies non-empty signature-array groups and
+  rejects the archive when one fails. It checks an object-form batch proof only when the archive
+  holds the batch's complete signed round range and the `price` group at its `btc_block_height`;
+  a batch group it cannot prove is skipped and logged, its rows are not written, and the rest of
+  the archive is restored. An empty-array `skipped` row has no
   per-row signatures to verify, so recovery shape-checks it and relies on the archive wrapper
   quorum. A `disputed` row follows the rule for the proof shape it carries.
 - `price_tombstones[]` is sorted by `(round_number, coin_pair)` ascending.
@@ -548,7 +552,8 @@ one addition for the section a v3's `WRAPPER_SECTION_INDEX` names; see
 - `CHECKPOINT_SEQ` must be ≥ any previously accepted seq for (`CHAIN`,`NETWORK`), replays of
   older checkpoints are recorded but flagged `stale`, never `valid`. Equal-seq records are
   accepted: an exact replay is signature-bound to identical content (harmless duplicate). The
-  same ≥ rule applies to `MATCH_BATCH_SEQ` on v1 and on a v3 that carries an archive section. The
+  same ≥ rule applies to `MATCH_BATCH_SEQ` on v1 and on a v3 that carries an archive section,
+  subject to the gated [archive batch identity](#archive-batch-identity) re-issue rule. The
   checkpoint replay watermark counts v0/v1/v3 together, per chain.
 - From `ANCHOR_CHECKPOINT_SEQ_BIND_ACTIVATION`, evaluated against the ANCHOR's own DOGE block
   height, with its status on [Flag-Day Values](../flag-days.md), every v0 section, every v3 fold
@@ -611,6 +616,10 @@ one addition for the section a v3's `WRAPPER_SECTION_INDEX` names; see
 - `BATCH_CRC32` must match the CRC32 of the uncompressed JSON (checked at reassembly when
   chunked).
 - `MATCH_BATCH_SEQ` must be ≥ any previously accepted batch seq for the network.
+- From `ARCHIVE_V1_REISSUE_REFUSAL_ACTIVATION`, a source address that already has a stored
+  archive under the same `MATCH_BATCH_SEQ` may repeat it only with the same `BATCH_CRC32` and
+  `MATCH_COUNT`; see [archive batch identity](#archive-batch-identity) and
+  [Flag-Day Values](../flag-days.md).
 - `PUBLISHER` is always present, and the attestation list (`APUBKEY_n`/`ASIG_n`) follows the v0
   rules verbatim, over the archive `XANCPUB` canonical: a SECOND quorum against the
   `oracle_publish` snapshot at `SNAPSHOT_BLOCK`. `ATTEST_SIG_COUNT` MAY be 0, which means the
@@ -648,14 +657,32 @@ one addition for the section a v3's `WRAPPER_SECTION_INDEX` names; see
 
 #### Archive batch identity
 
-`MATCH_BATCH_SEQ` is not unique: an equal seq is accepted (re-broadcast, failover
-double-publish), so more than one head can carry it. On every network an archive batch is
-identified by **(`MATCH_BATCH_SEQ`, head source address)**, not by the seq alone:
+`MATCH_BATCH_SEQ` is not globally unique, so heads from different source addresses can carry
+the same seq. On every network an archive batch is identified by **(`MATCH_BATCH_SEQ`, head
+source address)**, not by the seq alone:
 
 - a chunk's parent is the earliest head for that seq **authored by the same address**,
 - `TOTAL_CHUNKS`, slot occupancy and `BATCH_CRC32` reassembly are all evaluated within
   that publisher's own batch, and
 - a chunk whose publisher has no head for the seq is an orphan.
+
+The replay watermark still permits an equal seq. The author-scoped re-issue guard narrows that
+permission:
+
+- From `ARCHIVE_V1_REISSUE_REFUSAL_ACTIVATION`, a v1 head whose source address already has a
+  `valid` or `unverified` archive under the seq is an exact duplicate only when its
+  `BATCH_CRC32` matches case-insensitively and its `MATCH_COUNT` matches numerically.
+- For a v3 archive section, the same check runs when `ANCHOR_FOLD_ACTIVATION` is active. Its
+  lookup author is `PUBLISHER` below `ANCHOR_FOLD_REISSUE_SOURCE_AUTHOR_ACTIVATION` and the
+  transaction `SOURCE` from that gate onward; stored candidates are matched by transaction
+  source address.
+- A same-author non-duplicate is refused as
+  `invalid: MATCH_BATCH_SEQ (retry; this publisher already holds an archive under this seq)`.
+  A refused, stale or otherwise invalid head does not itself consume the seq for this check.
+
+These gates are evaluated against the ANCHOR's own DOGE block height; see
+[Flag-Day Values](../flag-days.md). A publisher whose archive content changes must allocate a
+fresh, higher `MATCH_BATCH_SEQ` instead of reusing one it has spent.
 
 Keying the batch on the seq alone would let anyone deny a batch by broadcasting a junk head
 at the next seq: its `TOTAL_CHUNKS` would invalidate every legitimate chunk, and its address
@@ -691,7 +718,9 @@ the same result under either key.
   verbatim: `MATCH_COUNT` must equal `matches.length` after decompression (checked at
   reassembly when chunked), `BATCH_CRC32` must match the CRC32 of the uncompressed JSON, and
   overflow rides v2 continuation chunks tied by `MATCH_BATCH_SEQ` to this v3 exactly as to a v1
-  head (including the [archive batch identity](#archive-batch-identity) rule above).
+  head. When `ANCHOR_FOLD_ACTIVATION` is active, the same archive re-issue check applies, using
+  `PUBLISHER` below `ANCHOR_FOLD_REISSUE_SOURCE_AUTHOR_ACTIVATION` and the transaction `SOURCE`
+  from that gate onward; see the [archive batch identity](#archive-batch-identity) rule above.
 - **Verdict scope is gated by `ARCHIVE_SECTION_VERDICT_STATE_HASH_ACTIVATION`**, evaluated at the
   same `SNAPSHOT_BLOCK` as `ANCHOR_FOLD_ACTIVATION`. Below it, a bad archive section (a
   reassembled archive that fails its CRC or `MATCH_COUNT` check, or a `WRAPPER_SECTION_INDEX`
@@ -829,7 +858,9 @@ backlog more slowly.
 **`ANCHOR_ELECTION_TOLERANCE_BLOCKS` (36).** The unit is BTC *blocks*, not wall clock, precisely
 so every hub computes the same rank unlock without clock synchronisation. 36 BTC blocks is about
 6 hours at the 10-minute target, so each failover rank waits about 6 hours of elected-publisher
-silence. The ordering is the load-bearing property:
+silence. Because leaders and followers both recompute this verdict, the override is honoured on
+regtest only; mainnet, testnet and standalone use the fleet-canonical 36. The ordering is the
+load-bearing property:
 
 ```
 signing round (120s) + DOGE burial (60 confs, ~1h)  <<  36 blocks (~6h)  <<  ANCHOR_INTERVAL_MS (24h)
@@ -841,9 +872,9 @@ confirmation wait in the `XANC_BUNDLE_DONE` path well inside a single rank. The 
 means ranks 1 to 3 unlock at about 6, 12 and 18 hours, so up to three backups still get a slot
 inside one publishing cycle and a dead rank 0 cannot cost a whole day of anchoring. Anything in
 roughly 6 to 144 blocks (1 to 24 hours) preserves both bounds: below the DOGE burial window the
-ladder burns DOGE on duplicate anchors, above about 144 a dead leader stalls a cycle. Neither
-direction is a divergence risk, because concurrently unlocked publishers build byte-identical
-archives; the cost of getting it wrong is DOGE or delay, never a fork. The same value bounds how
+ladder burns DOGE on duplicate anchors, above about 144 a dead leader stalls a cycle. Concurrently
+unlocked publishers build byte-identical archives, but hubs using different tolerances disagree
+on whether a sender is unlocked and can lose co-signing liveness. The same value bounds how
 far a peer's claimed election block may sit from the receiver's own BTC tip when co-signing,
 which is anti-spam only.
 

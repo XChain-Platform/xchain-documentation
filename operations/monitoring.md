@@ -110,11 +110,11 @@ All expected containers should show as `Up`. A container in `Restarting` or `Exi
 
 **Likely causes:**
 - A block contains a large number of XChain transactions.
-- Watchdog timeout is triggering and restarting the indexer.
+- A block keeps exceeding the watchdog timeout and is rolled back and retried.
 - Database connection issues.
 - A sanity check failure caused the indexer to halt.
 
-**Action:** Check indexer logs for watchdog messages (`WATCHDOG TIMEOUT`) or sanity check failures (`SANITY CHECK FAILED`). A watchdog timeout is not necessarily a bug; it can occur on very full blocks. A sanity check failure is always a critical issue (see below).
+**Action:** Check indexer logs for watchdog messages (`Watchdog timeout:`) or sanity check failures (`SANITY CHECK FAILED`). A watchdog timeout is not necessarily a bug; it can occur on very full blocks. A sanity check failure is always a critical issue (see below).
 
 ### Sanity Check Failure
 
@@ -132,11 +132,11 @@ All expected containers should show as `Up`. A container in `Restarting` or `Exi
 
 ### Watchdog Timeout
 
-**Symptom:** Log line `WATCHDOG TIMEOUT` followed by process exit. Docker restarts the container automatically.
+**Symptom:** An indexer log line containing `Watchdog timeout: block <N> exceeded 300000ms`. The container stays up and the indexer height stops advancing while the block is retried. If the same failure repeats, `/health` reports a stall reason beginning `parse_exception: Watchdog timeout:`.
 
-**What it means:** A single block took longer than 5 minutes to process. This is usually caused by a block with an unusual number of XChain transactions or a resource constraint on the host.
+**What it means:** A single block took longer than 5 minutes to process. This is usually caused by a block with an unusual number of XChain transactions or a resource constraint on the host. The indexer rolls the block back and retries the same block after `BLOCK_CHECK_INTERVAL`; it never skips it.
 
-**Action:** Check host CPU and memory. If the host is under-resourced, the timeout may trigger regularly on busy blocks. Occasional timeouts are tolerable as Docker will restart the indexer and it will resume from the next unprocessed block.
+**Action:** Check host CPU, memory and MariaDB load. If the host is under-resourced, the timeout may trigger regularly on busy blocks. An occasional timeout clears itself on the retry. If the same block times out on every attempt, the indexer is stalled on it: see the [indexer operations guide](../components/indexer/operations.md), and raise `BLOCK_PROCESS_TIMEOUT` only after investigating the cause.
 
 ---
 
@@ -147,7 +147,7 @@ Patterns worth grepping for in logs:
 | Pattern | Service | Meaning |
 |---|---|---|
 | `SANITY CHECK FAILED` | Indexer | Critical: processing halted |
-| `WATCHDOG TIMEOUT` | Indexer | Block processing exceeded 5-minute limit |
+| `Watchdog timeout:` | Indexer | Block processing exceeded 5-minute limit |
 | `reorg` (case-insensitive) | Decoder, Indexer, UTXO Tracker | Chain reorganization detected |
 | `connection refused` | Any | Target service or database is down |
 | `ECONNREFUSED` | Any | Network connectivity failure |

@@ -57,6 +57,8 @@ Setting a max supply of zero is the protocol's "uncapped" sentinel: no ceiling a
 
 If you are creating a loyalty points system where you only want whole points, set decimals to 0. If you are creating a financial instrument that might be fractionally owned, higher decimals give you flexibility.
 
+Decimals cannot be changed while the token's current supply is above zero. Choose them before issuing supply; this restriction applies even when no lock flag is set.
+
 ### Description
 
 A short text description of your token. This appears in explorers and wallets. Keep it clear and accurate; it is the first thing people will read when they encounter your token.
@@ -67,7 +69,7 @@ A short text description of your token. This appears in explorers and wallets. K
 
 **Minting** is the act of creating new tokens and adding them to circulation. You set the rules for how minting works at creation time.
 
-- **Mint Supply**: How much supply is issued straight to you at the moment you create the token, up to Max Supply. For example, if mint supply is 100, creating the token credits you 100 tokens. This is your own issued supply, not the amount a public mint produces. It is issued once, when the token is created: editing the description, or changing any other setting on its own, mints nothing further. You issue more only by sending a mint-settings edit that fills in Mint Supply again, which credits you that amount a second time, still capped by Max Supply. Set Lock Mint Supply to close that path for good.
+- **Mint Supply**: How much supply is issued straight to you at the moment you create the token, up to Max Supply. For example, if mint supply is 100, creating the token credits you 100 tokens. This is your own issued supply, not the amount a public mint produces. It is issued when the token is created: editing the description, or changing any other setting on its own, mints nothing further. You issue more by re-issuing the token with Mint Supply filled in again, which credits you that amount a second time, still capped by Max Supply. A mint-settings edit does this, and so does a full-settings re-issue that restates every field, Mint Supply included, so leave Mint Supply empty on a full-settings re-issue unless you mean to mint. Set Lock Mint Supply to close both paths for good.
 - **Max Mint**: The largest amount of supply any single mint transaction may create. It caps how much one mint produces, not how many mints can happen; left unset (`0`) there is no per-transaction cap and Max Supply is the only ceiling.
 - **Mint Start Block / Mint Stop Block**: You can schedule a minting window. Before the start block, minting is not allowed. After the stop block, minting closes. This is how you run a timed token launch; a window opens, people mint during it, and it closes automatically.
 - **Per-Address Limit**: You can cap the total amount a single address is allowed to mint, added up across every mint that address makes. This prevents one person from minting everything in a public launch.
@@ -145,13 +147,15 @@ Locking is a one-way door. Think carefully before locking anything. Once it is d
 
 Two things the lock flags do not cover. The first is a token's **allow and block lists**. There is no `LOCK_ALLOW_LIST` or `LOCK_BLOCK_LIST`, so the lists a token points at can be changed, and those lists edited, at any time; the rules on who may hold the token can never be made permanent the way a max supply can. The second is a **controller binding**. There is no `LOCK_CONTROLLER`, so a binding cannot be frozen either, and one can be added to a token after it has been issued. The drop-cooldown you commit to at bind time is the only friction on changing or removing one. Anyone weighing up a token's guarantees should read its lists and bindings alongside its locks.
 
+Some edits are also refused without a lock flag. `DECIMALS` cannot change while current supply is above zero. `CALLBACK_BLOCK`, `CALLBACK_TICK`, and `CALLBACK_AMOUNT` cannot change while supply is distributed, meaning more than one address holds it or its only holder is not the owner. These are state-dependent restrictions, not additional permanent locks.
+
 ---
 
 ## Token Ownership
 
 The address that creates a token owns it. The owner can:
 
-- Update any unlocked parameters
+- Update parameters that remain editable and are not locked
 - Lock parameters permanently
 - Transfer ownership to a different address
 
@@ -175,7 +179,7 @@ Once your token exists, you can:
 
 - **Mint** more supply (subject to the rules you set)
 - **Send** tokens to other addresses
-- **Update** any parameters you did not lock
+- **Update** parameters that remain editable and are not locked
 - **List** it on the built-in exchange (see the Trading guide)
 - **Airdrop** it to a list of addresses at once
 - **Pay dividends** to eligible holders proportionally (see [DIVIDEND](../protocol/actions/dividend.md) for who is left out)

@@ -201,7 +201,7 @@ All proofs are derived from the indexer DB's `state_tree_nodes` and `state_tree_
 
 The cryptographic primitives used are in `src/consensus/merkle.js`, which is vendored byte-identically across `xchain-indexer`, `xchain-explorer`, and `xchain-sdk` so that a proof produced here verifies under `merkle.verifyCompressedSmtProof` (balance/validator) or `merkle.verifyFixedMerkleProof` (action) in the SDK.
 
-See [API.md](api.md) for the full request/response shapes and error codes.
+See [api.md](api.md) for the full request/response shapes and error codes.
 
 ## WebSocket Server
 
@@ -234,7 +234,7 @@ The `statuses` stage in that pipeline is not part of the client-facing filter co
 
 The WebSocket server attaches to the same HTTP/HTTPS servers as Express via the `upgrade` event. No additional port. Clients connect to `/{COIN}/api/websocket`.
 
-See [WEBSOCKET.md](websocket.md) for the full API reference.
+See [websocket.md](websocket.md) for the full API reference.
 
 ## Database Layer
 

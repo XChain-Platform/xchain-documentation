@@ -13,10 +13,12 @@ fail **closed and silent** if you forget one:
 ## How it is enforced
 
 Each repo vendors a byte-identical copy at `test/fixtures/action-manifest.json`
-and ships an `ActionManifestConformance.test.js` that runs in its own unit tier
-(no sibling checkout required). Each guard asserts two things:
+and ships an action-manifest conformance test under `test/unit/`
+(`action_manifest_conformance.test.js`; `ActionManifestConformance.test.js` in
+xchain-wallet) that runs in its own unit tier (no sibling checkout required).
+Each guard asserts two things:
 
-1. **BEHAVIOR**: the repo's local action set equals the manifest slice for its role flag (`wireDecoded` for the decoder, `indexerHandled` for the indexer dispatch, `userEncodable` for the SDK Formats, `explorerRender` for the explorer, `walletForm` for the wallet registry).
+1. **BEHAVIOR**: the repo's local action set equals the manifest slice for its role flag (`wireDecoded` for the decoder and the encoder's pre-broadcast `VALID_ACTION_NAMES` gate, with the encoder's `ACTION_ALIASES` also matching the manifest aliases; `indexerHandled` for the indexer dispatch, `userEncodable` for the SDK Formats, `explorerRender` for the explorer, `walletForm` for the wallet registry).
 2. **IDENTITY**: the vendored copy is byte-identical to this canonical file (skips when `xchain-documentation` is not checked out, matching the `ConsensusPrimitiveConformance` convention).
 
 So adding an action everywhere-but-one-repo fails that repo's CI, naming the
@@ -47,7 +49,9 @@ transactions that die on arrival.
 {
   "flags":      { /* what each per-repo role flag means */ },
   "categories": { /* human-readable grouping (wire-user / validator / mirror-injected / lifecycle / explorer-legacy-render / settlement-anchor) */ },
-  "aliases":    { "TRANSFER": "SEND", ... },   // expanded to canonical before any gate
+  // Expanded after the compiled-size gate, which measures the wire/alias form,
+  // and before the ACTION-name gate.
+  "aliases":    { "TRANSFER": "SEND", ... },
   "actions": {
     "SEND": { "category": "wire-user", "wireDecoded": true, "indexerHandled": true, "userEncodable": true, "userEncodableVersions": [0, 1, 2, 3], "explorerRender": true, "walletForm": true }
     // one entry per action; only the TRUE flags are present
@@ -64,7 +68,9 @@ user forces an SDK Format that can only build dead transactions, so re-read the
 handler before editing one.
 
 The per-repo sets legitimately differ by role: the SDK omits validator-only
-actions (`ANCHOR`/`ATTEST`/`NODEPROOF`/`ROLLCALL`/`SLASH`); the indexer adds mirror-injected
+actions (`ANCHOR`/`ATTEST`/`NODEPROOF`/`ROLLCALL`/`SLASH`); the encoder's
+pre-broadcast gate carries the decoder's `wireDecoded` set plus the manifest
+aliases; the indexer adds mirror-injected
 (`XCALL`/`XEXEC`/`CROSS_SETTLE`) and lifecycle (`*_MATCH`/`*_EXPIRE`/`DISPENSE`)
 handlers that are never decoded wire bytes; the explorer is the render superset
 (including legacy order/dispenser cancel+edit views and the `BET_EDIT` view). The manifest encodes these
@@ -84,7 +90,7 @@ actions, and the `UNKNOWN` catch-all sentinel.
 3. Run each repo's conformance test. Each repo whose flag you set but did not wire fails loudly; wire it until green.
 
 `bin/sync-action-manifest.sh --check` is the cross-repo byte-parity gate, run by
-`bin/ci-all.sh`. It exists because the per-repo IDENTITY assertion below only
+`bin/ci-all.sh`. It exists because the per-repo IDENTITY assertion above only
 compares against canonical when `xchain-documentation` is checked out beside the
 repo, which on GitHub it never is, so the monorepo run is where all six copies are
 compared at once. The same pass classifies every other `action-manifest.json` in
@@ -96,7 +102,7 @@ conformance guard would otherwise appear with nothing keeping it in step.
 ```mermaid
 flowchart TD
     Add["Add entry to action-manifest.json<br>with the role flags it should carry"] --> Vendor["Re-vendor: bin/sync-action-manifest.sh<br>copies the file over every repo's<br>test/fixtures/action-manifest.json"]
-    Vendor --> Test["Each repo runs ActionManifestConformance.test.js<br>in its own unit tier"]
+    Vendor --> Test["Each repo runs its action-manifest conformance test<br>in its own unit tier"]
     Test --> Behavior{"BEHAVIOR: repo's local action set<br>equals the manifest slice for its role flag?"}
     Behavior -->|"no"| Fail["That repo's CI fails,<br>naming the missing action and the file to edit"]
     Behavior -->|"yes"| Identity{"IDENTITY: vendored copy<br>byte-identical to the canonical file?"}

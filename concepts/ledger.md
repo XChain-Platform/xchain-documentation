@@ -81,7 +81,7 @@ This means contracts are first-class participants in the double-entry ledger. Th
 
 ## Detailed Implementation
 
-For schema definitions, table layouts, and query patterns used in the indexer's ledger implementation, see [`../components/indexer/LEDGER.md`](../components/indexer/ledger.md).
+For schema definitions, table layouts, and query patterns used in the indexer's ledger implementation, see [`../components/indexer/ledger.md`](../components/indexer/ledger.md).
 
 ---
 

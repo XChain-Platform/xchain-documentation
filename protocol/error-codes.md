@@ -19,7 +19,7 @@ Errors are JSON objects:
 
 | Code | HTTP status | Meaning | Retry? |
 |---|---|---|---|
-| `BAD_REQUEST` | 400 | The request could not be processed (malformed query, unknown lookup). **Historical: no explorer code path emits this code.** Every 400 now carries a narrower code: `MISSING_PARAMETER`, `INVALID_ACTION_INDEX`, `INVALID_BLOCK_INDEX`, or one of the `INVALID_*` codes further down, and an unknown lookup is a 404 `NOT_FOUND` | No: fix the request |
+| `BAD_REQUEST` | 4xx (the error's own status) | The final explorer error handler's fallback for an error carrying a 4xx status that was not already classified as a body failure or malformed path escape. Route validation uses the narrower codes below, and an unknown lookup is a 404 `NOT_FOUND`; branch on the HTTP status when this fallback code arrives. `POST /{COIN}/api/native_history` is the exception: the UTXO tracker's route validation is passed back unchanged at 400 when `from_height`, `to_height`, `from_time` or `to_time` is outside its unsigned range, `limit` is not a positive integer, or a `from_` bound exceeds its `to_` bound; a limit above 1000 is clamped instead of refused | No: fix the request |
 | `MISSING_PARAMETER` | 400 | A required query parameter is absent | No: add the parameter |
 | `INVALID_ACTION_INDEX` | 400 | The action index is not a non-negative integer | No |
 | `INVALID_BLOCK_INDEX` | 400 | The block index is not a non-negative integer | No |
@@ -29,19 +29,21 @@ Errors are JSON objects:
 | `RELAY_DENIED` | 403 | `/relay` refuses private/loopback/metadata destinations (SSRF guard) | No |
 | `UNKNOWN_COIN` | 404 | The `{COIN}` prefix is not served by this explorer | No: check `/{COIN}/api/status` |
 | `NOT_FOUND` | 404 | No row for that lookup | No |
+| `ICON_NOT_FOUND` | 404 | `GET /icon/default.png`: neither the legacy default icon nor the fixed unknown-coin fallback image is installed, so the explorer cannot complete a missing token icon's redirect | No: operator action is required to restore the fallback image |
 | `ACTION_NOT_YET_INDEXED` | 404 | The action index lies above what this explorer's indexer has committed so far; the body carries `indexed_through` and the response a `Retry-After` header | Yes: the indexer is catching up; honor `Retry-After` |
 | `CHECKPOINT_NOT_FOUND` | 404 | No quorum-signed checkpoint at that height | Maybe: checkpoints lag the tip |
-| `RATE_LIMITED` | 429 | Per-IP request budget exhausted (app-wide default 180/min; some routes have tighter limits, see [explorer rate limiting](../components/explorer/configuration.md#rate-limiting)) | Yes: back off; honor `RateLimit-*` headers |
+| `RATE_LIMITED` | 429 | Per-IP request budget exhausted (app-wide default 180/min; some routes have tighter limits, see [explorer rate limiting](../components/explorer/configuration.md#rate-limiting)). On `POST /{COIN}/api/native_history`, this may be the UTXO tracker's own 429 passed back once; later requests receive `TRACKER_UNAVAILABLE` until the explorer's pause for that tracker ends | Yes: back off; honor `RateLimit-*` headers and `Retry-After` when present |
 | `SERVER_ERROR` | 500 | Unexpected internal failure | Yes: with backoff |
-| `UPSTREAM_ERROR` | 502 | The colocated indexer fee service failed. Four indexer proxy routes return it when their indexer call fails: native fee quote, oracle fee quote, fee schedule and action pre-flight (a validator-set proof reports the same failure as `INDEXER_UNAVAILABLE`) | Yes: with backoff |
+| `UPSTREAM_ERROR` | 502 | The colocated indexer fee service failed. Four indexer proxy routes return it when their indexer call fails: native fee quote, oracle fee quote, fee schedule and action pre-flight (a validator-set proof reports the same failure as `INDEXER_UNAVAILABLE`) | Only when the body carries `"retryable": true`; honor `Retry-After` when set. A bare body is final |
+| `RELAY_HASH_MISMATCH` | 502 | `/relay` fetched token metadata whose exact response bytes do not match the SHA-256 pin in the token's stored description | No: the pinned document has changed or the host is serving different bytes |
 | `COIN_NOT_AVAILABLE` | 503 | Coin supported but not configured for data requests here | No: use another instance |
 | `INDEXER_NOT_CONFIGURED` | 501 | The route needs an indexer API this instance lacks for the coin/network: native and oracle fee quote, fee schedule, action pre-flight, and validator-set proof | No: use another instance |
 | `SERVICE_UNAVAILABLE` | 503 | The endpoint cannot serve this request | No |
-| `INVALID_PARAMETER` | 400 | A query or body parameter is malformed, repeated, over-long, or outside its allowed values; the generic 400 when no narrower code below applies | No: fix the request |
-| `INVALID_ACTION` | 400 | The `action` parameter names no known action (fee quote and preflight routes). **What is checked:** the explorer refuses a value that is not 1 to 32 characters of `A-Z`, `0-9` and `_`, the pattern the OpenAPI spec publishes. The check is case-sensitive and does not trim, so `send` or ` SEND` is refused, while a well-formed name that is not an action, such as `FOO`, is forwarded and answered with HTTP 200 and the indexer's verdict in the body. Read that verdict to detect an unknown action | No |
+| `INVALID_PARAMETER` | 400 | A query or body parameter is malformed, repeated, over-long, or outside its allowed values; the generic 400 for a parameter refusal when no narrower code below applies. An unclassified 4xx outside route validation is `BAD_REQUEST` | No: fix the request |
+| `INVALID_ACTION` | 400 | The `action` parameter is malformed (fee quote and preflight routes). **What is checked:** the explorer refuses a raw value longer than 256 characters, then trims surrounding whitespace and uppercases the value and refuses it unless the result is 1 to 32 characters of `A-Z`, `0-9` and `_`. That pattern is the canonical uppercase form clients should send. Thus `send` and ` SEND ` are accepted, while `send;drop`, `SEND|X` and a blank value are refused. An accepted value is forwarded to the indexer exactly as sent, not in normalized form. A well-formed name that is not an action, such as `FOO`, is answered with HTTP 200 and the indexer's verdict in the body; read that verdict to detect an unknown action | No |
 | `INVALID_HEIGHT` | 400 | The `height` parameter is not a non-negative integer (proof routes) | No |
-| `INVALID_LIMIT` | 400 | The `limit` parameter is malformed. API list routes: `limit` is not a whole number of at least 1 (a larger value is clamped to the route's maximum, not refused). Checkpoint list: `limit` is not a non-negative integer (`0` reads as 1 and a value above 100 reads as 100) | No |
-| `INVALID_RANGE` | 400 | `from` and `to` are not both integers, or `to` is below `from` (block-range proof) | No |
+| `INVALID_LIMIT` | 400 | The `limit` parameter is malformed. API list routes: `limit` is not a whole number of at least 1 (a larger value is clamped to the route's maximum, not refused). Checkpoint list: `limit` is not a whole number of at least 1 (a value above 100 reads as 100). `POST /{COIN}/api/history`: `limit` is not an integer from 1 through 100; values above 100 are refused rather than clamped | No |
+| `INVALID_RANGE` | 400 | `from` and `to` are not both integers, or `to` is below `from` (block-range proof). `POST /{COIN}/api/history`: `since` or `until` is not a non-negative integer timestamp, or `since` is later than `until` | No |
 | `INVALID_CONTRACT_INDEX` | 400 | The contract index is not a non-negative integer | No |
 | `INVALID_TX_INDEX` | 400 | API and explorer data routes: the `tx_index` path segment is not a non-negative integer | No: fix the request |
 | `INVALID_POLL_INDEX` | 400 | API and explorer data routes: the `poll_index` path segment is not a non-negative integer | No: fix the request |
@@ -68,8 +70,8 @@ Errors are JSON objects:
 | `ESCROW_LEAF_NOT_COMMITTED` | 409 | The locked-balance leaf is not committed at this height, so absence cannot be proven | No: choose a later height |
 | `STATE_TOO_LARGE` | 413 | Contract simulation: the contract's state exceeds the simulation limits | No |
 | `INVALID_JSON_BODY` | 400 | A `POST` body sent as `application/json` is not valid JSON. The status is 415 when the body uses a charset or content encoding the parser does not accept | No: fix the request |
-| `BODY_TOO_LARGE` | 413 | A `POST` body exceeds the explorer's ceiling: 10 KB on every route except `POST /{COIN}/api/preflight` and `POST /{COIN}/api/feequote`, which allow 1 MB. Unrelated to `STATE_TOO_LARGE` | No: send a smaller body |
-| `SERVER_BUSY` | 429 | The explorer's global in-flight request cap is reached and the request was shed; a second 429 distinct from the per-IP `RATE_LIMITED`, with a `Retry-After` header | Yes: back off; honor `Retry-After` |
+| `BODY_TOO_LARGE` | 413 | A `POST` body exceeds the explorer's ceiling: 2.5 MB on `POST /{COIN}/api/preflight` and `POST /{COIN}/api/feequote`, 256 KB on `POST /{COIN}/api/contract/{contractIndex}/call`, and 10 KB on every other route. Unrelated to `STATE_TOO_LARGE` | No: send a smaller body |
+| `SERVER_BUSY` | 429 | The explorer's global in-flight request cap is reached and the request was shed; a second 429 distinct from the per-IP `RATE_LIMITED`, with a `Retry-After` header. On `POST /{COIN}/api/native_history`, this may be the UTXO tracker's own 429 passed back once; later requests receive `TRACKER_UNAVAILABLE` until the explorer's pause for that tracker ends | Yes: back off; honor `Retry-After` |
 | `VM_BUSY` | 429 | Contract simulation: too many concurrent simulations, globally or from this client | Yes: back off |
 | `INTERNAL_ERROR` | 500 | An unhandled failure while serving a data request | Yes: with backoff |
 | `DB_ERROR` | 500 | The database query behind a data request failed | Yes: with backoff |
@@ -85,6 +87,8 @@ Errors are JSON objects:
 | `MIRROR_NOT_CONFIGURED` | 503 | Hub-mirror self-sync is configured for this coin but no hub endpoint is set, so consensus data is refused rather than served stale | No: operator configuration |
 | `MIRROR_NOT_BOOTSTRAPPED` | 503 | The hub mirror has not completed its initial bootstrap, so consensus data is unavailable rather than served empty | Yes: with backoff |
 | `MIRROR_STALE` | 503 | The hub mirror is stale beyond its configured lag and fail-closed is set | Yes: with backoff |
+| `HUB_LOCAL_TABLE_NOT_MIRRORED` | 503 | A hub-local operational page (peers, consensus state, configs, telemetry pings) was requested for a coin whose hub mirror is self-synced; the mirror never replicates those tables, so the page is refused whatever the mirror's health | No: use an install that reads a co-located hub database |
+| `HUB_UNAVAILABLE` | 503 | A hub-served route could not read its table from the hub over JSON-RPC and no cached rows within the stale ceiling were available; the explorer's own database is fine | Yes: with backoff |
 | `VM_QUERY_DISABLED` | 503 | Contract simulation is disabled on this explorer | No: use another instance |
 | `VM_QUERY_VM_DRIFT` | 503 | Contract simulation is disabled because the deployed VM is not the canonical one | No: operator action |
 | `VM_MODULE_UNAVAILABLE` | 503 | Contract simulation: the VM module is not available on this host | No: use another instance |
@@ -92,11 +96,13 @@ Errors are JSON objects:
 | `BRIDGE_INVARIANT_UNAVAILABLE` | 503 | `GET /{COIN}/api/bridge-invariant/{tick}`: this explorer has a hub endpoint, but the hub's bridge-invariant read failed (unreachable, refused, or a degraded health body in place of a result) or returned nothing usable. An explorer with no hub endpoint, or whose hub build predates the read, never answers this code: it answers HTTP 200 `{ "available": false, "reason" }` (see the bridge-invariant note below this table) | Maybe: a failed or degraded hub read may be transient; retry with backoff |
 | `BRIDGE_TRANSFERS_UNAVAILABLE` | 503 | `GET /{COIN}/api/bridge-transfers/{tick}`: this explorer holds no hub-mirror source for the coin, or the bridge-transfer read failed | Maybe: a failed read may be transient; a coin with no mirror source answers this every time |
 | `APPLIED_POLICY_UNAVAILABLE` | 503 | `GET /{COIN}/api/applied-policy/{tick}`: the coin has no checkpoint source, the explorer cannot read applied policy, or the read failed | Maybe: a failed read may be transient; a coin with no checkpoint source answers this every time |
-| `INVALID_CURSOR` | 400 | Keyset paging on API list routes: `before` and `after` were both given (refused on any list, before its cursor support is checked), or the one given is not a single string of decimal digits below 2^53 (signed, fractional, exponent or hex notation, too large, or the parameter repeated). Refused before any query runs | No: fix the request |
+| `INVALID_CURSOR` | 400 | Keyset paging on API list routes: `before` and `after` were both given (refused on any list, before its cursor support is checked), or the one given is not a single string of decimal digits below 2^53 (signed, fractional, exponent or hex notation, too large, or the parameter repeated). Refused before any query runs. `POST /{COIN}/api/history`: `before` is not a positive safe integer supplied as a JSON number or decimal string; zero is refused. `POST /{COIN}/api/native_history`: the tracker refuses a cursor unless it is the `<height>:<64 lowercase hex txid>` value a previous page returned, and the explorer passes that refusal back unchanged | No: fix the request |
 | `CURSOR_UNSUPPORTED` | 400 | Keyset paging on API list routes: `before` or `after` was given on a list that does not page by cursor (a list whose rows can share an action index, such as sends; only lists whose OpenAPI entry documents `before`/`after` accept them). The cursor value is not inspected | No: page with `page` instead |
 | `INVALID_SORTORDER` | 400 | List routes, API and explorer feeds alike: `sortorder` is neither `asc` nor `desc` in any letter case | No: fix the request |
 | `INVALID_PAGE` | 400 | API list routes: `page` is not a whole number of at least 1 | No: fix the request |
 | `INVALID_START` | 400 | Explorer feeds: the `start` offset is not a whole number of at least 0 | No: fix the request |
+| `INVALID_SLASH_STATUS` | 400 | `GET /{COIN}/api/slash_proposals/{QUERY}/status` and the matching explorer feed: the status filter is not one of `pending`, `approved`, `rejected` or `expired` (case-sensitive); refused before any hub call | No: fix the request |
+| `INVALID_SLASH_PUBKEY` | 400 | `GET /{COIN}/api/slash_proposals/{QUERY}/pubkey` and the matching explorer feed: the validator pubkey filter is not 64 hexadecimal characters; refused before any hub call | No: fix the request |
 | `INVALID_TOTAL` | 400 | Explorer feeds: a supplied `total` is not a whole number of at least 0 (an empty or absent `total` is allowed and read as unknown) | No: fix the request |
 | `INVALID_TX_HASH` | 400 | Transaction lookups: the hash is neither a 64-character hex transaction id nor one of the synthetic forms the explorer serves (`GENESIS-*`, `XPOLICY-*`, `XBRIDGE*`, `LIST_SHARE*`) | No: fix the request |
 | `INVALID_TICK_REF` | 400 | Ticker routes: a `^` reference is not followed by a safe whole-number ticker id | No: fix the request |
@@ -107,6 +113,21 @@ Errors are JSON objects:
 | `TOO_MANY_ADDRESSES` | 400 | Batch address routes: more than 20 addresses in one body, counted before duplicates are collapsed, so a body of repeats is refused rather than quietly served | No: send at most 20 per request |
 | `INVALID_ADDRESS` | 400 | Batch address routes: one entry is not a well-formed address; the offending entry is echoed (truncated) in the `error` text. On API and explorer data routes, absent, empty, actual `null` and literal `null` path values are no-filter sentinels, and the free-text `getSearch` routes are exempt. Other `address`, `source`, `destination`, `oracle`, `delegator` or `delegate` path segments, plus the counterparty `{address}` on market history and market orders, emit this code when they are not well-formed for the route network; the fixed `error` text is `Invalid address` and names nothing. Cross-chain address lanes accept an address from any configured chain on the same network. Unrelated to the SDK library's own `INVALID_ADDRESS` typed error, which is a separate surface (see [SDK errors](../components/sdk/errors.md)) | No |
 | `READ_FAILED` | 200 (per-address) | Batch address routes only: the fallback code inside a per-address `error` object when the inner read failed without supplying a code of its own. The whole-request status is still 200; branch on the entry's own `status` field | Depends on the entry's `status` |
+| `TRACKER_NOT_CONFIGURED` | 503 | `POST /{COIN}/api/native_history`: this explorer has no UTXO tracker configured for the coin (`UTXO_TRACKER_URL_<COIN>` or `UTXO_TRACKER_URL`), so it answers this every time | No: use an explorer that serves native history for the coin |
+| `TRACKER_UNAVAILABLE` | 502 or 503 | `POST /{COIN}/api/native_history`: the coin's UTXO tracker did not answer (502), or this client is over the explorer's fair-share tracker budget (503, with `Retry-After` when known). The body carries `"retryable": true`; a refusal the tracker itself sends passes through unchanged with its own code. Those codes include `NOT_READY` and the native-history meanings of `BAD_REQUEST`, `INVALID_CURSOR`, `RATE_LIMITED` and `SERVER_BUSY`; an unexpected tracker failure returns 500 with no `code` | Yes: back off and retry |
+| `NOT_READY` | 503 | `POST /{COIN}/api/native_history`: the coin's UTXO tracker is still starting up or has not indexed its first block, so it has no history to serve; the tracker's refusal is passed back unchanged and carries no `retryable` field. Unrelated to the encoder's `UTXO_TRACKER_NOT_READY` operational reason | Yes: back off and retry |
+| `INVALID_QUOTE` | 400 | `GET /{COIN}/api/price_history`: `fiat` is not a currency code, or `quote` is empty or longer than 250 characters | No: fix the request |
+| `INVALID_ASSETS` | 400 | `GET /{COIN}/api/price_history`: `assets` is missing, or holds an empty ticker or one longer than 250 characters or carrying a control character | No: fix the request |
+| `TOO_MANY_ASSETS` | 400 | `GET /{COIN}/api/price_history`: `assets` names more than 50 distinct tickers | No: send at most 50 per request |
+| `INVALID_INTERVAL` | 400 | `GET /{COIN}/api/price_history`: `interval` is neither `hour` nor `day` | No: fix the request |
+| `RANGE_TOO_LARGE` | 400 | `GET /{COIN}/api/price_history`: the `from` to `to` range holds more than 1000 buckets at the chosen interval, and is refused rather than truncated | No: narrow `from` and `to`, or use a wider interval |
+| `ORACLE_SOURCE_NOT_CONFIGURED` | 200 (per-source) | `GET /{COIN}/api/price_history`: reported as `sources.oracle.code` with `available: false` when the coin has no co-located hub mirror to read oracle rounds from; the DEX source still answers and the oracle series are listed in `missing` | No: use an explorer with a hub mirror for the coin |
+| `FILE_PART` | 404 | `GET /{COIN}/api/file/{actionIndex}/raw`: the action index is one part of a multipart FILE, not its manifest; parts are never served on their own | No: request the manifest action index exposed as `file_part.manifest_action_index` in the part's action detail |
+| `FILE_INCOMPLETE` | 409 | `GET /{COIN}/api/file/{actionIndex}/raw`: the action is a multipart FILE manifest whose parts have not all been received, so no bytes are served. The body adds `parts_received` and `total_parts` | Maybe: retry after the remaining parts are confirmed and indexed. Groups never expire, so one whose parts never arrive answers this indefinitely |
+| `FILE_ASSEMBLY_MISMATCH` | 422 | `GET /{COIN}/api/file/{actionIndex}/raw`: every part arrived, but the assembled file does not match its manifest; this is terminal | No: this file will never be served |
+| `FILE_PART_CORRUPT` | 500 | `GET /{COIN}/api/file/{actionIndex}/raw`: a stored part fails its recorded byte length or SHA-256 digest, or the assembled length differs from the manifest's `total_bytes`, so no bytes are served | No: the operator must investigate |
+
+`UPSTREAM_ERROR` comes in two shapes, and the body tells them apart. A transient indexer failure adds `"retryable": true`, and the response carries `Retry-After` in seconds when the indexer supplied it. Retry after that delay, or with backoff when there is none. A bare body means the indexer refused or judged the request, or the failure is a configuration fault, so sending the same request again will not help. The native fee quote, oracle fee quote, fee schedule and action pre-flight routes all follow this rule.
 
 The batch address routes fail at two layers, and a client has to read both. A whole-request refusal carries an HTTP 400 with one of the three codes above, or the coin gate's 503 (`COIN_NOT_AVAILABLE` / `COIN_DATA_STALE`), which answers the entire batch rather than being buried per address. A body that is not valid JSON, or is over the 10 KB ceiling, is refused before the route reads it, with `INVALID_JSON_BODY` or `BODY_TOO_LARGE`. Otherwise the response is HTTP 200 and each address may carry an `error` object of `{ code, error, status }`, where `code` is whatever the inner read returned, or `READ_FAILED` when it returned none. A 200 therefore does not mean every address succeeded.
 
@@ -115,7 +136,7 @@ The bridge-invariant route (`GET /{COIN}/api/bridge-invariant/{tick}`) answers H
 - `HUB_NOT_CONFIGURED`: this explorer has no hub endpoint configured, so it answers this every time; use an explorer that has one. Unrelated to the SDK library's own `HUB_NOT_CONFIGURED` typed error, which is a separate surface (see [SDK errors](../components/sdk/errors.md)).
 - `HUB_METHOD_MISSING`: every hub endpoint answered JSON-RPC `-32601` (method not found) for `getbridgeinvariant`, so the hub build predates the read; it answers this until the hub operator upgrades.
 
-Errors on the Explorer WebSocket channel (`INVALID_CHANNEL`, `INVALID_TYPE`, `INVALID_ACTION`, `INVALID_PARAMS`, `SUBSCRIPTION_LIMIT`) are a separate surface with its own message shape; they are documented in [Explorer WebSocket](../components/explorer/websocket.md), not here.
+Errors on the Explorer WebSocket channel are a separate surface with their own message shape, including request errors such as `INVALID_CHANNEL`, `INVALID_PARAMS` and `SUBSCRIPTION_LIMIT`, throttling through `RATE_LIMITED`, and catch-up refusals such as `CATCH_UP_TOO_OLD` and `CATCH_UP_REORGED` (resync required). They are listed in full in [Explorer WebSocket](../components/explorer/websocket.md#error-codes), not here.
 
 ## JSON-RPC services (encoder, hub, SDK API)
 
@@ -182,12 +203,37 @@ A `-32010` error always carries `error.data.reason`, a stable string that is app
 | `ENVELOPE_NOT_YET_ACTIVE` | Taproot envelope recognition is not active on this network yet, so the envelope is refused rather than built for decoders to ignore | `recognitionHeight`, `chainTip`, `blocksRemaining` | No: use P2WSH until the activation height |
 | `ENVELOPE_CANCEL_BELOW_DUST` | The envelope-cancel sweep output would fall below the dust floor | `commitValue`, `fee`, `sweepValue` | No: spend via the reveal or CPFP |
 | `ENVELOPE_CANCEL_OUTPOINT_RESERVED` | The commit outpoint the cancel would sweep is reserved by a different transaction built inside the reservation window | `outpoint` | No: broadcast that transaction and rebuild, or wait for the reservation to lapse. Replaying the same cancel is never refused |
-| `NODE_REJECTED` | `broadcast_tx`: the coin node refused the signed transaction (for example a double-spend, dust output, or fee below the relay floor) | `node_code` (the node's RPC error code) | No: rebuild and re-sign |
-| `TX_ALREADY_IN_CHAIN` | `broadcast_tx`: the coin node already knows the transaction, in its mempool or in a block | `node_code` (the node's RPC error code) | No: the transaction is already broadcast; track its txid |
+| `NODE_REJECTED` | `broadcast_tx`: the coin node refused the signed transaction (for example a double-spend, dust output, or fee below the relay floor) | `node_code` (the node's RPC error code); optional `node_reason` (see below) | No: rebuild and re-sign |
+| `TX_ALREADY_IN_CHAIN` | `broadcast_tx`: the coin node already knows the transaction, in its mempool or in a block | `node_code` (the node's RPC error code); optional `node_reason` (see below) | No: the transaction is already broadcast; track its txid |
 | `UTXO_TRACKER_UNREACHABLE` | Remote tracker profile only (`UTXO_TRACKER_PROFILE=remote`): the tracker's `get_sync_status` or `get_utxos` call failed (a transport fault, an error reply or a malformed result), and this profile has no fallback. The default profile reports the same failure as `UTXO_TRACKER_ERROR` | none | Caller may retry with backoff |
 | `UTXO_TRACKER_SYNC_MISSING` | Remote tracker profile only: the tracker returned an empty sync status, a `get_utxos` reply with no `sync` field, or a `sync` without a numeric `lag`, so the encoder refuses a view the tracker did not vouch for. The default profile builds in this case | none | No: operator action (upgrade or repair the tracker); a wallet may offer a manual retry |
 | `NODE_UNREACHABLE` | The coin node did not answer an encoder query, so the requested transaction build or fee quote could not proceed (for example, the connection timed out, was refused, or was reset) | none | Caller may retry with backoff |
 | `TX_BELOW_MIN_STANDARD_SIZE` | A single-transaction build would serialize under the coin node's minimum non-witness (stripped) size, so the node would not relay it: Litecoin Core 82 bytes, Bitcoin Core 65, Dogecoin Core none. Input selection first takes another input so a funded change output lifts the build over the floor; this reason means no input was left to do that | `strippedSize` (predicted non-witness bytes), `minimum` (the node floor) | No: add an input, or leave enough for a change output above the dust floor plus its fee |
+| `PREV_TX_NOT_FOUND` | `create_tx`: the coin node does not know a transaction the build needs, such as the txid of a caller-supplied UTXO (for a confirmed transaction, the node may lack `txindex=1`); the message names the txid | none | No: check the outpoint, or run the node with `txindex=1` |
+| `REVEAL_LEGS_INSUFFICIENT` | `create_tx`: a P2SH or P2WSH reveal's data legs, which are its only inputs, cannot pay its outputs plus the coin node's relay minimum fee, so the reveal would be invalid (a negative fee) or unrelayable and is refused rather than returned for signing | `legs`, `outputs`, `actualFee`, `minimumRelayFee` | No: not retryable as-is; lower the reveal's outputs, or rebuild the commit with more reveal headroom |
+| `ENVELOPE_COMMIT_UNDERFUNDED` | `create_tx`: a signed two-step Taproot envelope commit leaves less for the reveal fee than the encoder's dust or relay minimum, so the reveal is refused | none | No: recover the commit output with `create_envelope_cancel_tx`, then rebuild the commit with enough reveal funding |
+| `ENVELOPE_COMMIT_OUTPOINT_RESERVED` | `create_tx` with `options.envelopeCommitHex`: the signed two-step commit's envelope output is reserved by another transaction built inside the reservation window; the holder may be a reveal already built from this commit, a `create_envelope_cancel_tx` sweep, or any `create_tx` that selected the output as an input | `outpoint` | No: broadcast the transaction that holds the output, release that build's reservation with `release_inputs`, or wait for the reservation to lapse |
+
+#### `broadcast_tx` `node_reason` values
+
+`node_reason` is optional. When it is absent, the encoder did not map the node's refusal to one of the values below: no known pattern matched, or the node's message carried internal detail and was withheld. These values are stable and append-only like `reason`; clients must treat an unknown value like an absent one and branch on `node_reason`, never on `message`.
+
+| `node_reason` | Meaning |
+|---|---|
+| `INPUTS_MISSING_OR_SPENT` | One or more inputs are missing or already spent |
+| `SPEND_CONFLICT` | An input conflicts with a transaction already in the mempool |
+| `REPLACEMENT_FEE` | A replacement transaction does not satisfy the node's replacement rules |
+| `TX_ALREADY_IN_CHAIN` | The transaction is already known in the mempool or blockchain |
+| `DUST` | An output is below the node's dust threshold |
+| `SCRIPT_VERIFY_FAILED` | An input script failed the node's verification rules |
+| `MEMPOOL_CHAIN_TOO_LONG` | The transaction would exceed the node's mempool chain limits |
+| `MEMPOOL_FULL` | The node's mempool is full |
+| `MEMPOOL_MIN_FEE` | The fee is below the mempool's current minimum |
+| `MIN_RELAY_FEE` | The fee is below the node's minimum relay fee |
+| `INSUFFICIENT_PRIORITY` | The transaction does not meet the node's priority requirement |
+| `RATE_LIMITED` | The node rate-limited the request |
+| `MAX_FEE_RATE` | The fee exceeds the node's configured maximum fee rate |
+| `NODE_WARMING_UP` | The node is still loading and cannot accept the transaction |
 
 ## Where the specs live
 
@@ -196,4 +242,4 @@ A `-32010` error always carries `error.data.reason`, a stable string that is app
 - Hub OpenRPC: `https://hub.xchain.io/openrpc.json`
 - SDK API OpenRPC: served at `/openrpc.json` by `npm run api` (self-hosted)
 
-The SDK library (as opposed to its API server) throws typed error classes instead (see [components/sdk/ERRORS.md](../components/sdk/errors.md).
+The SDK library (as opposed to its API server) throws typed error classes instead (see [components/sdk/errors.md](../components/sdk/errors.md).

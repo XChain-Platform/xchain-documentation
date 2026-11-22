@@ -70,15 +70,18 @@ A dispenser can also hand over a token's **ownership** instead of a balance. Tha
 
 ### How Dispensers Are Priced
 
-A dispenser is priced in one of three ways, chosen when you create it:
+A dispenser is priced in one of four ways, chosen when you create it:
 
 - **Priced in coin.** The buyer sends a set amount of BTC, LTC, or DOGE. This is the setup most dispensers use.
 - **Priced in a token.** The buyer pays a set amount of some other XChain token instead of coin.
-- **Priced in a traditional currency.** You denominate the dispenser in USD, JPY, GBP, or one of the other supported currencies, and the buyer still pays in coin. The amount of coin needed is worked out from the current exchange rate when the payment arrives, so it moves as the rate moves; the price in the currency you chose is what stays put.
+- **Fixed price in a traditional currency.** You set `FIAT_AMOUNT`, the price of one whole dispense in USD, JPY, GBP, or another supported currency. That amount stays fixed, while the buyer pays the coin equivalent.
+- **Oracle-priced in a traditional currency.** You set `ORACLE_ADDRESS` instead of a fixed fiat amount. The named oracle publishes a per-token price, so the fiat price changes as new quotes become effective without editing the dispenser. A quote takes effect 24 hours after publication, and whoever runs the oracle controls the price over time.
 
-The first two are fixed prices: the buyer sends exactly the amount you set. The third is fixed in the currency you named, not in coin.
+For a fixed fiat price, a payment confirming in a block is checked against finalized exchange rates from the previous 24 hours, newest first. It settles at the most recent rate at which the payment covers at least one whole dispense, which may be older than the latest rate. If no rate in the window covers a whole dispense, the purchase fails. Sellers should therefore expect a payment to settle at a recent earlier rate, not necessarily the latest one.
 
-For the encoding, the supported currencies, and how the exchange rate is sourced and matched, see the [DISPENSER action reference](../protocol/actions/dispenser.md).
+For an oracle price, only quotes that took effect within the previous 24 hours count. A quote takes effect 24 hours after the oracle publishes it, so the oracle must publish at least once a day: if its newest quote took effect more than 24 hours before the payment's block, there is no usable quote and the purchase fails, even though that quote is still the latest one. The counted quotes are walked newest first, and each is paired with the newest finalized exchange rate from the 24 hours before that quote took effect; a quote with no such rate is skipped. The walk stops at the most recent quote at which the payment covers at least one token, which may be older than the latest quote. The payment then buys as many whole dispenses as that quote allows. If that is less than one whole dispense, the purchase fails and the coin is kept, even if an older quote would have covered a whole dispense, so a buyer should send at least the price of one whole dispense at the current quote.
+
+The dispenser's pricing mode and price settings are fixed at creation. Coin, token, and fixed-fiat prices do not move on their own; an oracle-priced dispenser follows its named oracle. For the encoding, supported currencies, matching rules, and the whole-fill edge case, see the [DISPENSER action reference](../protocol/actions/dispenser.md) and [Mode 2: User Oracle](../protocol/actions/dispenser.md#mode-2-user-oracle-oracle_address-set).
 
 ### Benefits of Dispensers
 
@@ -86,14 +89,14 @@ Dispensers are ideal when you want a reliable, always-on way to sell tokens:
 
 - **No counterparty needed.** The transaction is automatic, buyer pays, protocol sends tokens.
 - **Always available.** Your dispenser works 24 hours a day, 7 days a week, without any action from you, up until the expiration you set for it.
-- **Price clarity.** The price you set when you create the dispenser cannot be changed afterwards. On a coin-priced or token-priced dispenser buyers know the exact amount to send before sending anything; on a dispenser priced in a traditional currency the price in that currency is what is fixed, and the coin amount tracks the exchange rate at the time of purchase.
+- **Price clarity.** Coin-priced and token-priced dispensers name an exact payment, and fixed-fiat dispensers name an exact `FIAT_AMOUNT`. Oracle-priced dispensers instead follow the named oracle's effective per-token quote, so buyers should check that quote before paying. Fixed-fiat payments settle at the most recent rate from the previous 24 hours that the payment covers. Oracle-priced payments use only quotes that took effect within the previous 24 hours, and an oracle-priced payment worth less than one whole dispense at the matched quote buys nothing.
 - **Self-limiting.** A dispenser closes on its own in two ways: when it hits 1,000 dispenses on its current fill (that last sale still goes through, then any tokens left in it are returned to you, or, if it had already been cancelled from its dispenser address or swept, to that address or the sweep destination), and when it reaches its expiration. You can also cancel it manually at any time.
 
 Think of a dispenser like a coin-operated machine at a store. You set it up once, fill it with tokens, set the price, and let it run. Each customer inserts their coins and gets what they paid for: automatically, reliably, without needing a clerk.
 
 ### Editing or Cancelling a Dispenser
 
-You can edit an active dispenser to add more tokens to it (a refill), change its expiration, or update its allow and block lists. A new expiration takes effect immediately, but new allow and block lists take effect only about an hour after your edit is confirmed, the same wait as the cancel closing window described below. Until then the previous lists still decide who can buy, so a buyer you have just blocked can still purchase during that hour. A refill resets the dispense count to zero, so the dispenser can serve another 1,000 dispenses; you get 5 refills (the 6th is rejected), for a lifetime ceiling of 6 fills, or 6,000 dispenses. Its **price and the amount dispensed per purchase are fixed when you create it and cannot be changed**; if you need a different price, cancel the dispenser and create a new one.
+You can edit an active dispenser to add more tokens to it (a refill), change its expiration, or update its allow and block lists. A new expiration takes effect immediately, but new allow and block lists take effect only about an hour after your edit is confirmed, the same wait as the cancel closing window described below. Until then the previous lists still decide who can buy, so a buyer you have just blocked can still purchase during that hour. A refill resets the dispense count to zero, so the dispenser can serve another 1,000 dispenses; you get 5 refills (the 6th is rejected), for a lifetime ceiling of 6 fills, or 6,000 dispenses. Its **pricing mode, price settings, and amount dispensed per purchase cannot be edited**. For coin, token, or fixed-fiat pricing, a different price requires cancelling and creating a new dispenser. An oracle-priced dispenser's effective price still moves as its named oracle publishes quotes; each quote becomes effective 24 hours after publication and counts for settlement only during the 24 hours after that.
 
 You can cancel a dispenser at any time, and any tokens still in it are returned to your balance. Cancelling does not close the dispenser on the spot: it enters a one-hour closing window first, so that a buyer whose payment was already on its way is still served rather than left paying into a machine that has gone. Your leftover tokens come back when that window ends.
 
@@ -185,7 +188,7 @@ If a COINPAY transaction is broadcast but confirms **after** the obligation has 
 |---|---|---|
 | Settlement | Two-phase (match → COINPay → settlement) | Automatic (send coin → receive tokens) |
 | Time limit | 2-hour COINPay window after match | Closes at its expiration (90 days by default) |
-| Price discovery | Order book matching | Fixed rate, or a live fiat or token price when configured |
+| Price discovery | Order book matching | Fixed coin, token, or fiat setting, or a named oracle whose quotes take effect after 24 hours |
 | Flexibility | Partial fills, limit orders | Fixed rate, fixed quantity |
 
 ---
@@ -198,7 +201,7 @@ If a COINPAY transaction is broadcast but confirms **after** the obligation has 
 | How it works | Orders matched automatically | Buyer sends the configured payment, tokens sent back |
 | Requires counterparty? | Yes (someone must match your order) | No, works automatically |
 | Always active? | Until filled, cancelled, or expired | Until depleted, cancelled, or expired |
-| Price | Best available at time of match | Fixed at creation, or oracle-derived at dispense time for fiat-priced dispensers |
+| Price | Best available at time of match | Fixed setting, or a named oracle; fixed-fiat settlement uses the most recent affordable rate in the previous 24 hours |
 
 ---
 

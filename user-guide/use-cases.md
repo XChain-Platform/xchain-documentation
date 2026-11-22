@@ -27,6 +27,8 @@ Attach a piece of digital art or media to a token using on-chain file storage an
 
 XChain actions involved: ISSUE, FILE (to store the content), LINK (to associate it with the token).
 
+**Large files.** A file too large for one transaction can still be published. XChain splits it into parts, each its own transaction, and the network reassembles them byte-for-byte. A multi-part file is one manifest plus its parts. The wallet's Publish file, Attach artwork and Gated publish forms offer it as an upload method. A file can have up to 65,535 parts and 262,140,000,000 bytes (about 262 GB), so the practical limit is the cost of its transactions. A gated file is limited to 64 MiB (67,108,864 bytes).
+
 ### Token-Gated Encrypted Content and Packs
 
 Beyond public on-chain files, XChain supports **cryptographically secure token-gated publishing**. Encrypt a file (or a whole pack of files) and publish the ciphertext on-chain via the FILE action. Only holders of the gating token can decrypt; the symmetric key is delivered to each holder via an ECIES MESSAGE that the sender batches with a direct SEND. Anyone can see that the ciphertext exists; only holders who have been given the key can read it.
@@ -34,7 +36,7 @@ Beyond public on-chain files, XChain supports **cryptographically secure token-g
 **What this enables:**
 
 - **Sealed drops.** A creator can guarantee that no one. Not the indexer operators, not block explorers, not even early holders' nodes, has read the content until a holder unlocks. Useful for time-locked reveals, surprise releases, and "first-access" mechanics.
-- **Packs.** Multiple files encrypted with the same key form a pack that unlocks atomically. An album of FLAC stems plus liner notes plus high-res cover art can all be published as one pack; owning the token unlocks every file at once.
+- **Packs.** Multiple files encrypted with the same key form a pack that unlocks atomically. An album of FLAC stems plus liner notes plus high-res cover art can all be published as one pack; holding the token at or above the pack's `GATE_MIN_AMOUNT`, when set, unlocks every file at once.
 - **Permanent, server-free distribution.** No download server, no key escrow, no DRM service. The creator publishes once and walks away; the blockchain stores the ciphertext, and the key handoff rides in the same transaction as a direct SEND, which the indexer requires whenever that transfer would leave the recipient able to unlock the content.
 - **DEX-native paid downloads.** Sell the token via DISPENSER or ORDER. The key handoff is enforced on direct SENDs only, so a buyer who receives the token through a dispenser, an order or swap settlement, an AIRDROP, or a DIVIDEND gets the token *without* the key and needs it sent afterwards in a direct SEND. Plan a delivery step for any sale that does not go through a SEND.
 - **Sell the whole pack, not just access.** Pair this with [Token Ownership Trading](#token-ownership-trading) below to sell the *entire issuance* of a gated pack to a single buyer, useful for selling a finished album to a label, transferring a research archive to a successor, or auctioning a complete sealed bundle.
@@ -55,9 +57,9 @@ XChain actions involved: ISSUE, SEND, AIRDROP.
 
 ### Gift Cards and Store Credit
 
-Create a token representing store credit or a gift card. Issue it to a customer and they can spend it (transfer it to your payment address) at any time. You can optionally restrict the token to your own addresses using an allow list, so it cannot be sold or transferred elsewhere.
+Create a token representing store credit or a gift card. Issue it to a customer and they can spend it (transfer it to your payment address) at any time. If you add an allow list, it applies to both the sender and recipient of every transfer, so every customer who will hold the card must be listed along with your merchant addresses. A list containing only your addresses makes the first send to a customer fail. An allow list keeps the card among approved holders, but cannot require customers to spend only with you. For that directional policy, bind a [controller contract](../protocol/controller-bound-tokens.md) whose `SEND` guard checks `from` and `to`. Bind `all`, or bind both `transfer` and `trade`, if listings must also be blocked.
 
-XChain actions involved: ISSUE, LIST, SEND.
+XChain actions involved: ISSUE, LIST, SEND, and DEPLOY when using a controller contract.
 
 ### Revenue Sharing and Dividends
 
@@ -243,7 +245,7 @@ XChain has a built-in smart contract layer that runs on top of every supported c
 
 A smart contract on XChain can do what a person with a wallet can do: issue tokens, transfer balances, place orders, set up dispensers, send messages; but on a schedule or under conditions that you define in code.
 
-- **Automatic token vesting**: tokens released to recipients on a schedule, without anyone needing to push a button on the date.
+- **Scheduled token vesting**: tokens unlock for a recipient as blocks pass, but remain in the contract until the beneficiary sends an EXECUTE call to `claim`. Nothing is paid out automatically when a date or block height is reached.
 - **Automated market makers**: liquidity pools that price tokens continuously based on supply and demand, going beyond the fixed-price model of orders and dispensers.
 - **Multi-condition escrow**: funds released only when several conditions are all met (time elapsed, multiple parties have approved, an outside event has occurred).
 - **On-chain governance**: token-weighted voting where the result of the vote is executed by the contract itself, with no human in the middle.

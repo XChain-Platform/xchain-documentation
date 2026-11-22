@@ -101,7 +101,7 @@ Return the current mining loop state for operator diagnostics and CI health chec
         "wallet_balance_at": 1718900003000,
         "mempool_size": 0,
         "mempool_size_at": 1718900004000,
-        "idle_mine_interval_ms": 0,
+        "idle_mine_interval_ms": 60000,
         "blocks_mined": 42,
         "last_mine_at": 1718900000000,
         "consecutive_errors": 0,
@@ -115,9 +115,9 @@ Return the current mining loop state for operator diagnostics and CI health chec
 
 | Field | Type | Description |
 |---|---|---|
-| `wallet_ready` | boolean | `true` once `prepareWallet` has completed; gates on mine-readiness, not just server availability. It marks startup completion only and stays `true` across a reorg, even one that leaves the wallet unable to fund a send; read `wallet_funded` for that. |
+| `wallet_ready` | boolean | `true` once wallet preparation has completed; gates on mine-readiness, not just server availability. It briefly returns to `false` while a wallet recreated under the running miner receives a new mining address and matures its coinbase. It stays `true` across a reorg, even one that leaves the wallet unable to fund a send; read `wallet_funded` for that. |
 | `wallet_balance` | number or null | The wallet's spendable balance in coin units from the last `getbalance` read. `null` when no read has happened or the last read failed; neither `null` nor `0` counts as funded. |
-| `wallet_funded` | boolean | `true` only when `wallet_balance` is a number above 0. Use this, not `wallet_ready`, to learn whether the wallet can still fund a send (for example after a deep `invalidate_block`). |
+| `wallet_funded` | boolean | `true` when `wallet_balance` is a number at or above `MINER_WALLET_FUNDED_FLOOR` (default `1`). Use this, not `wallet_ready`, to learn whether the wallet can still fund a send (for example after a deep `invalidate_block`). |
 | `wallet_balance_at` | number or null | Unix timestamp in milliseconds of the last balance read attempt, successful or not; `null` before the first read |
 | `mining_paused` | boolean | `true` while the auto-mine loop is paused (`pause_mining`, or a `fill_mempool`/`invalidate_block` that never resumed). If mining seems stalled, check this first. |
 | `mining_started` | boolean | `true` once wallet preparation finished and the auto-mine loop started; a pause never resets it. A miner still starting reads `mining_paused: true` with `mining_started: false`. |
@@ -129,7 +129,7 @@ Return the current mining loop state for operator diagnostics and CI health chec
 | `consecutive_errors` | number | Running count of consecutive RPC failures (either `getrawmempool` or `generatetoaddress`). Resets to 0 on the next successful RPC call. Useful for alerting: a non-zero value means the miner is retrying with exponential backoff. |
 | `mine_failures` | number | Consecutive failed block mines, on a streak of its own: a successful mempool read zeroes `consecutive_errors`, so that counter cannot show a miner that answers RPC but cannot generate a block. Resets on the next mined block; `health` reports it as a stall reason. |
 
-**Balance freshness.** The balance is read at startup, re-read before `invalidate_block` and `reconsider_block` return, and refreshed by the auto-mine loop at most every 5 seconds, including while mining is paused or `fill_mempool` is running. A single failed read, a node restart included, shows as `wallet_balance: null` and `wallet_funded: false` for one interval and then recovers, so re-poll once before concluding the wallet is drained. A `wallet_balance_at` well over 5 seconds old while `mining_started` is `true` means the refresh has stalled.
+**Balance freshness.** The balance is read at startup, re-read before `invalidate_block` and `reconsider_block` return, and refreshed by the auto-mine loop at most every 5 seconds, including while mining is paused or `fill_mempool` is running. A single failed read shows as `wallet_balance: null` and `wallet_funded: false`. An ordinary wallet reload recovers on the next interval; a recreated wallet also sets `wallet_ready: false` until its new mining address has matured. A `wallet_balance_at` well over 5 seconds old while `mining_started` is `true` means the refresh has stalled.
 
 ### `health`
 
@@ -320,7 +320,7 @@ Use `generate_blocks` to JUMP a height window; use this to WAIT one out on a qui
 |---|---|---|---|
 | `interval_ms` | number | Yes | Milliseconds of empty mempool before mining one empty block. `0` disables. Otherwise 1,000 to 3,600,000. |
 
-The boot-time equivalent is the `IDLE_MINE_INTERVAL_MS` environment variable. The current value is reported as `idle_mine_interval_ms` by `status`.
+The boot-time equivalent is the `IDLE_MINE_INTERVAL_MS` environment variable. It defaults to `60000` when unset, so the mine-empty heartbeat is on by default; set it explicitly to `0` for a purely mempool-driven loop. The current value is reported as `idle_mine_interval_ms` by `status`.
 
 ### `generate_blocks`
 
@@ -399,11 +399,13 @@ The coin is the part of `NETWORK` before the first `-` (`bitcoin`, `litecoin`, `
 |---|---|---|
 | `fee_rate` | Bitcoin, always: Core 31 deleted `settxfee`, so the miner never calls it on BTC. Also Litecoin or a bare `regtest` whose `settxfee` answers method-not-found (-32601), and Litecoin whose `settxfee` stays unreachable through its retries. | Named params `{ address, amount, fee_rate: 100 }` on every call |
 | `settxfee` | Litecoin, Dogecoin and a bare `regtest` whose daemon accepts `settxfee 0.001` (the normal path for LTC v0.21 and DOGE v1.14) | Positional `[address, amount]`; the wallet-wide pin caps the fee |
-| none (fee estimate) | A daemon that refuses the rate (any other RPC error, or a reply that is not `true`); Dogecoin without `settxfee`, since DOGE v1.14 refuses `fee_rate`; Dogecoin or a bare `regtest` whose `settxfee` stays unreachable | Positional `[address, amount]`; `estimatesmartfee` sets the fee |
+| none (fee estimate) | A daemon that refuses the rate (any other RPC error, or a reply that is not `true`); Dogecoin without `settxfee`, since DOGE v1.14 refuses `fee_rate`; Dogecoin or a bare `regtest` whose `settxfee` stays unreachable (this one is re-probed, see below) | Positional `[address, amount]`; `estimatesmartfee` sets the fee |
 
 Bitcoin has no fallback to the estimate: falling back would give the ceiling up on exactly the chain that needs it. A `settxfee` that times out, loses its transport or answers warmup (-28) is tried up to three times before it counts as unreachable.
 
-`settxfee` is in-memory wallet state and is lost when the node restarts, so the miner pins again after it reloads a lost wallet, both on the `send_funds` retry and from the background balance read. A re-pin whose `settxfee` cannot be reached keeps a per-call `fee_rate` already in force.
+`settxfee` is in-memory wallet state and is lost when the node restarts, so the miner pins again in three situations. It pins again after it reloads a lost wallet, both on the `send_funds` retry and from the background balance read. It also pins again when the node's `paytxfee` has drifted: while the `settxfee` pin is in force, every successful balance read (about every 5 seconds from the mine loop) is followed by one `getwalletinfo` call, and a `paytxfee` other than 0.001 coins/kB triggers the pin. That check covers a node that restarts with its wallet auto-loaded, where `getbalance` never reports a missing wallet and the reload path never runs, and it costs one extra `getwalletinfo` per refresh on each Litecoin, Dogecoin or bare `regtest` miner. Bitcoin and any miner already on a per-call `fee_rate` skip it. A re-pin whose `settxfee` cannot be reached keeps a per-call `fee_rate` already in force.
+
+A `none` pin that came from an unreachable `settxfee` (Dogecoin or a bare `regtest`) is temporary: the miner runs the full pin again once 5 minutes have passed since that pin was recorded, and the coin moves to `settxfee` if the daemon then accepts it. A `none` pin left by a daemon that refused the rate, or by Dogecoin lacking `settxfee`, is final and is not re-probed.
 
 Startup logs name the mechanism in force: `via the per-call fee_rate argument`, `via settxfee`, or `funding sends use the fee estimate`. On Bitcoin a funding -6 never comes with a `settxfee` call or log line, so look for the per-call `fee_rate` line instead.
 
@@ -438,7 +440,7 @@ bitcoin-cli -regtest getblockchaininfo
 If the miner is running but not mining, check:
 
 1. Is `keepMining` set to `false`? Call `continue_mining` to resume.
-2. Is the mempool empty? The miner only mines when transactions are present.
+2. Is the mine-empty heartbeat disabled? With the default `IDLE_MINE_INTERVAL_MS=60000`, an empty mempool still produces one block about every minute. Check `idle_mine_interval_ms` in `status`; a value of `0` means mining is purely mempool-driven. Re-enable it with `set_idle_mine_interval` or set `IDLE_MINE_INTERVAL_MS` at boot.
 3. Are the timers set to very large values? Call `set_default_mining_time` to reset.
 
 ### fillMempool fails or hangs

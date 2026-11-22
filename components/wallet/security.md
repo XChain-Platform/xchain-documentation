@@ -5,7 +5,7 @@
 
 This document names what the wallet defends against, what it deliberately doesn't, and which mitigations ship today. It tracks the [threat model](threat-model.md) and the §12 + §14 sections of the wallet specification.
 
-The shipped shells are the web app, Chrome MV3 extension, desktop app for Windows / macOS / Linux, and native Android app. The repository also contains the iOS shell, which is pending App Store release. The built-in registry supports Bitcoin, Litecoin, and Dogecoin today on mainnet, testnet, and regtest; Developer Mode can add validated custom chain descriptors.
+The published shells are the web app, the desktop app for macOS, Windows, and Linux, and the native Android app. The repository also contains the Chrome MV3 extension and the iOS shell, neither of which has been published yet. Extension-specific controls on this page describe code in the repository rather than a published build. [Verify a release](release/verify-release.md) names the current published set. The built-in registry supports Bitcoin, Litecoin, and Dogecoin today on mainnet, testnet, and regtest; Developer Mode can add validated custom chain descriptors.
 
 ## Protected assets
 
@@ -114,7 +114,7 @@ The other limits are explicit: a bare `MULTISIGN` carrier is recognized by outpu
 
 ## Audit posture
 
-The wallet is pre-v1.0 GA at `0.341.3`. External security and accessibility audits, plus Chrome Web Store submission, remain user-driven release items before v1.0.0 GA. Audit-readiness material ships in the wallet repository.
+The wallet is pre-v1.0 GA at `0.343.0`. External security and accessibility audits, plus Chrome Web Store submission, remain user-driven release items before v1.0.0 GA. Audit-readiness material ships in the wallet repository.
 
 The security audit scope includes vault and KDF code, unlocked-session secrets, software and hardware signers, the single-encode confirmation checks, dApp permissions and approvals, and shell trust boundaries. The accessibility target is WCAG 2.2 AA across keyboard, screen-reader, contrast, motion, forced-colors, touch-target, zoom, and reflow behavior.
 

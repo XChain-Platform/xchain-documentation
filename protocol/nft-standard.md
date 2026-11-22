@@ -64,22 +64,23 @@ category as the issuer's stated intent and the field rule above as the eligibili
 test. Classification alone does not prove the supply bound for a token whose history
 predates the `ISSUE_MINT_SUPPLY_CUMULATIVE_CAP` flag-day; the
 [collector checklist](#what-a-collector-should-verify) covers that case.
+Classification also says nothing about who may mint headroom freed by a burn; that is
+controlled by `LOCK_MINT` and is covered by the collector checklist.
 
 ### Issuing
 
-A unique 1-of-1, fully minted to the issuer (this is the `ISSUE` spec's own example;
-`DECIMALS` empty defaults to 0):
+A unique 1-of-1, fully minted to the issuer (`DECIMALS` empty defaults to 0):
 
 ```
-ISSUE|0|PEPECREATURE|1||||1|||1
-MAX_SUPPLY=1, MINT_SUPPLY=1, LOCK_MAX_SUPPLY=1
+ISSUE|0|PEPECREATURE|1||||1|||1|||||||||||||1|1
+MAX_SUPPLY=1, MINT_SUPPLY=1, LOCK_MAX_SUPPLY=1, LOCK_MINT=1, LOCK_MINT_SUPPLY=1
 ```
 
 An edition of 100, pre-minted to the issuer for manual distribution:
 
 ```
-ISSUE|0|PEPEPRINT|100||||100|||1
-MAX_SUPPLY=100, MINT_SUPPLY=100, LOCK_MAX_SUPPLY=1
+ISSUE|0|PEPEPRINT|100||||100|||1|||||||||||||1|1
+MAX_SUPPLY=100, MINT_SUPPLY=100, LOCK_MAX_SUPPLY=1, LOCK_MINT=1, LOCK_MINT_SUPPLY=1
 ```
 
 An edition of 100 distributed by public fair mint; one per address, inside a block
@@ -98,20 +99,23 @@ and satisfies the [classification rule](#classification-rule-for-clients) from i
 first block. The only rejected case is locking with no `MAX_SUPPLY` declared, which
 would permanently brick the tick at a cap of nothing.
 
-**Lock minting too, so the edition size never rests on a flag-day.** Also set
-`LOCK_MINT_SUPPLY=1` (and `LOCK_MINT=1` once a fair-mint drop has closed). The
-`LOCK_MINT_SUPPLY` refusal reads the token's existing record, so setting it in the
-creating `ISSUE` that carries `MINT_SUPPLY` still mints that supply. Afterwards no
-owner re-issue can mint again, whatever the network's `ISSUE_MINT_SUPPLY_CUMULATIVE_CAP`
-state. With `LOCK_MINT` set as well, units burned with `DESTROY` cannot be re-minted
-into the headroom they free.
+**Lock both mint paths for a pre-minted NFT.** `LOCK_MINT=1` closes the public
+`MINT` command; `MAX_MINT` is only a per-transaction cap and does not enable or
+disable minting. A pre-minted unique or edition should set both `LOCK_MINT=1` and
+`LOCK_MINT_SUPPLY=1` in its creating `ISSUE`. The `LOCK_MINT_SUPPLY` refusal reads
+the token's existing record, so setting it in the creating `ISSUE` that carries
+`MINT_SUPPLY` still mints that supply. Afterwards no owner re-issue can mint again,
+whatever the network's `ISSUE_MINT_SUPPLY_CUMULATIVE_CAP` state. A fair-mint drop
+cannot set `LOCK_MINT` at issuance because that would close the drop; once the drop
+has closed, its owner should set `LOCK_MINT=1`. Without that lock, any address can
+`MINT` the headroom a `DESTROY` frees, even if the token never used a fair mint.
 
 The SDK provides `sdk.nft.unique()`, `sdk.nft.edition()`, and `sdk.nft.collectionItem()`
-builders that set `DECIMALS=0` and `LOCK_MAX_SUPPLY=1` correctly, and `sdk.issueNft()`,
-`sdk.issueNftEdition()`, and `sdk.issueCollectionItem()` workflow helpers that encode
-and submit the resulting action in one call. The protocol does not infer intent: an issuer
-who omits `LOCK_MAX_SUPPLY` has issued an ordinary token whose supply can later grow, and
-no client should classify it as an NFT.
+builders for the classification fields, plus workflow helpers that submit their output.
+The current SDK pre-minted builders leave `LOCK_MINT` unset, so callers that need the
+closed shape above must add `lockMint: '1'` and `lockMintSupply: '1'` before submission.
+The protocol does not infer intent: an issuer who omits `LOCK_MAX_SUPPLY` has issued an
+ordinary token whose supply can later grow, and no client should classify it as an NFT.
 
 ---
 
@@ -251,6 +255,7 @@ answerable from chain state:
 - ✅ `DECIMALS` is `0` and `LOCK_MAX_SUPPLY` is `1`; otherwise the cap can be raised or supply can split
 - ✅ Current `MAX_SUPPLY` and issued supply match the seller's claim (1-of-1 vs edition size)
 - ✅ Issued supply is at or below `MAX_SUPPLY`; for a token whose history predates the `ISSUE_MINT_SUPPLY_CUMULATIVE_CAP` flag-day, `LOCK_MINT_SUPPLY` is `1` or the supply history shows no owner re-mint past the cap
+- ✅ `LOCK_MINT` is `1`; otherwise any address can `MINT` headroom freed by a `DESTROY`, up to `MAX_SUPPLY`
 - ✅ For a collection item: the child was issued while the parent was held by the expected creator (parent ownership history)
 - ✅ Linked content: the `LINK` carries the `FILE` in `COIN1` and the token's `ISSUE` in `COIN2`, with `COIN2` on the token's own chain; its SOURCE is the token's owner at link time; for on-chain art, the `FILE` bytes hash-match what's displayed
 - ✅ If immutable metadata matters: `LOCK_DESCRIPTION` is set and the TIS pointer is content-addressed

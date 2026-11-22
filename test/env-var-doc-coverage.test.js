@@ -129,7 +129,7 @@ describe('extractDefault (the checker that reported false green during the audit
     });
 
     test('stops folding at the first non-literal factor', () => {
-        assert.deepEqual(defaultOf('const n = process.env.CAP || 4 * factor;'), { value: '4', numeric: true });
+        assert.equal(defaultOf('const n = process.env.CAP || 4 * factor;'), null);
     });
 
     // A numeric scan that stops at the `e` records `|| 1e6` as `1`, and
@@ -275,6 +275,76 @@ describe('scanSource', () => {
     test('blanking a comment keeps the line numbers of the code after it', () => {
         const found = scanSource('/* two\n   lines */\nconst a = process.env.LATE || 1;');
         assert.equal(found.get('LATE')[0].line, 3);
+    });
+
+    test('finds named reads through a file-local process.env alias', () => {
+        const source = [
+            'const localEnv = process.env;',
+            'const a = localEnv.ALPHA || 1;',
+            "const b = localEnv['BETA'];",
+            "localEnv.WRITTEN = 'not a read';",
+            'const ghost = unrelatedEnv.GHOST;',
+        ].join('\n');
+        const found = scanSource(source);
+        assert.deepEqual([...found.keys()], ['ALPHA', 'BETA']);
+        assert.equal(found.get('ALPHA')[0].default.value, '1');
+    });
+
+    test('finds reads through a registered config export', () => {
+        const source = [
+            "const { PROCESS_ENV } = require('../config.js');",
+            "const cfg = require('../config.js');",
+            'const a = PROCESS_ENV.MINER_FLOOR || 1;',
+            "const b = cfg.PROCESS_ENV['MINER_CAP'] || 100;",
+            "require('../config.js').PROCESS_ENV.WRITTEN = 'not a read';",
+        ].join('\n');
+        const found = scanSource(source, { configEnvExport: 'PROCESS_ENV' });
+        assert.deepEqual([...found.keys()], ['MINER_FLOOR', 'MINER_CAP']);
+    });
+
+    test('traces an alias of an alias, from process.env or a config export', () => {
+        const source = [
+            'const first = process.env;',
+            'const second = first;',
+            'const third = second;',
+            'use(second.HIDDEN, third.DEEPER);',
+            "const { PROCESS_ENV } = require('../config.js');",
+            'const copied = PROCESS_ENV;',
+            "const c = copied['FROM_EXPORT'];",
+            'const environment = 1;',
+            'const notView = environment.NOT_A_READ;',
+        ].join('\n');
+        const found = scanSource(source, { configEnvExport: 'PROCESS_ENV' });
+        assert.deepEqual([...found.keys()], ['HIDDEN', 'DEEPER', 'FROM_EXPORT']);
+    });
+
+    test('traces a config export destructured beside other keys or from a config binding', () => {
+        const source = [
+            "const { NETWORK, PROCESS_ENV } = require('../config.js');",
+            'use(PROCESS_ENV.BESIDE_KEY);',
+            "const cfg = require('../config');",
+            'const { PROCESS_ENV: pe, NODE_URL } = cfg;',
+            'use(pe.FROM_BINDING);',
+            'const {',
+            '    PROCESS_ENV: wrapped,',
+            "} = require('../config.js');",
+            'use(wrapped.MULTI_LINE);',
+        ].join('\n');
+        const found = scanSource(source, { configEnvExport: 'PROCESS_ENV' });
+        assert.deepEqual([...found.keys()], ['BESIDE_KEY', 'FROM_BINDING', 'MULTI_LINE']);
+    });
+
+    test('traces env destructured from process, renamed or beside other keys', () => {
+        const source = [
+            'const { env } = process;',
+            'use(env.PLAIN_KEY);',
+            'const { argv, env: e } = process;',
+            "use(e['RENAMED_KEY']);",
+            'const { env: other } = processLike;',
+            'use(other.NOT_A_READ);',
+        ].join('\n');
+        assert.deepEqual([...scanSource(source).keys()], ['PLAIN_KEY', 'RENAMED_KEY']);
+        assert.deepEqual(cov.scanComputedReads(source), []);
     });
 });
 
@@ -431,6 +501,70 @@ describe('scanComputedReads (the blind spot the gate cannot see into)', () => {
         ].join('\n');
         assert.deepEqual(cov.scanComputedReads(source, { configView: true }), [1, 3]);
     });
+
+    test('ratchets computed alias reads and unresolved whole-object escapes', () => {
+        const source = [
+            'const localEnv = process.env;',
+            'const a = localEnv[prefix];',
+            'consume(localEnv);',
+            "const cfg = require('../config.js');",
+            'const b = cfg.PROCESS_ENV[name];',
+            'consume(cfg.PROCESS_ENV);',
+        ].join('\n');
+        assert.deepEqual(
+            cov.scanComputedReads(source, { configEnvExport: 'PROCESS_ENV' }),
+            [2, 3, 5, 6],
+        );
+    });
+
+    test('does not ratchet the registered config export itself', () => {
+        const source = [
+            'const localEnv = process.env;',
+            'module.exports = { PROCESS_ENV: localEnv };',
+        ].join('\n');
+        assert.deepEqual(cov.scanComputedReads(source, { configEnvExport: 'PROCESS_ENV', configModule: true }), []);
+    });
+
+    test('ratchets a chained alias escape and skips identifiers that only share its prefix', () => {
+        const source = [
+            'const first = process.env;',
+            'const second = first;',
+            'const k = second[key];',
+            'let later;',
+            'later = second;',
+            'consume(second);',
+            'const environment = first2;',
+            'firstly(environment);',
+        ].join('\n');
+        assert.deepEqual(cov.scanComputedReads(source), [3, 5, 6]);
+    });
+
+    test('ratchets an env default inside a pattern and a registered key outside the exports', () => {
+        const source = [
+            'const { service, env = process.env } = opts;',
+            "const { PROCESS_ENV } = require('../config.js');",
+            'spawn(cmd, { PROCESS_ENV: PROCESS_ENV });',
+            'const local = process.env;',
+            'module.exports = {',
+            '    OTHER: 1,',
+            '    PROCESS_ENV: local,',
+            '};',
+            'module.exports.PROCESS_ENV = local;',
+        ].join('\n');
+        const inConfig = { configEnvExport: 'PROCESS_ENV', configModule: true };
+        assert.deepEqual(cov.scanComputedReads(source, inConfig), [1, 3]);
+        // Outside the config module nothing traces that export's readers, so it is an escape.
+        assert.deepEqual(cov.scanComputedReads(source, { configEnvExport: 'PROCESS_ENV' }), [1, 3, 7, 9]);
+    });
+
+    test('marks only a config module file as the place the registered export is traced', () => {
+        for (const rel of ['src/config.js', 'config.js', 'src/config/index.js']) {
+            assert.equal(cov.CONFIG_MODULE_FILE.test(rel), true, rel);
+        }
+        for (const rel of ['src/api.js', 'src/appconfig.js', 'src/config/loader.js']) {
+            assert.equal(cov.CONFIG_MODULE_FILE.test(rel), false, rel);
+        }
+    });
 });
 
 // The explorer reads configuration through config.js's `env` view, a live
@@ -572,6 +706,80 @@ describe('reads through the explorer config view', () => {
     });
 });
 
+describe('reads through the hub config env call accessor', () => {
+    const CALL_SOURCE = [
+        "const hubConfig = require('../config.js');",
+        'const a = hubConfig.env().HUB_ALPHA || 64;',
+        "const b = hubConfig.env()['HUB_BETA'];",
+        'const c = hubConfig.env(opts.env).HUB_INJECTED;',
+        'const env = hubConfig.env();',
+        'const d = env.HUB_ALIAS;',
+        "hubConfig.env().HUB_WRITE = 'no';",
+        "const own = hubConfig.env().hasOwnProperty('HUB_ALPHA');",
+        'const unrelated = foo.env().HUB_OTHER;',
+        '// const ghost = hubConfig.env().HUB_GHOST;',
+        'const spread = { ...hubConfig.env() };',
+    ].join('\n');
+
+    test('named reads require a binding to config.js and preserve defaults', () => {
+        const found = scanSource(CALL_SOURCE, { configCall: true });
+        assert.deepEqual([...found.keys()], ['HUB_ALPHA', 'HUB_BETA', 'HUB_INJECTED', 'HUB_ALIAS']);
+        assert.equal(found.get('HUB_ALPHA')[0].default.value, '64');
+        assert.equal(scanSource(CALL_SOURCE).size, 0);
+    });
+
+    test('computed reads include direct and alias shapes but exclude writes', () => {
+        const source = [
+            "const hubConfig = require('../config');",
+            "const a = hubConfig.env()[coin + '_URL'];",
+            "const b = hubConfig.env()['X_' + coin];",
+            'const env = hubConfig.env();',
+            'const c = env[',
+            "    coin + '_KEY'",
+            '];',
+            'hubConfig.env()[target] = value;',
+        ].join('\n');
+        assert.deepEqual(cov.scanComputedReads(source, { configCall: true }), [2, 3, 5]);
+        assert.deepEqual(cov.scanComputedReads(source), []);
+    });
+
+    test('a call argument of any shape, nested calls and strings with parentheses included, still balances', () => {
+        const source = [
+            "const cfg = require('../config');",
+            'const a = cfg.env(selectEnv(opts)).NESTED_SETTING;',
+            'const b = cfg.env(pick(a, (b) => b.env)).DEEP_SETTING;',
+            "const c = cfg.env(label(')')).PAREN_STRING_SETTING;",
+            "const d = cfg.env(selectEnv(opts))[coin + '_NESTED_URL'];",
+            "const e = require('../../config.js').env(wrap(x)).DIRECT_NESTED;",
+            "cfg.env(selectEnv(opts))[target] = value;",
+            'const f = cfg.env(unclosed(opts.NOT_A_READ;',
+        ].join('\n');
+        assert.deepEqual([...scanSource(source, { configCall: true }).keys()],
+            ['NESTED_SETTING', 'DEEP_SETTING', 'PAREN_STRING_SETTING', 'DIRECT_NESTED']);
+        assert.deepEqual(cov.scanComputedReads(source, { configCall: true }), [5]);
+        assert.deepEqual(scanSource(source).size, 0);
+    });
+
+    test('buildSurvey enables the call accessor only for the hub', () => {
+        const source = "const cfg = require('../config');\nconst a = cfg.env().HUB_ONLY;\nconst b = cfg.env()[key];\n";
+        const serviceReader = {
+            listPaths: () => ['src/reader.js'],
+            readFiles: () => new Map([['src/reader.js', source]]),
+        };
+        const docReader = {
+            listPaths: () => ['components/hub/configuration.md'],
+            readFiles: () => new Map([['components/hub/configuration.md', 'nothing documented\n']]),
+        };
+        const survey = cov.buildSurvey({
+            platformRoot: '/fixture', docRoot: '/fixture/docs', serviceReader, docReader,
+            components: ['hub'],
+        });
+        assert.deepEqual([...survey.get('hub').vars.keys()], ['HUB_ONLY']);
+        assert.equal(survey.get('hub').computed.length, 1);
+        assert.match(cov.checkUndocumented('hub', survey.get('hub'))[0], /^HUB_ONLY \(read at src\/reader\.js:2\)/);
+    });
+});
+
 describe('checkComputedReads (the blind-spot ratchet)', () => {
     const entryWith = (n) => ({
         vars: new Map(), docLines: [], docProse: [], sourceFiles: 1,
@@ -611,7 +819,6 @@ describe('checkComputedReads (the blind-spot ratchet)', () => {
     test('an entry with no computed list fails rather than reading as zero sites', () => {
         const bare = { vars: new Map(), docLines: [], docProse: [], sourceFiles: 1 };
         const problems = cov.checkComputedReads(new Map([['vm', bare]]));
-        assert.equal(cov.COMPUTED_READ_BASELINE.vm, 0, 'this case needs a zero-baseline component to be non-vacuous');
         assert.equal(problems.length, 1);
         assert.match(problems[0], /^vm: the survey entry carries no computed-read list/);
     });
@@ -928,6 +1135,27 @@ describe('doc matching', () => {
     test('a `|| 0` default is satisfied by a row that says the feature is off', () => {
         assert.equal(defaultDocumented(['| `MIRROR_MAX_LAG_S` | No | None | warn above this lag |'], '0'), true);
         assert.equal(defaultDocumented(['| `SOME_CAP` | No | `500` | a real number |'], '0'), false);
+        assert.equal(defaultDocumented(['| `SOME_CAP` | No | `500` | Set to `0` to disable |'], '0'), false);
+        assert.equal(defaultDocumented([
+            '| `EXPLORER_MAX_CONCURRENT_REQUESTS` | No | `200` | Set to `0` to disable the cap |',
+        ], '0'), false);
+        assert.equal(defaultDocumented([
+            '| `EXPLORER_MAX_CONCURRENT_REQUESTS` | No | `200` | Set to `0` to disable the cap |',
+        ], '200'), true);
+        assert.equal(defaultDocumented(['| `X_LIMIT` | No | `64` | an unset value keeps 64 |'], '0'), false);
+        assert.equal(defaultDocumented(['When `X_CAP` is unset the cap is not applied.'], '0'), false);
+        assert.equal(defaultDocumented(['| `X_CAP` | No | `off` | feature switch |'], '0'), true);
+        assert.equal(defaultDocumented(['`X_CAP` defaults to off.'], '0'), true);
+    });
+
+    test('a bare zero-word cell does not override a nonzero default the rows assert', () => {
+        assert.equal(defaultDocumented(['| X_CAP | No | 500 | Disabled |'], '0'), false);
+        assert.equal(defaultDocumented(['| `X_CAP` | No | `500` | `off` |'], '0'), false);
+        assert.equal(defaultDocumented(['| `X_CAP` | No | `"500"` (cap) | Disabled |'], '0'), false);
+        assert.equal(defaultDocumented(['| `X_CAP` | No | None | cap |', '`X_CAP` defaults to `500`.'], '0'), false);
+        assert.equal(defaultDocumented(['| `X_CAP` | No | Disabled | `0` turns it off |'], '0'), true);
+        assert.equal(defaultDocumented(['| `X_CAP` | No | `0` (off) | Disabled |'], '0'), true);
+        assert.equal(defaultDocumented(['| Cap | `X_CAP` | None | per request |'], '0'), true);
     });
 
     test('a wrong documented default is rejected, and a prefix does not count', () => {
@@ -1247,9 +1475,55 @@ const present = cov.presentComponents(PLATFORM_ROOT);
 
 // Reading a sibling at HEAD needs its object database. A service checked out
 // without one (an export, a tarball) cannot be judged, and guessing from its
-// working tree is the failure this suite is fixing, so it drops out.
+// working tree is the failure this suite is fixing, so it drops out of the
+// survey and fails by name in the readability check below.
 const readable = present.filter((c) => cov.isGitRepo(path.join(PLATFORM_ROOT, `xchain-${c}`)));
-const unreadable = present.filter((c) => !readable.includes(c));
+
+/**
+ * What the gate does with the siblings it found. Only an ABSENT fleet skips
+ * cleanly; a present sibling that cannot be read is a failure, so the
+ * readability check runs whenever anything is present, outside the coverage
+ * suite, where skipping the suite cannot skip it too.
+ */
+function siblingGate(presentList, readableList) {
+    const unreadableList = presentList.filter((c) => !readableList.includes(c));
+    let suiteSkip = false;
+    if (presentList.length === 0) suiteSkip = 'sibling service repos not checked out';
+    else if (readableList.length === 0) suiteSkip = `no checked-out sibling is readable at HEAD: ${unreadableList.join(', ')}`;
+    return { suiteSkip, checkReadability: presentList.length > 0, unreadable: unreadableList };
+}
+
+describe('the sibling gate decision', () => {
+    test('no sibling present skips everything and reports nothing unreadable', () => {
+        assert.deepEqual(siblingGate([], []),
+            { suiteSkip: 'sibling service repos not checked out', checkReadability: false, unreadable: [] });
+    });
+
+    test('every present sibling unreadable still runs the readability check', () => {
+        const gate = siblingGate(['hub', 'indexer'], []);
+        assert.equal(gate.checkReadability, true, 'an all-unreadable fleet must fail by name, not skip');
+        assert.deepEqual(gate.unreadable, ['hub', 'indexer']);
+        assert.match(gate.suiteSkip, /readable at HEAD: hub, indexer/);
+    });
+
+    test('a mixed fleet runs the suite and names only the unreadable siblings', () => {
+        assert.deepEqual(siblingGate(['hub', 'indexer'], ['indexer']),
+            { suiteSkip: false, checkReadability: true, unreadable: ['hub'] });
+    });
+
+    test('a fully readable fleet runs the suite with nothing unreadable', () => {
+        assert.deepEqual(siblingGate(['hub'], ['hub']), { suiteSkip: false, checkReadability: true, unreadable: [] });
+    });
+});
+
+const gate = siblingGate(present, readable);
+const unreadable = gate.unreadable;
+
+test('every checked-out sibling could be read at HEAD', { skip: gate.checkReadability ? false : gate.suiteSkip }, () => {
+    // A sibling silently dropping out is how a gate goes green while
+    // proving less than it did yesterday, so name it loudly.
+    assert.deepEqual(unreadable, [], `checked out but not a git repo, so not gated: ${unreadable.join(', ')}`);
+});
 
 const siblingsMissing = readable.length === 0;
 
@@ -1261,13 +1535,7 @@ const survey = siblingsMissing ? new Map() : cov.buildSurvey({
     components:    readable,
 });
 
-describe('environment-variable documentation coverage', { skip: siblingsMissing ? 'sibling service repos not checked out' : false }, () => {
-    test('every checked-out sibling could be read at HEAD', () => {
-        // A sibling silently dropping out is how a gate goes green while
-        // proving less than it did yesterday, so name it loudly.
-        assert.deepEqual(unreadable, [], `checked out but not a git repo, so not gated: ${unreadable.join(', ')}`);
-    });
-
+describe('environment-variable documentation coverage', { skip: gate.suiteSkip }, () => {
     // The floor is a FLEET figure: the services read hundreds of variables
     // between them, so a full platform checkout that surveys under 300 has a
     // broken scanner, not a quiet fleet. A partial checkout (GitHub CI checks

@@ -477,12 +477,12 @@ re-encoding is a no-op there; address-level tests must use mainnet parameters.
 
 The canonical format flip is keyed on the BTC-anchored `snapshot_block`
 (the activation-registry row `cross_chain_royalty_activation.CROSS_CHAIN_ROYALTY_ACTIVATION`, carried by the hub and indexer registry parts), while the create-side
-acceptance rule is keyed on the local block (`protocol_changes.js`). Operators must
-coordinate the two: flip the canonical gate first or together with the create-side gate,
-never create-side first. Both mainnet values are armed: the canonical flip is set to
-`snapshot_block` height `961000` (BTC anchor ~2026-08-04; hub and every indexer must deploy
-before that height), and the create-side acceptance gate (`CROSS_CHAIN_ROYALTY`) is keyed on
-its own, later block time, listed on
+acceptance rule is keyed on the local block (`protocol_changes.js`). The standing ordering
+rule is to flip the canonical gate first or together with the create-side gate, never
+create-side first. Mainnet already meets that rule: the canonical flip activated at
+`snapshot_block` height `961000` (BTC anchor ~2026-08-04). That height has passed, so the
+value is now replay history rather than a pending deploy deadline. The create-side acceptance
+gate (`CROSS_CHAIN_ROYALTY`) is still ahead and is keyed on its own, later block time, listed on
 [Flag-Day Values](./flag-days.md#mainnet-time-keyed-gates) under its own date rather than the
 Cohort A instant.
 

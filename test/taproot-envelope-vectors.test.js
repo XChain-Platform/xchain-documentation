@@ -11,10 +11,15 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { test } = require('node:test');
+const { sibling } = require('./helpers/sibling_checkout.js');
 
 const VECTORS = require('../protocol/test-vectors/taproot_envelope.json');
 const SPEC = fs.readFileSync(path.resolve(__dirname, '../protocol/taproot-envelope.md'), 'utf8');
+const DECODER = sibling('xchain-decoder', ['src/XChainDecoder/envelope_recognition.js']);
+const INDEXER = sibling('xchain-indexer', ['src/utility/fee_output.js']);
 const CHUNK = 520;
+const FUNDING_VOUT_BASE = 1000000;
+const FEE_DESTINATION = 'fee-destination';
 const CHUNKING_RECIPE = 'action "FILE|0|chunks.bin|application/octet-stream|||||||" '
     + '+ 1200 rawData bytes where byte[i] = (i*7+13) & 0xff';
 
@@ -67,6 +72,55 @@ function tapleafHash(script) {
     return sha256(Buffer.concat([tag, tag, Buffer.from([0xc0]), size, script]));
 }
 
+function taggedHash(tag, payload) {
+    const tagHash = crypto.createHash('sha256').update(tag).digest();
+    return crypto.createHash('sha256').update(Buffer.concat([tagHash, tagHash, payload])).digest();
+}
+
+function tapBranch(leftHex, rightHex) {
+    const nodes = [Buffer.from(leftHex, 'hex'), Buffer.from(rightHex, 'hex')]
+        .sort(Buffer.compare);
+    return taggedHash('TapBranch', Buffer.concat(nodes)).toString('hex');
+}
+
+function acceptsControlBlock(controlBlock) {
+    return controlBlock.length >= 33
+        && (controlBlock.length - 33) % 32 === 0
+        && (controlBlock[0] & 0xfe) === 0xc0;
+}
+
+function controlBlockWitness(vectors, vector) {
+    return [Buffer.alloc(64), Buffer.from(vectors.envelope_grammar.envelope_script_hex, 'hex'),
+        Buffer.from(vector.control_block_hex, 'hex')];
+}
+
+function assertControlBlockVectors(vectors) {
+    const section = vectors.control_block;
+    assert.ok(section && Array.isArray(section.vectors), 'control_block vectors are missing');
+    const coverage = { odd: false, deep: false, version: false, length: false };
+    for (const vector of section.vectors) {
+        const witness = controlBlockWitness(vectors, vector);
+        const controlBlock = witness[witness.length - 1];
+        const expected = vector.expect === 'recognized';
+        assert.equal(witness[witness.length - 2].toString('hex'),
+            vectors.envelope_grammar.envelope_script_hex, vector.name + ' changed the script');
+        assert.equal(acceptsControlBlock(controlBlock), expected, vector.name);
+        coverage.odd ||= expected && controlBlock[0] === 0xc1;
+        coverage.deep ||= expected && controlBlock.length > 33;
+        coverage.version ||= !expected && (controlBlock[0] & 0xfe) !== 0xc0;
+        coverage.length ||= !expected && (controlBlock.length < 33
+            || (controlBlock.length - 33) % 32 !== 0);
+    }
+    assert.deepEqual(coverage, { odd: true, deep: true, version: true, length: true });
+    const twoLeaf = section.vectors.find((vector) => vector.name === 'two_leaf_tree_65_bytes');
+    assert.ok(twoLeaf, 'two-leaf control-block vector is missing');
+    assert.equal(tapBranch(vectors.envelope_grammar.tapleaf_hash,
+        twoLeaf.sibling_tapleaf_hash), twoLeaf.merkle_root);
+    assert.match(SPEC, /byte\s*&\s*0xfe/);
+    assert.match(SPEC, /33\s*\+\s*32m/);
+    assert.match(SPEC, /control_block/);
+}
+
 function chunkingPayload() {
     const raw = Buffer.alloc(1200);
     for (let i = 0; i < raw.length; i++) raw[i] = (i * 7 + 13) & 0xff;
@@ -116,6 +170,49 @@ function assertRebalanceVector(vectors) {
     assert.deepEqual(quoted[1].split(',').map((s) => Number(s.trim())), v.push_lengths);
 }
 
+function storedFeeOutputs(vector) {
+    return vector.outputs.map((output) => ({
+        tx: output.tx,
+        sourceVout: output.vout,
+        vout: output.vout + (output.tx === 'commit' ? FUNDING_VOUT_BASE : 0),
+        address: output.role === 'fee_destination'
+            ? FEE_DESTINATION : `other-${output.tx}-${output.vout}`,
+        valueRatio: output.value_ratio,
+    })).sort((a, b) => a.vout - b.vout);
+}
+
+function assertFeeVectorShape(vectors) {
+    const section = vectors.commit_fee_output_placement;
+    assert.ok(section && Array.isArray(section.vectors), 'fee-placement vectors are missing');
+    assert.deepEqual(new Set(section.vectors.map((vector) => vector.name)), new Set([
+        'commit_only_fee', 'reveal_only_fee', 'reveal_precedes_commit',
+        'reveal_out_of_tolerance_overrides_valid_commit',
+        'multiple_commit_fee_outputs', 'no_fee_output',
+    ]));
+    for (const vector of section.vectors) {
+        assert.ok(Array.isArray(vector.outputs) && vector.outputs.length > 0, vector.name);
+        const revealFee = vector.outputs.some((output) =>
+            output.tx === 'reveal' && output.role === 'fee_destination');
+        if (revealFee) assert.equal(vector.expected_selected.tx, 'reveal', vector.name);
+        assert.ok(['valid', 'invalid'].includes(vector.expected_fee_outcome), vector.name);
+    }
+    assert.ok(!JSON.stringify(section).includes('never consulted'));
+    assert.match(SPEC, /A reveal fee output therefore takes precedence/);
+    assert.match(SPEC, /Restricting evaluation to commit outputs would change/);
+}
+
+function assertFeeSelections(vectors, findFeeOutput) {
+    for (const vector of vectors.commit_fee_output_placement.vectors) {
+        const selected = findFeeOutput(storedFeeOutputs(vector), FEE_DESTINATION);
+        const identity = selected && { tx: selected.tx, vout: selected.sourceVout };
+        assert.deepEqual(identity, vector.expected_selected, vector.name + ' selected output');
+        const valid = selected !== null && selected.valueRatio >= 0.95
+            && selected.valueRatio <= 1.10;
+        assert.equal(valid ? 'valid' : 'invalid', vector.expected_fee_outcome,
+            vector.name + ' fee outcome');
+    }
+}
+
 test('the helpers reproduce the frozen envelope_grammar bytes', () => {
     const g = VECTORS.envelope_grammar;
     const payload = compilePayload(g.action_string, Buffer.from(g.raw_data_utf8, 'utf8'));
@@ -138,6 +235,33 @@ test('the rebalance covers exactly 0x01-0x10 and 0x81', () => {
     for (const byte of [0x00, 0x11, 0x80, 0x41]) assert.deepEqual(rebalanceLengths(1041, byte), [520, 520, 1]);
 });
 
+test('control-block vectors pin leaf version, length, and tree depth', () => {
+    assertControlBlockVectors(VECTORS);
+});
+
+test('the decoder agrees with every published control-block vector', {
+    skip: DECODER.skip,
+}, () => {
+    const recognition = require(path.join(DECODER.root,
+        'src/XChainDecoder/envelope_recognition.js'));
+    for (const vector of VECTORS.control_block.vectors) {
+        const witness = controlBlockWitness(VECTORS, vector);
+        assert.equal(recognition.detectEnvelopeWitness(witness) !== null,
+            vector.expect === 'recognized', vector.name);
+    }
+});
+
+test('fee-placement vectors describe reveal-first validation and the spec agrees', () => {
+    assertFeeVectorShape(VECTORS);
+});
+
+test('the shipped indexer matcher agrees with every fee-placement vector', {
+    skip: INDEXER.skip,
+}, () => {
+    const { findFeeOutput } = require(path.join(INDEXER.root, 'src/utility/fee_output.js'));
+    assertFeeSelections(VECTORS, findFeeOutput);
+});
+
 test('the vector guards fail on a drifted hash, length or split', () => {
     const tapleaf = clone(VECTORS);
     tapleaf.envelope_chunking.tapleaf_hash = tapleaf.envelope_chunking.tapleaf_hash.replace(/^./, (c) => (c === '0' ? '1' : '0'));
@@ -154,4 +278,12 @@ test('the vector guards fail on a drifted hash, length or split', () => {
     const outside = clone(VECTORS);
     outside.chunk_rebalance.final_byte = '0x11';
     assert.throws(() => assertRebalanceVector(outside));
+    const controlBlock = clone(VECTORS);
+    controlBlock.control_block.vectors[0].expect = 'not_recognized';
+    assert.throws(() => assertControlBlockVectors(controlBlock));
+    const feePlacement = clone(VECTORS);
+    feePlacement.commit_fee_output_placement.vectors
+        .find((vector) => vector.name === 'reveal_precedes_commit')
+        .expected_selected = { tx: 'commit', vout: 1 };
+    assert.throws(() => assertFeeVectorShape(feePlacement));
 });

@@ -25,7 +25,7 @@ npx xchain-contracts scaffold escrow my-escrow.js  # write a template to customi
 npx xchain-contracts lint my-escrow.js             # conservative deploy-time preflight, superset of the chain gate (Node 22)
 ```
 
-Or programmatically from the SDK (browser-safe, no Node-22 requirement):
+Or programmatically from the SDK (browser-safe, no Node-22 requirement). The SDK embeds every pattern and the subset of templates returned by `sdk.listTemplates()`; scaffold the remaining CLI-only templates with `npx xchain-contracts scaffold <name>`:
 
 ```javascript
 const source = sdk.scaffold('escrow');        // the template source, ready to edit
@@ -74,11 +74,11 @@ meta: { name: 'Escrow ' + xchain.getBlockHeight(), description: '...' }   // leg
 
 Every node reads it under the same block context, so every node records the same string. Three things argue against it anyway: the value is not a function of your source bytes, so nobody reading the code can tell what the chain recorded; the SDK and foundry pre-flight checks parse the source statically and cannot see a computed value, so they downgrade to a warning and you lose the "refused before you paid a fee" safety net; and `xchain.getBlockHash()` is **`undefined`** during the manifest read (only the height, the timestamp and the contract address are supplied), so a name built from it records the literal text `undefined` forever. Write a literal.
 
-**What may go in `meta`.** Unknown keys are allowed and ignored by consensus, and they are stored verbatim, so `author`, `url` or anything else you want to carry can ride along and be displayed later without another flag day. The whole `meta` object, serialised, must stay under 4096 characters.
+**What may go in `meta`.** Unknown keys are allowed and ignored by consensus, and they are stored verbatim, so `author`, `url` or anything else you want to carry can ride along and be displayed later without another flag day. The whole `meta` object, serialised with `JSON.stringify(meta)`, must be at most 4096 UTF-16 code units; a longer one is rejected at deploy (see the [DEPLOY verdicts](../protocol/actions/deploy.md#verdicts)).
 
 **The rules, in one list.** `name` and `description` are required strings; `version` is optional but is validated whenever the key is present, so `version: ''` and `version: 3` are rejected rather than dropped. All three are capped in UTF-8 **bytes** (64 / 512 / 32), must be well-formed text with no control, zero-width or bidi code points, and must not begin or end with whitespace. `description` is the only field a line break may appear inside. Nothing is repaired for you: a value that does not conform rejects the deploy, with a verdict naming the field. The full grammar and the seven verdict strings are in [DEPLOY](../protocol/actions/deploy.md#contract-identity-manifest-meta-required-at-the-flag-day).
 
-**What it costs.** `meta` is source, and source is metered: a deploy pays `VM_DEPLOY_BASE + (code_bytes * VM_DEPLOY_PER_BYTE)`, so the block you add is priced at `VM_DEPLOY_PER_BYTE` per byte, on every deploy, forever. Measured over the 14 templates in the [`xchain-contracts`](https://github.com/XChain-Platform/xchain-contracts) library, the shipped block (the `meta` property plus the three-line comment above it) adds **568 to 675 bytes of source, median 605**, which is **760 to 900 bytes on the wire** once the source is base64-encoded into the DEPLOY action. The property on its own, with no comment, is 321 to 428 bytes (median 358). Against templates of 5 KB to 30 KB that is roughly 2% to 4% of the deploy fee; against a one-line contract it is most of it. A tight description is cheaper than a long one, and it is the line a user reads before they deposit into your contract, so spend the bytes on being clear rather than on being brief.
+**What it costs.** `meta` is source, and source is metered. An inline deploy bills `VM_DEPLOY_PER_BYTE` for each decoded UTF-8 source byte. A chunked deploy bills that rate for each base64 character carried in its DEPLOY v4 `CODE_PART` actions, so source on the chunked path costs about 4/3 as much per byte. Measured over the 14 templates in the [`xchain-contracts`](https://github.com/XChain-Platform/xchain-contracts) library, the shipped block (the `meta` property plus the three-line comment above it) adds **568 to 675 bytes of source, median 605**, which is **760 to 900 bytes on the wire** once the source is base64-encoded into the DEPLOY action. The property on its own, with no comment, is 321 to 428 bytes (median 358). Against templates of 5 KB to 30 KB that is roughly 2% to 4% of the deploy fee; against a one-line contract it is most of it. A tight description is cheaper than a long one, and it is the line a user reads before they deposit into your contract, so spend the bytes on being clear rather than on being brief.
 
 ### Minimal Contract
 
@@ -102,6 +102,7 @@ module.exports = {
         ownerWithdraw: true   // opts this contract in to the platform WITHDRAW action for its owner
     },
     initialize: function(xchain) {
+        xchain.require(xchain.state.get('owner') === null, 'already initialized');
         xchain.state.set('owner', xchain.getSourceAddress());
         xchain.state.set('total', '0');
     },
@@ -137,7 +138,7 @@ Set `ownerWithdraw: true` for a contract the deployer is meant to be able to swe
 
 ### Constructor
 
-If a contract exports an `initialize` method, the VM calls it immediately after deployment, passing `CONSTRUCTOR_PARAMS` as its arguments when the DEPLOY carries them and no arguments when it does not. That rule holds at or above the [`DEPLOY_INIT_STRICT` flag day](../protocol/flag-days.md#contract-era-flag-day); below it, `initialize` runs only when `CONSTRUCTOR_PARAMS` is non-empty. With no arguments, `xchain.getInputParam(i)` returns `null`, so an `initialize` that needs a parameter should check it with `xchain.require(...)`: the failed check rejects the deploy instead of storing `null`. A contract that should not run a constructor does not export `initialize`. Constructor state changes and emissions are processed atomically with the deployment; if the constructor fails (or any of its emissions does), the contract is not deployed.
+If a contract exports an `initialize` method, the VM calls it immediately after deployment as `initialize(xchain)`. When the DEPLOY carries `CONSTRUCTOR_PARAMS`, `initialize` reads them through `xchain.getInputParam(i)`; they are never passed as extra function parameters. That rule holds at or above the [`DEPLOY_INIT_STRICT` flag day](../protocol/flag-days.md#contract-era-flag-day); below it, `initialize` runs only when `CONSTRUCTOR_PARAMS` is non-empty. With no `CONSTRUCTOR_PARAMS`, `xchain.getInputParam(i)` returns `null`, so an `initialize` that needs a parameter should check it with `xchain.require(...)`: the failed check rejects the deploy instead of storing `null`. `initialize` remains an ordinary exported method that any later `EXECUTE` can name. A constructor that stores an owner, administrator, beneficiary, or accounting state must refuse a second call before changing state, for example with `xchain.require(xchain.state.get('owner') === null, 'already initialized')`. A contract that should not run a constructor does not export `initialize`. Constructor state changes and emissions are processed atomically with the deployment; if the constructor fails (or any of its emissions does), the contract is not deployed.
 
 Constructors may emit any action a method can, including `emit.execute`, so a contract can register itself with a registry contract in the same transaction that deploys it. The constructor runs at call depth 0; remember the contract's derived address holds no tokens yet, so token-moving emissions (`emit.send`, …) from a constructor will fail the deployment unless the tokens were somehow pre-funded.
 
@@ -184,6 +185,14 @@ So arithmetic keeps its result in string form, which is what avoids precision
 loss, while the predicates are usable directly in `if` and
 `xchain.require(...)`. Do not compare a predicate against a string
 (`xchain.math.gt(a, b) === 'true'` is always false).
+
+`compare`, `gt`, `gte`, `lt`, `lte`, `eq`, `min`, and `max` are
+tolerance-based: values within max(1e-12 times the larger magnitude, 1e-15)
+compare as equal. Arithmetic and `isZero` are exact. A positivity check against
+`'0'` may use the tolerant predicates, but threshold, custody, cap, and payment
+guards must use `isAtLeastExact`: `a >= b` is
+`isAtLeastExact(xchain, a, b)` and `a <= b` reverses those arguments. See
+[Deterministic Math](../concepts/smart-contracts.md#deterministic-math).
 
 ## State Management
 
@@ -273,6 +282,8 @@ The VM performs the following checks before deployment. Ahead of check 1, a **ne
 
 A second pre-parse bound, the **syntax-depth pre-check**, rejects source whose syntactic depth exceeds 200, with `syntax depth exceeds limit (200) at line N`, reported under the same `nesting-depth` rule. It counts every construct the parser and the gas-metering pass recurse on, not only delimiters, so it also catches delimiter-free shapes: a long chain of `+` or `!` operators, a long ternary or `else if` chain, or a long chained assignment such as `a = b = c = ...`. The SDK linter (`sdk.validateContract`, and `sdk.deploy` with `lint: 'block'`) and the `xchain-lint` CLI enforce it by default; its activation is described under [Syntax Validation](../components/vm/operations.md#syntax-validation-deploy-time). To stay under it, split long operator or ternary chains into named intermediate values, replace a long `else if` ladder with a lookup table or early returns, and split chained assignments into separate statements.
 
+A third pre-parse bound, the **regex group-depth pre-check**, applies while `LINT_REGEX_GROUP_DEPTH_ACTIVATION` is active (testnet at the arm listed in [Flag-Day Values](../protocol/flag-days.md), regtest from genesis, and mainnet still unarmed). It rejects a regular expression literal whose groups nest more than 64 deep, with `regex group depth exceeds limit (64) at line N`, reported under the same `nesting-depth` rule; an escaped `(` or one inside a character class does not count. The execute-time lint applies the same bound from the same instant. To stay under it, split a deeply nested pattern into smaller patterns.
+
 1. **V8 syntax check**; the code must parse as valid JavaScript
 2. **Acorn metering pass**; the code must be parseable by acorn (ES2020 maximum)
 3. **Reserved identifier check**; the code must not use `__gas` (reserved for gas metering), the allocator metering helpers (`__concat`, `__setconcat`, `__setconcatL`, `__tmpl`, `__tmpltag`, `__tmpltagm`, `__arrspread`, `__objspread`, `__objspreadmeter`), or the call-depth metering helpers (`__depth_enter`, `__depth_exit`); all are harness-injected and a contract may not define or reference them. Under the `VM_LINT_HARDENING` flag-day (below), this also covers the `CONTRACT_WRAPPER`'s injected control bindings: `__contractCode`, `__methodName`, `__isCrossCall`, `__readManifest`.
@@ -284,7 +295,7 @@ A second pre-parse bound, the **syntax-depth pre-check**, rejects source whose s
 9. **Banned WebAssembly check** (consensus-gated, Pkg 3 sandbox): any reference to the global `WebAssembly` is rejected.
 10. **Banned `with` statement check** (consensus-gated, its own `LINT_BANNED_WITH_ACTIVATION` gate): any `with` statement is rejected. A `with` block resolves free identifiers against an object at runtime, which would get past the name-based checks above and the gas-metering rewrite. Read the properties through the object instead (`obj.x`, not `with (obj) { x }`).
 
-Checks 7 and 9 are live today on testnet/regtest (the Pkg 3 sandbox gate is unconditionally active on those networks) even though their mainnet activation is a separate flag-day; a regtest deploy that trips either one is rejected now. Check 8 rides its own `REST_PATTERN_METER` gate rather than the Pkg 3 one, and is likewise unconditionally active on testnet/regtest, so the `xchain-lint` CLI, the SDK linter and a regtest deploy all reject an unmeterable rest pattern today. Check 10 rides its own per-coin [`LINT_BANNED_WITH_ACTIVATION`](../protocol/protocol-activation.md#where-the-values-live) height gate: it is live from genesis on regtest, armed on testnet at each chain's own local block height (`BTC:testnet` 156230, `LTC:testnet` 4912984, `DOGE:testnet` 67989993), and unarmed on mainnet, while the `xchain-lint` CLI and the SDK linter enforce it by default, so a local lint, a regtest deploy or a testnet deploy above that height containing `with` is rejected today. The nesting-depth pre-check follows the same arming on its own `VM_LINT_NESTING_DEPTH_ACTIVATION` gate. The `VM_LINT_HARDENING` widenings under checks 3, 4, and 6 activate at the same instant as `VM_BANNED_ASYNC` and are default-on for the SDK and CLI already. Checks 4, 6, and 9 also match the global-object spellings of `Math`, `Promise`, and `WebAssembly` (`globalThis.Math.pow(...)`, and under the genesis-armed `LINT_GLOBAL_ALIAS_ACTIVATION` gate `this.Math.pow(...)` and `globalThis.globalThis.Promise`), so qualifying the name does not get it past the check. Under the `LINT_DESTRUCTURE_ACTIVATION` gate, which has the same arming as check 10, a destructured read such as `const { pow } = Math` or `const { Promise } = globalThis` is rejected too; see [Global-object spellings](../components/vm/operations.md#global-object-spellings).
+Checks 7 and 9 ride the per-coin [`VM_DEPLOY_LINT_PKG3_ACTIVATION`](../protocol/protocol-activation.md#additional-armed-gates-service-carried) gate. It is active from genesis on testnet/regtest and active on mainnet at `BTC:mainnet` 961000, `LTC:mainnet` 3154250 and `DOGE:mainnet` 6319000, all of which have passed, so a deploy that trips either check is rejected today on every network. Check 8 rides its own `REST_PATTERN_METER` gate rather than the Pkg 3 one, and is likewise unconditionally active on testnet/regtest, so the `xchain-lint` CLI, the SDK linter and a regtest deploy all reject an unmeterable rest pattern today. Check 10 rides its own per-coin [`LINT_BANNED_WITH_ACTIVATION`](../protocol/protocol-activation.md#where-the-values-live) height gate: it is live from genesis on regtest, armed on testnet at each chain's own local block height (`BTC:testnet` 156230, `LTC:testnet` 4912984, `DOGE:testnet` 67989993), and unarmed on mainnet, while the `xchain-lint` CLI and the SDK linter enforce it by default, so a local lint, a regtest deploy or a testnet deploy above that height containing `with` is rejected today. The nesting-depth pre-check follows the same arming on its own `VM_LINT_NESTING_DEPTH_ACTIVATION` gate. The `VM_LINT_HARDENING` widenings under checks 3, 4, and 6 activate at the same instant as `VM_BANNED_ASYNC` and are default-on for the SDK and CLI already. Checks 4, 6, and 9 also match the global-object spellings of `Math`, `Promise`, and `WebAssembly` (`globalThis.Math.pow(...)`, and under the genesis-armed `LINT_GLOBAL_ALIAS_ACTIVATION` gate `this.Math.pow(...)` and `globalThis.globalThis.Promise`), so qualifying the name does not get it past the check. Under the `LINT_DESTRUCTURE_ACTIVATION` gate, which has the same arming as check 10, a destructured read such as `const { pow } = Math` or `const { Promise } = globalThis` is rejected too; see [Global-object spellings](../components/vm/operations.md#global-object-spellings).
 
 A non-blocking **float warning** is also generated if decimal number literals are detected in the code. This warning appears in the execution record but does not prevent deployment.
 
@@ -294,7 +305,7 @@ Past those syntax checks the indexer instantiates the module's top level and jud
 
 ### Validate Before You Deploy
 
-You don't have to spend a transaction to find out whether your contract passes these checks. The same rules run as a pre-flight linter in the SDK and on the command line, so you catch problems at write time and in CI instead of on-chain.
+You don't have to spend a transaction to find out whether your contract passes these checks. The SDK and command-line preflights cover complementary parts of the deploy gate, so you can catch problems at write time and in CI instead of on-chain.
 
 **SDK (advisory, runs anywhere: browser or any Node):**
 
@@ -304,17 +315,18 @@ const result = sdk.validateContract(source);   // source = raw JS, pre-base64
 if (!result.valid) console.error(result.errors);
 ```
 
-`sdk.validateContract` runs every check above **except** the V8 syntax check (step 1); that one needs the VM's isolated runtime, so it only runs at deploy time or via the CLI. That's why the result is marked `authoritative: false`: a `valid: true` here means the contract clears the acorn-coverable rules, but the on-chain deploy (or the CLI below) has the final word on raw V8 syntax.
+`sdk.validateContract` runs the acorn-coverable checks in the numbered list above. It does not run the V8 syntax check (step 1) or the separate contract-identity check described below. That's why the result is marked `authoritative: false`: a `valid: true` here means the contract clears the rules in `lintSource`, but the other preflights and the on-chain deploy still have the final word.
 
-Beyond the deploy-time rules above, the linter adds **logic-level** checks. None of them change what the chain accepts at deploy; they're author-facing signal to catch footguns early:
+Contract identity is a separate deploy preflight. `sdk.validateContract` does not emit a `contract-meta` finding. `sdk.deploy` calls `sdk.contracts.checkExportedMeta(source)` and refuses a provably missing or invalid literal `meta` with `SDKContractError` code `CONTRACT_META_REQUIRED` or `CONTRACT_META_INVALID`; a computed value is advisory because the static read cannot decide it. The command-line linter and the foundry's `runGate` report the same check under the `contract-meta` rule id. A CI check that calls `sdk.validateContract` directly must also call `sdk.contracts.checkExportedMeta` when it needs deploy-parity for contract identity.
 
-- **`contract-meta`**: a source whose export object provably carries no `meta`, or whose literal `meta.name` / `meta.description` fails the byte grammar, is refused **before** the transaction is built, with the same consensus string the chain would have answered. The check is a static read of the source, so a *computed* `meta` field is undecidable and downgrades to an advisory rather than blocking (see [Contract identity](#contract-identity) for why literals are worth it). The foundry's `runGate` carries the same rule under the same id.
+Beyond the deploy-time rules above, `sdk.validateContract` adds **logic-level** checks. These do not change what the chain accepts at deploy; they are author-facing signal to catch footguns early:
+
 - **`crossCallable` integrity**: a *non-array* `crossCallable` makes **every** cross-chain call to your contract fail at runtime (`XCALL_NOT_CALLABLE`). This is reported as a linter **error**: it fails `xchain-lint` and, by default, `sdk.deploy` (`{ lint: 'block' }`), even though the chain itself accepts the contract. A `crossCallable` entry that names no exported method is a **warning** (likely a typo; that method stays uncallable cross-chain).
 - **Warnings** (advisory, never block): structurally unbounded loops, bulk allocations, a `state.get(...)` result dereferenced without a null guard, and methods that read call inputs without any `require()` validation.
 - **`banned-proto-method`** (warning): a call to a prototype method the sandbox removes: `match`, `matchAll`, `search` (they coerce their argument to a RegExp, so catastrophic backtracking would run for almost no gas), and `normalize`, `localeCompare`, `toLocaleLowerCase`, `toLocaleUpperCase`, `toLocaleString` (their output depends on the host's ICU build). The call throws `TypeError` the first time it runs. It is a warning rather than a deploy rule because the match is by method name alone, so the linter cannot tell `someString.search(x)` from your own `myIndex.search(x)`; rename your own method if the warning is a false positive.
 - **`banned-stripped-global`** (warning): a read of a global the sandbox deletes so every validator computes the same result: `Date`, `setTimeout`, `setInterval`, `setImmediate`, `clearTimeout`, `clearInterval`, `clearImmediate`, `WeakRef`, `FinalizationRegistry`, `Proxy`, `Reflect`, `fetch`, `XMLHttpRequest`, `WebSocket`, `SharedArrayBuffer`, `Atomics`, `queueMicrotask`, `BigInt`, `Intl`, `Temporal`, `structuredClone`, and `performance`, bare or [global-object-qualified](../components/vm/operations.md#global-object-spellings). The contract deploys but throws `ReferenceError` the first time that line runs. Use the `xchain.*` gateway instead: `xchain.attestation.request` to read a URL, `xchain.getBlockTimestamp()` for time, `xchain.math.*` for big numbers. `Promise` and `WebAssembly` are stripped too but are reported by the error-severity `banned-async` and `banned-wasm` checks above instead.
 
-`sdk.deploy(params, encoder, { lint })` runs this automatically. The default `lint: 'block'` **throws before building the transaction** if the contract has errors, so a guaranteed-to-fail deploy never reaches the chain. Pass `lint: 'warn'` to log and proceed, or `lint: 'off'` to skip. Chunked deploys (`sdk.deployContract`) lint the fully-assembled source once, before chunking.
+`sdk.deploy(params, encoder, { lint })` runs the lint and contract-identity preflights automatically. The default `lint: 'block'` **throws before building the transaction** if either check finds a proven error, so a guaranteed-to-fail deploy never reaches the chain. Pass `lint: 'warn'` to log and proceed, or `lint: 'off'` to skip. Chunked deploys (`sdk.deployContract`) check the fully-assembled source once, before chunking.
 
 **CLI (authoritative: conservative superset of the deploy gate, never exact parity, requires Node 22):**
 
@@ -345,7 +357,7 @@ The CLI runs the **full** validator including the V8 syntax check, so a clean re
 
 > **Indexed `for` loops cost 2 gas per iteration, not 1.** The gas meter injects a control-flow charge at the top of the loop body *and* a second charge into the update expression (`for (…; i++)` is metered as `for (…; (__gas(1), i++))`). So a `for` loop running N iterations costs `2 × N` computation gas. `while`, `do-while`, `for-in`, and `for-of` loops have no update expression and cost 1 gas per iteration. Budget indexed `for` loops accordingly.
 
-The gas ceiling is **1,000,000** per execution. Deployment gas is calculated as `VM_DEPLOY_BASE + (code_bytes * VM_DEPLOY_PER_BYTE)`, plus constructor gas if a constructor runs.
+The gas ceiling is **1,000,000** per execution. Inline deployment gas is `VM_DEPLOY_BASE + (decoded_source_bytes * VM_DEPLOY_PER_BYTE)`. Chunked deployment gas is `VM_DEPLOY_BASE + (total_base64_CODE_PART_characters * VM_DEPLOY_PER_BYTE)`, because each v4 carrier pays for its base64 slice and the v2/v3 assembler pays the base. Constructor gas is added on either path.
 
 ## Debugging
 
@@ -446,7 +458,7 @@ Two providers ship in the initial release. Governance can add more over time.
 | `http_get` | Fetches an HTTPS URL and returns the response body | URL string | Exact byte-equality across validators |
 | `llm` | Sends a prompt to an approved language model | JSON `{prompt, max_tokens?, temperature?, system?}` | Judge-model semantic equivalence |
 
-For `llm` payload fields, approved models, and provider-specific limits, see [`protocol/providers/llm.md`](../protocol/providers/llm.md). For the full protocol-level lifecycle, see [`protocol/actions/ATTEST.md`](../protocol/actions/attest.md).
+For `llm` payload fields, approved models, and provider-specific limits, see [`protocol/providers/llm.md`](../protocol/providers/llm.md). For the full protocol-level lifecycle, see [`protocol/actions/attest.md`](../protocol/actions/attest.md).
 
 ### Patterns
 
@@ -503,7 +515,8 @@ xchain.contract.slash(signingPubkey, 'XCHAIN', '50');
 - The slash can only target stakers of **this** contract; authorization is implicit; you cannot accidentally slash someone else's contract's stakers.
 - Slashed tokens go to the destination you set at deploy time.
 - The slash reaches a staker's currently-active stake first; if there is still a remainder, it pulls from the cooldown-locked balance the staker has already begun withdrawing. (Stakers cannot escape an imminent slash by initiating an unstake.)
-- Over-slash is silently capped at the staker's available balance. No error is thrown when you ask for more than they have.
+- Over-slash is silently capped at the staker's available balance. Asking for more than the available balance does not throw, but malformed arguments do; see [Throws and argument validation](../protocol/contract-staking.md#throws-and-argument-validation).
+- Where `SLASH_GRID_ACTIVATION` is active, the amount is floored to the token's decimals. A request below one base unit deducts nothing and writes no `slash_events` row; see [Amount precision and flooring](../protocol/contract-staking.md#amount-precision-and-flooring).
 - Atomic with the calling EXECUTE: if the calling method reverts, the slash rolls back too.
 
 Slash costs `VM_EMISSION` (500) gas.
@@ -512,6 +525,22 @@ Slash costs `VM_EMISSION` (500) gas.
 
 ```javascript
 // Deploy with: COOLDOWN_BLOCKS=50, SLASH_DESTINATION=BURN, CONSTRUCTOR_PARAMS=<owner address>
+// Return true when a >= b exactly, by the sign of the exact subtract ('-0' is zero).
+// xchain.math.gt/gte/lt/lte/eq/compare treat values within max(1e-12 relative, 1e-15) as
+// equal, so custody, cap and payment guards use this; `a <= b` is isAtLeastExact(xchain, b, a).
+// A non-finite difference ('Infinity', '-Infinity', 'NaN') returns false, so the guard fails closed.
+function isAtLeastExact(xchain, a, b) {
+    var diff = String(xchain.math.subtract(a, b));
+    var neg = diff.charAt(0) === '-';
+    var nonzero = false;
+    for (var i = neg ? 1 : 0; i < diff.length; i++) {
+        var c = diff.charAt(i);
+        if (c >= '1' && c <= '9') nonzero = true;
+        else if (c !== '0' && c !== '.') return false;
+    }
+    return !(neg && nonzero);
+}
+
 module.exports = {
     meta: {
         name:        'Bonded Service',
@@ -523,13 +552,16 @@ module.exports = {
     // param. punish compares the caller against it, so without this the
     // owner check can never pass.
     initialize: function(xchain) {
-        xchain.state.set('owner', xchain.getInputParam(0));
+        xchain.require(xchain.state.get('owner') === null, 'already initialized');
+        var owner = xchain.getInputParam(0);
+        xchain.require(owner, 'owner address required');
+        xchain.state.set('owner', owner);
     },
 
     // Anyone can check: does this pubkey hold at least 100 XCHAIN against this contract?
     isQualified: function(xchain) {
         var pubkey = xchain.getInputParam(0);
-        return xchain.math.gte(xchain.contract.getStake(pubkey, 'XCHAIN'), '100') ? '1' : '0';
+        return isAtLeastExact(xchain, xchain.contract.getStake(pubkey, 'XCHAIN'), '100') ? '1' : '0';
     },
 
     // Owner-only: slash a misbehaving staker.
@@ -540,12 +572,13 @@ module.exports = {
         );
         var pubkey = xchain.getInputParam(0);
         var amount = xchain.getInputParam(1);
+        // Malformed values throw here; catch the exception if this method should continue.
         xchain.contract.slash(pubkey, 'XCHAIN', amount);
     }
 };
 ```
 
-For the full protocol-level spec: wire format, isolation between contract and capability staking, cooldown sweep behavior, the `slash_events` table (see [`protocol/Contract_Staking.md`](../protocol/contract-staking.md).
+For the full protocol-level spec, including slash argument validation, wire format, isolation between contract and capability staking, cooldown sweep behavior and the `slash_events` table, see [`protocol/contract-staking.md`](../protocol/contract-staking.md).
 
 ## Calling Other Contracts: `emit.execute`
 
@@ -605,9 +638,9 @@ const callId = xchain.emit.crossExecute({
     method: 'onArrival',          // must be in the target's crossCallable allowlist
     params: ['order-7', '250'],   // optional string args (max 32, 1024 bytes each, no "|")
     gasLimit: 50000,              // gas the remote run gets (5,000 – 200,000; NOT refunded)
-    callbackMethod: 'onResult',   // REQUIRED: every call ends in exactly one callback
-    callbackParams: ['ctx'],      // optional strings echoed back to you
-    deadlineBlocks: 400           // optional; your-chain blocks before a local 'expired' callback
+    callbackMethod: 'onResult',   // REQUIRED; max 64 UTF-8 bytes and no "|"
+    callbackParams: ['ctx'],      // optional; String()-coerced JSON array max 1024 bytes total
+    deadlineBlocks: 400           // optional, default 400; allowed range 10 to 4000
 });
 ```
 
@@ -652,7 +685,8 @@ This allowlist is the security boundary: the federation's signed dispatch can on
 
 - **Pre-paid, no refunds:** `crossExecute` charges `VM_EMISSION (500) + 2,000 (request) + gasLimit + 20,000 (callback ceiling)` to your budget at emit time. Unused remote gas is **not** refunded; size `gasLimit` to the work, not generously.
 - **Hop budget is 2:** your call is hop 1; the remote contract calling back (or onward) is hop 2; further cross-chain calls from that context throw. `xchain.getCrossHops()` reports the current count.
-- **Failures are delivered, not thrown:** a remote revert/out-of-gas/missing contract rolls back the remote state and your callback receives the failure status. If nothing comes back before `deadlineBlocks`, you get a deterministic `expired` callback; your contract always hears exactly one outcome.
+- **Remote failures are delivered, not thrown:** a remote revert/out-of-gas/missing contract rolls back the remote state and your callback receives the failure status. If nothing comes back before `deadlineBlocks`, you get a deterministic `expired` callback; your contract always hears exactly one outcome.
+- **Invalid arguments throw at emit time:** an out-of-range `gasLimit` or `deadlineBlocks`, an oversized method or callback method, callback params whose complete serialized JSON exceeds 1024 bytes, and other invalid inputs synchronously throw before an XCALL is emitted. Contract code can catch the exception and continue. If it is not caught, the calling method fails and its changes roll back.
 - **No value transfer:** params and a return payload only. Move tokens with the cross-chain DEX, not calls.
 - Not available from constructors.
 
@@ -699,9 +733,16 @@ module.exports = {
         version:     '1.0.0'
     },
     initialize: function(xchain) {
-        xchain.state.set('beneficiary', xchain.getInputParam(0));
-        xchain.state.set('token', xchain.getInputParam(1));
-        xchain.state.set('totalAmount', xchain.getInputParam(2));
+        xchain.require(xchain.state.get('beneficiary') === null, 'already initialized');
+        var beneficiary = xchain.getInputParam(0);
+        var token = xchain.getInputParam(1);
+        var totalAmount = xchain.getInputParam(2);
+        xchain.require(beneficiary, 'beneficiary required');
+        xchain.require(token, 'token required');
+        xchain.require(totalAmount, 'total amount required');
+        xchain.state.set('beneficiary', beneficiary);
+        xchain.state.set('token', token);
+        xchain.state.set('totalAmount', totalAmount);
         xchain.state.set('startBlock', String(xchain.getBlockHeight()));
         xchain.state.set('vestingBlocks', xchain.getInputParam(3) || '1000');
         xchain.state.set('claimed', '0');

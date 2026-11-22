@@ -3,7 +3,7 @@
 
 # Desktop: Mac App Store
 
-The Mac App Store is the way many macOS users expect to install an app, so a listing there sits alongside the direct download described in [macOS](macos.md). It does not replace it. Both channels ship.
+The Mac App Store is the way many macOS users expect to install an app, so a listing there sits alongside the direct download described in [macOS](macos.md). It does not replace it. The direct download has shipped; this channel has not yet.
 
 This page carries both halves of the lane: the submission runbook an operator follows, and the listing collateral they paste into the console.
 

@@ -29,7 +29,9 @@ const readJson = (rel) => JSON.parse(readDoc(rel));
 
 const send   = readDoc('protocol/actions/send.md');
 const batch  = readDoc('protocol/actions/batch.md');
+const fileDoc = readDoc('protocol/actions/file.md');
 const gated  = readDoc('protocol/token-gated-content.md');
+const uses   = readDoc('user-guide/use-cases.md');
 const tis    = readDoc('protocol/token-information-standard.md');
 const terms  = readDoc('getting-started/key-terms.md');
 const paper  = readDoc('whitepaper.md');
@@ -85,6 +87,20 @@ test('every statement of the handoff requirement carries the threshold exemption
         'the unlock-threshold heading batch.md links to is gone');
 });
 
+test('per-pack thresholds define tiers and handoffs omit keys above the recipient balance', () => {
+    const nonGoal = lineStarting(gated, '- **Gating finer than a pack.**', 'token-gated-content.md');
+    assert.match(nonGoal, /Tiered access under one token is supported by publishing each tier as a separate pack/,
+        'the non-goal again denies per-pack tiers under one token');
+    assert.doesNotMatch(gated, /All gated files for a token are unlocked atomically/,
+        'the pre-threshold non-goal returned');
+    const selection = lineStarting(gated, '**Which keys the handoff carries.**', 'token-gated-content.md');
+    assert.match(selection, /leave out the key of a pack whose effective threshold that balance does not reach/,
+        'the sender rule no longer preserves keys for packs above the recipient balance');
+    const packs = lineStarting(uses, '- **Packs.**', 'user-guide/use-cases.md');
+    assert.match(packs, /at or above the pack's `GATE_MIN_AMOUNT`/,
+        'the user guide again says any token balance unlocks every pack');
+});
+
 test('the TIS and glossary group packs by publisher, GATE_TICKER and KEY_HASH', () => {
     const packRow = lineStarting(tis, '| pack_id ', 'token-information-standard.md');
     assert.ok(!/groups by `KEY_HASH` directly/.test(packRow),
@@ -99,6 +115,20 @@ test('the TIS and glossary group packs by publisher, GATE_TICKER and KEY_HASH', 
         'the Pack glossary entry no longer includes the publisher in the pack key');
 });
 
+test('multipart pages assign each batch refusal to the action that receives it', () => {
+    const fileRefusal = lineStarting(fileDoc, '- `invalid: FILE_HASH (batch)`', 'file.md');
+    assert.match(fileRefusal, /on the manifest itself when another `FILE` shares its `BATCH`/,
+        'file.md again assigns the manifest refusal to a second FILE');
+    const packStep = lineStarting(gated, '3. Issuer publishes one manifest', 'token-gated-content.md');
+    assert.match(packStep, /the manifest itself is refused and joins no pack/,
+        'token-gated-content.md no longer says the manifest receives the refusal');
+    const formatZero = lineStarting(batch, '- A `BATCH` may contain at most one format 0 `FILE`', 'batch.md');
+    assert.match(formatZero, /Nothing on the indexing path enforces that format 0 limit/,
+        'batch.md again claims that no multipart FILE limit is enforced');
+    assert.match(formatZero, /a version 2 part in any `BATCH` is refused as `invalid: VERSION \(batch\)`/,
+        'batch.md no longer documents the multipart part refusal');
+});
+
 test('the pages state that gating covers only same-chain gated FILEs', () => {
     assert.match(gated, /The rule covers only gated `FILE`s on the token's own chain/,
         'token-gated-content.md no longer says the handoff rule covers only same-chain gated FILEs');
@@ -108,6 +138,14 @@ test('the pages state that gating covers only same-chain gated FILEs', () => {
     const refRow = lineStarting(tis, '| data_ref ', 'token-information-standard.md');
     assert.match(refRow, /A sibling-chain FILE is not gated by the token/,
         'the TIS data_ref row no longer says a sibling-chain FILE is ungated');
+    const v111 = tis.match(/### v1\.1\.1[\s\S]*?(?=### v1\.1\.0)/);
+    const v110 = tis.match(/### v1\.1\.0[\s\S]*?(?=### v1\.0\.0)/);
+    assert.ok(v111 && /locked `stems\.zip`[\s\S]*sibling-chain `FILE` the token cannot gate/.test(v111[0]),
+        'the frozen v1.1.1 example warning no longer names its ungated locked entry');
+    assert.ok(v111 && /public artwork[\s\S]*shares a `data_ref` with a locked entry/.test(v111[0]),
+        'the frozen v1.1.1 example warning no longer names its shared public and locked reference');
+    assert.ok(v110 && /locked `stems\.zip`[\s\S]*sibling-chain `FILE` the token cannot gate/.test(v110[0]),
+        'the frozen v1.1.0 example warning no longer names its ungated locked entry');
 });
 
 test('the current TIS example keeps locked entries same-chain and unshared', () => {

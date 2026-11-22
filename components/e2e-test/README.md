@@ -42,9 +42,9 @@ sequenceDiagram
 
 ## Features
 
-- **32 ACTION test suites**: ADDRESS, AIRDROP, BATCH, BROADCAST, CALLBACK, COINPAY, COLLECT, DELEGATE, DEPLOY, DEPOSIT, DESTROY, DISPENSER, DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT, ORDER, PRICE, ROLLCALL, SEND, SLASH, SLEEP, STAKE, SWAP, SWEEP, UNSTAKE, WITHDRAW, XBRIDGE
+- **33 ACTION test suites**: ADDRESS, AIRDROP, ATTEST, BATCH, BROADCAST, CALLBACK, COINPAY, COLLECT, DELEGATE, DEPLOY, DEPOSIT, DESTROY, DISPENSER, DIVIDEND, EXECUTE, FILE, ISSUE, LINK, LIST, MESSAGE, MINT, ORDER, PRICE, ROLLCALL, SEND, SLASH, SLEEP, STAKE, SWAP, SWEEP, UNSTAKE, WITHDRAW, XBRIDGE
 
-  **How that number is counted:** one suite per ACTION name, with every version of an action folded into a single entry, so ISSUE V0 through V5 counts once and SEND V0 through V3 counts once. An ACTION name is counted when a suite under `test/actions/` builds a payload for it, whether directly or through a helper it loads, and the name is recognised by the decoder's `VALID_ACTION_NAMES`. The figure is not a file count: 69 files collapse onto these 29 names because reorg, negative, and variant suites re-test actions already listed. Regenerate it with `node scripts/count-action-suites.js` (add `--json` for the per-suite breakdown); `test/unit/scripts/action_suite_count.test.js` fails if this list and the tree disagree. Actions exercised only by other tiers, such as BET and VOTE in `test/sdk/` or ATTEST and NODEPROOF in `test/federation/`, are outside this count.
+  **How that number is counted:** one suite per ACTION name, with every version of an action folded into a single entry, so ISSUE V0 through V5 counts once and SEND V0 through V3 counts once. An ACTION name is counted when a suite under `test/actions/` builds a payload for it, whether directly or through a helper it loads, and the name is recognised by the decoder's `VALID_ACTION_NAMES`. The figure is not a file count: 141 files collapse onto these 33 names because reorg, negative, and variant suites re-test actions already listed. Regenerate it with `node bin/count-action-suites.js` (add `--json` for the per-suite breakdown); `test/unit/scripts/action_suite_count.test.js` fails if this list and the tree disagree. Actions exercised only by other tiers, such as BET and VOTE in `test/sdk/` or NODEPROOF in `test/federation/`, are outside this count.
 - **9 service connectors**: BlockchainConnector (axios, Basic Auth), XChainUtxoTrackerConnector, XChainEncoderConnector, XChainDecoderConnector, XChainIndexerConnector, XChainExplorerConnector, XChainHubConnector (multi-endpoint failover), RegtestMinerConnector, and Database (MariaDB connection pool)
 - **Hub auto-discovery**: falls back to xchain-hub for service endpoint resolution when direct environment variables are not set
 - **Multi-chain support**: Bitcoin, Litecoin, and Dogecoin today, on regtest (network configs via `CryptoNetworks.js`)
@@ -94,11 +94,12 @@ The `initialCheck.test.js` Mocha root hook runs five phases before any test:
 All `waitFor*` methods in `db.js` follow the same pattern:
 
 1. Record start time and poll count
-2. Loop while `Date.now() < endTime` (default 30 seconds)
+2. Poll until the `timeMax` deadline (default 60 seconds / `60000` ms)
 3. Call the corresponding `check*` method (parameterized SQL query)
 4. If a row is found, record performance metrics and return the row
 5. If not found, sleep 1 second and retry
-6. On timeout, record metrics and return `null`
+6. If the deadline passes while the indexer is behind or still writing action rows, extend it by another `timeMax`, up to `WAIT_MAX_EXTENSIONS` times (default 3). Only waits of at least `WAIT_MIN_FOR_EXTENSION` ms (default 5000) are eligible, and every extension is logged. A default wait can therefore run for roughly 240 seconds.
+7. On final timeout, record metrics and log the give-up reason. Return `null` if at least one poll answered but found no row; if every poll errored, throw `WAIT_NO_ANSWER` instead.
 
 ### Quiesce Barrier
 

@@ -98,25 +98,26 @@ Bridgeability is a property the token owner sets on the origin row, **default of
 
 - `BRIDGE_CHAINS`: which destination chains a lock may target. Empty means unchanged, so a
   later format `7` can extend the list without restating it.
-- `MIN_DEPTH`: a confirmation depth the federation must honour for this token's locks, on top of
-  the platform default; raise-only, never lower.
+- `MIN_DEPTH`: the minimum confirmation depth the federation waits for on this token's locks. The
+  effective depth is the larger of the platform default and `MIN_DEPTH`. The owner can change it
+  up or down until `LOCK_BRIDGE` freezes it. Each lock stamps the value in force at its own block,
+  so a later change does not affect a transfer already in flight.
 - `LOCK_BRIDGE`: freezes both fields forever, the holder's assurance against the owner (and
   against a new owner after an ownership transfer, which inherits both fields).
 
 A lock checks the origin row's `BRIDGE_CHAINS` at its own block; a destination not on the list
-is refused with `invalid: TICK (not bridgeable to DEST_COIN)`. `MIN_DEPTH` is stamped onto the
-pending transfer at lock time and never re-read later, so an issuer raising it afterward can
-never make an already-accepted lock un-signable. Removing a chain from `BRIDGE_CHAINS` only
-stops new locks; it never touches balances already bridged, and burns are always allowed, so an
-issuer can close a door but never strand anyone on the other side of it.
+is refused with `invalid: TICK (not bridgeable to DEST_COIN)`. Removing a chain from
+`BRIDGE_CHAINS` only stops new locks; it never touches balances already bridged, and burns are
+always allowed, so an issuer can close a door but never strand anyone on the other side of it.
 
 ## What does not generalize
 
 - **Trust.** [Cross-Chain Bridge: Trust model](./xchain-bridge.md#trust-model) applies
-  unchanged, and matters more here: XCHAIN's milestone-1 hub-trusted mint is a statement about
-  the platform's own token. A third-party issuer bridging real value should read that section
-  before opting in. This spec arms nowhere before the checkpoint cross-check described there is
-  built and armed on that network.
+  unchanged, and matters more here: every general-token credit needs both the `cross_chain`
+  quorum's signature and proof against the origin chain's quorum-signed ANCHOR checkpoint
+  before any effect. This replaces the earlier milestone-1 hub-trusted mint, but still assumes
+  the two quorums did not both lie. A third-party issuer bridging real value should read that
+  section before opting in. Mainnet remains off until its activation height is armed.
 - **Reorg finality.** An applied mint is final and the origin escrow can drop on a reorg (see
   [Reorgs and finality](./xchain-bridge.md#reorgs-and-finality)). For a third-party token that is
   the issuer's own unbacked liability, not the platform's; `MIN_DEPTH` is the issuer's own price
@@ -156,6 +157,11 @@ shape that matters to a reader of this page:
   the *previous* policy for that window; nothing is retroactive.
   `getappliedpolicy(tick)` (indexer, open read) shows exactly what a given chain has applied and
   as of which origin block.
+- **A bounded apply queue.** Each chain applies at most `XPOLICY_MAX_PER_BLOCK` (5) policy snapshots
+  per block per chain, before any XBRIDGE settle leg in that block. Overflow carries forward in
+  `(snapshot_block, snapshot_id)` order across ticks and `policy_seq` order within a tick, so a
+  backlog can extend the confirmed lag. Transfer credits use the separate cap described in
+  [XBRIDGE settlement scheduling](./actions/xbridge.md#settlement-scheduling).
 - **Detaching a list.** When the origin issuer detaches its allow or block list (an
   [`ISSUE`](./actions/issue.md) format `5` carrying `0` in that field), the next signed snapshot
   carries that list as null. From the destination's `BRIDGE_POLICY_DETACH` activation, read at

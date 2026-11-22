@@ -133,20 +133,23 @@ const challenge = sdk.generateChallenge('bc1quseraddress...');
 // challenge.nonce:     hex nonce (store this server-side)
 // challenge.timestamp: ISO 8601 timestamp
 // challenge.expiresAt: ISO 8601 expiry (default 5 minutes)
+// challenge.bound:     true when the nonce is in the signed text
 
 // Custom application ID
 const challenge = sdk.generateChallenge('bc1q...', { appId: 'MyMusicApp' });
 
-// Custom message (your site generates its own format)
+// Custom message template (include {nonce} so the signature binds the nonce)
 const challenge = sdk.generateChallenge('bc1q...', {
-    message: 'Sign this to access premium content on MyApp. Nonce: abc123'
+    message: 'Sign this to access premium content on MyApp.\nNonce: {nonce}\nExpires: {expiresAt}',
+    requireNonce: true
 });
-// challenge.challenge === the custom message, used as-is
+// Supported placeholders: {nonce}, {address}, {timestamp}, {expiresAt}
+// challenge.bound: true when the nonce is in the signed text
 ```
 
-When `opts.message` is truthy, the SDK uses it verbatim. The nonce and timestamp metadata are still returned for the caller's bookkeeping but are not embedded in the message. This means sites can generate their own messages and verify independently of the SDK.
+When `opts.message` is truthy, the SDK fills its supported placeholders and uses the rest as-is. `bound` is true only when the SDK filled `{nonce}`, or when an SDK-generated nonce appears as a whole delimited token. A caller-supplied nonce found literally, as a substring of static text, or only in another filled field does not bind the challenge. Such a message comes back with `bound: false` and an `UnboundChallengeWarning` once per SDK instance. Pass `requireNonce: true` to throw `CHALLENGE_UNBOUND` instead.
 
-Challenge state is caller-managed. Store the nonce and enforce expiry and single use on the server; `verifyOwnership` verifies only the address, message, and signature supplied to it.
+Challenge state is caller-managed. Store the exact challenge, nonce, and expiry, then enforce expiry and single use on the server; `verifyOwnership` verifies only the address, message, and signature supplied to it. To sign fixed text without a nonce, call `signMessage` and `verifyMessage` directly, with no replay protection supplied by the SDK.
 
 ### Step 2: Sign the Challenge (Wallet/Client)
 

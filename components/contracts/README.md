@@ -25,7 +25,7 @@ Unlike the rest of the platform, this repository is **MIT-licensed** rather than
 | `escrow` | The custody baseline: DEPOSIT funding verified on-chain, conditional release/refund, an arbiter, and a deadline so funds cannot be locked forever. Read this one first. |
 | `escrowDelivery` | The same escrow, settling itself on a delivery attestation: point it at a carrier tracking URL and a marker string and no party has to call `release()`. |
 | `vesting` | Linear release with a cliff, partial-claim accounting, and optional revocation. |
-| `crowdsale` | A capped raise with a soft cap, deadline, and refunds, plus a contract that issues its own token and mints it to buyers. |
+| `crowdsale` | A capped raise with a soft cap, deadline, and refunds, plus a contract that issues its own token: it pre-mints the full sale supply into its own custody at deploy, locks further minting, and sends each buyer's allocation on claim. |
 | `amm` | A constant-product market maker. LP positions are real, tradeable ticks; the `k`-invariant is fuzz-tested. |
 | `treasury` | A poll-governed treasury hardened against low-turnout governance raids: binding `VOTE` polls, a timelock, and a guardian veto. |
 | `stableVault` | A mini-MakerDAO: over-collateralized vaults that mint the contract's own stable token, oracle staleness gating, and permissionless liquidation. |
@@ -50,11 +50,11 @@ These templates deliberately do **not** reimplement native protocol actions. XCh
 | `xchain-contracts lint [files…] [--json]` | Lint sources against a conservative superset of the deploy-time rules (defaults to every template and pattern) |
 | `xchain-contracts policy <config.json> [out] [--json]` | Generate a controller guard contract from a policy config, no contract code written by hand |
 
-`lint` delegates to `xchain-vm`'s linter, so it runs the real deploy-time validation (V8 syntax, the acorn metering pass, reserved identifiers, banned `Math.*`, banned `BigInt`/`RegExp` literals) plus logic-level advisories. That means it requires **Node 22 exactly** and a built `isolated-vm`. A clean result is a conservative preflight, not exact deploy parity: the source passed every rule the linter enforces, and that rule set is a superset of the live deploy gate (future and mainnet-gated rules are enforced immediately, and a malformed `crossCallable` is a linter error the chain itself accepts), so the linter can still refuse a contract a given chain, network and block would deploy. See [Smart Contract Development](../../developer-guide/smart-contract-development.md) for the full superset rationale.
+`lint` delegates to `xchain-vm`'s linter, so it runs the complete deploy-time validation rule set plus logic-level advisories. See [Syntax Validation (Deploy-Time)](../vm/operations.md#syntax-validation-deploy-time) for the current blocking rules and limits. That means it requires **Node 22 exactly** and a built `isolated-vm`. A clean result is a conservative preflight, not exact deploy parity: the source passed every rule the linter enforces, and that rule set is a superset of the live deploy gate (future and mainnet-gated rules are enforced immediately, and a malformed `crossCallable` is a linter error the chain itself accepts), so the linter can still refuse a contract a given chain, network and block would deploy. See [Smart Contract Development](../../developer-guide/smart-contract-development.md) for the full superset rationale.
 
 ## Using it from the SDK
 
-The same library is reachable from `xchain-sdk` without the Node 22 requirement, because the SDK ships only the advisory half of the linter:
+The SDK embeds every pattern and the subset of templates returned by `sdk.listTemplates()` without the Node 22 requirement, because it ships only the advisory half of the linter. The remaining templates are CLI-only through `npx xchain-contracts scaffold <name>`; `sdk.scaffold()` reports `TEMPLATE_NOT_FOUND` for them:
 
 ```js
 const source = sdk.scaffold('escrow');       // template source, ready to edit

@@ -5,7 +5,7 @@
 
 Token-gated content is XChain's protocol-native mechanism for publishing files that are readable only by holders of a specific token. Files are encrypted on-chain with a symmetric key, and the key is delivered to each holder through standard ECIES messaging. Owning the token cryptographically grants the ability to decrypt, without an on-chain unlock transaction, without third-party infrastructure, and without storing the content off-chain.
 
-This is the platform's first cryptographically secure publishing capability. It composes three existing primitives, the [`FILE`](./actions/file.md) ACTION, the [`MESSAGE`](./actions/message.md) ACTION (ECIES mode), and the [`BATCH`](./actions/batch.md) ACTION, by appending four optional fields (`GATE_TICKER`, `ENCRYPTION_METHOD`, `KEY_HASH`, `GATE_MIN_AMOUNT`) to `FILE` format 0 and adding one indexer rule on `SEND`. No new ACTIONs. No new format versions. No new infrastructure. No external services.
+This is the platform's first cryptographically secure publishing capability. It composes three existing primitives, the [`FILE`](./actions/file.md) ACTION, the [`MESSAGE`](./actions/message.md) ACTION (ECIES mode), and the [`BATCH`](./actions/batch.md) ACTION, by appending four optional fields (`GATE_TICKER`, `ENCRYPTION_METHOD`, `KEY_HASH`, `GATE_MIN_AMOUNT`) to `FILE` metadata and adding one indexer rule on `SEND`. FILE format 0 carries a single-transaction file, while formats 1 and 2 carry a multi-part file. No new ACTIONs or external infrastructure are needed.
 
 ---
 
@@ -30,7 +30,7 @@ This is the platform's first cryptographically secure publishing capability. It 
 
 The token issuer composes one or more on-chain transactions that publish the encrypted file(s) and record the key.
 
-### Single file
+### Single-transaction file
 
 1. Issuer generates a random 256-bit symmetric key `K` and computes `KEY_HASH = sha256(K)` (lowercase hex; see [`FILE`](./actions/file.md) for the case rule, which is tolerant on chain and canonicalized at record time).
 2. Issuer **compresses the plaintext, then encrypts it** with AES-256-GCM under `K`. Output ciphertext is `[12-byte nonce][16-byte GCM authentication tag][ciphertext]`. The order is not a preference: GCM ciphertext is incompressible, so encrypting first throws the saving away entirely. When the compressed form is kept, the `FILE` action's `COMPRESSION` field is set to `1` and means **inflate after decrypt** (see [Compression ordering](#compression-ordering) below).
@@ -38,6 +38,14 @@ The token issuer composes one or more on-chain transactions that publish the enc
    - `FILE|0|NAME|TYPE|TITLE|MEMO|GATE_TICKER|1|KEY_HASH|GATE_MIN_AMOUNT|COMPRESSION` (where `1` = AES-256-GCM in the `ENCRYPTION_METHOD` field) with the ciphertext as the action's `rawData` (transported via P2WSH per [Transaction Encoding](../concepts/encoding.md)). `GATE_MIN_AMOUNT` is optional and may be omitted entirely; the eight-field form is unchanged and still valid, so every historical `FILE` reads identically.
    - `MESSAGE|2|COIN|<issuer-address>|<ECIES ciphertext>` whose decrypted plaintext is the binary payload below, encrypted to the issuer's own address so the issuer can recover `K` later for redistribution.
 4. The single transaction is signed and broadcast. There is no window in which the encrypted file exists on-chain without the key being recorded.
+
+### Multi-part gated file
+
+A gated file that does not fit in one transaction uses the FILE version 1 manifest and version 2 parts described in [Multi-part files](./actions/file.md#multi-part-files-versions-1-and-2). The publisher performs the gated pipeline once: optionally deflate the original plaintext, encrypt the result as `[nonce][tag][ciphertext]`, then slice that stored ciphertext into parts. `TOTAL_BYTES` is therefore the ciphertext length, and `FILE_HASH` binds the ciphertext slices. Parts are never compressed or encrypted independently.
+
+The gated manifest carries `GATE_TICKER`, `ENCRYPTION_METHOD`, `KEY_HASH`, `GATE_MIN_AMOUNT`, and `COMPRESSION`, but no raw bytes. It may share a `BATCH` with the self-addressed MESSAGE v2 that commits the recoverable key. Each version 2 part must be published outside a `BATCH`. The gated file joins its pack at the manifest's action index even before assembly completes, but its raw bytes remain unavailable until every part is present and the group completes with matching hash and length. A holder's raw request receives the assembled ciphertext, never plaintext and never a partial file; pending and mismatched assemblies are not treated as empty content.
+
+On unlock, the wallet waits for completion, fetches the assembled ciphertext using the manifest action index, verifies and decrypts it exactly as for format 0, and only then inflates when `COMPRESSION=1`. A client may set its own memory bound for gated files, but that bound is a client policy and not a protocol rule. The manifest action index is also the pack member and the only valid `LINK` target; part indexes are not files.
 
 ### Pack of files (shared key)
 
@@ -47,7 +55,7 @@ The publisher is part of the key because token ownership transfers. A former iss
 
 1. Issuer generates one `K` and `KEY_HASH`.
 2. Issuer encrypts each file plaintext under `K`. Each file gets a fresh 12-byte nonce, but they all share `K`.
-3. Issuer publishes one `FILE|0|...` action per file, each in its own transaction. A transaction carries exactly one `rawData` payload and a `BATCH` hands that same payload to every sub-command, so a `BATCH` holds at most one `FILE` whatever the file sizes are; a second `FILE` batched beside the first is recorded valid carrying the FIRST file's ciphertext, permanently. To publish a pack in one transaction, combine the files into a single archive and publish that archive as one `FILE`.
+3. Issuer publishes one manifest or `FILE|0|...` action per file. A transaction carries exactly one `rawData` payload and a `BATCH` hands that same payload to every sub-command, so a `BATCH` holds at most one format 0 `FILE`. A multi-part manifest may share a `BATCH` with its MESSAGE v2 key commit, but it must be the only `FILE` there: if another `FILE` shares the `BATCH`, the manifest itself is refused and joins no pack. A version 0 sibling is still judged by its own rules, and two manifests sharing a `BATCH` are both refused. Every part is published separately. To publish a pack in one transaction, combine the files into a single archive and publish that archive as one `FILE`.
 4. After (or alongside) the last file, issuer publishes a self-`MESSAGE` whose binary payload contains the single shared `K`.
 
 Because every file in the pack shares the same `K`, one 32-byte entry in the handoff unlocks every file in the pack regardless of how many there are.
@@ -59,15 +67,15 @@ sequenceDiagram
 
     Note over Issuer: Single file
     Issuer->>Issuer: generate random 256-bit K, compute KEY_HASH = sha256(K)
-    Issuer->>Issuer: encrypt file plaintext with AES-256-GCM under K
+    Issuer->>Issuer: optionally deflate the plaintext (then set COMPRESSION=1),<br>then encrypt with AES-256-GCM under K
     Issuer->>Chain: BATCH(FILE with GATE_TICKER/KEY_HASH, MESSAGE v2 self-ECIES containing K)
     Note over Chain: single transaction, no window without the key recorded
 
     Note over Issuer: Pack of files, shared key
     Issuer->>Issuer: generate one K and KEY_HASH
-    Issuer->>Issuer: encrypt each file under K with a fresh nonce per file
+    Issuer->>Issuer: optionally deflate each file, then encrypt it under K<br>with a fresh nonce per file
     loop each file in the pack
-        Issuer->>Chain: FILE|0|... action, same publisher, GATE_TICKER, KEY_HASH
+        Issuer->>Chain: FILE|0, or FILE|1 manifest then FILE|2 parts,<br>same publisher, GATE_TICKER, KEY_HASH
     end
     Issuer->>Chain: self-MESSAGE, ECIES, binary payload contains the shared K
 ```
@@ -105,6 +113,8 @@ The rule the indexer applies, in order:
 2. **Measured on the post-send balance.** The recipient's balance of the token *before* the transfer, plus the total this action sends them across all of its legs. The total, not a per-leg amount: otherwise one transaction could split 120 into two legs of 60 against a threshold of 100 and deliver an above-threshold balance with no key.
 3. **A pack requires the handoff** when its effective threshold is unconditional, or when the post-send balance reaches it.
 4. **The `MESSAGE` is required if at least one pack requires it.** If every pack sits above the recipient's post-send balance, a plain `SEND` with no `MESSAGE` is valid and the recipient deliberately receives no key. They can be sent one later, or acquire more of the token and be handed the key on the transfer that crosses the threshold.
+
+**Which keys the handoff carries.** The sending wallet should include the key of every pack that requires the handoff under rule 3, measured against the same post-send balance as rule 2. It should leave out the key of a pack whose effective threshold that balance does not reach, so that key stays with the sender. The indexer checks only that the `MESSAGE` is present and cannot enforce which keys its encrypted payload contains.
 
 Before [`SEND_GATED_TOTAL_TICK_ID_ACTIVATION`](./flag-days.md) is active, the total in item 2 is summed per `DESTINATION` and literal `TICK` as written, so spelling variants are measured apart. Once the gate is active, it is summed per `DESTINATION` and resolved `TICK_ID`, so variants of one tick, for example a different letter case or the `^<tickid>` form, count together toward the threshold. The gate changes only whether the handoff is owed; it never changes which legs settle.
 
@@ -147,6 +157,7 @@ sequenceDiagram
     Wallet->>Wallet: parse plaintext as binary handoff payload,<br>validate leading version byte,<br>slice body into 32-byte candidate keys
     Wallet->>Wallet: for each candidate K, compute sha256(K)<br>and match against the file's KEY_HASH, skip mismatches
     Wallet->>Wallet: AES-256-GCM-decrypt the ciphertext<br>with the matched key
+    Wallet->>Wallet: if the FILE carries COMPRESSION=1, inflate the decrypted bytes<br>(deflate-raw) under the streamed 150:1 guard, on an invalid stream<br>or tripped guard show the decrypted bytes as stored-form with an explicit error
 ```
 
 No on-chain action is required to unlock. The holder can decrypt and re-decrypt as often as they like.
@@ -169,7 +180,7 @@ The plaintext inside every ECIES key-handoff MESSAGE is a compact binary blob:
 - **Wire size:** `1 + 32 × N` bytes for N keys. A single-key handoff is 33 bytes; the common case for any token with one gated `FILE` or one pack.
 - **No `KEY_HASH` is sent on the wire.** The recipient hashes each 32-byte candidate (`sha256(K)`) and matches against the `KEY_HASH` of whichever gated `FILE` it cares to unlock. This is the same hash check the wallet already performs as a tamper defense, doubled as the identification step.
 - **Pack support is implicit.** A pack with N files shares one `K`, which means one 32-byte entry in the handoff unlocks every file in the pack.
-- **Multi-key handoffs** (a token with multiple distinct gated `KEY_HASH`es, e.g. two unrelated packs under one ticker) carry one 32-byte entry per distinct `K`. The recipient hashes each and matches independently.
+- **Multi-key handoffs** (a token with multiple distinct gated `KEY_HASH`es, e.g. two unrelated packs under one ticker) carry one 32-byte entry per distinct `K` for the packs that require a handoff to this recipient under the [unlock threshold rules](#unlock-thresholds-gate_min_amount). The recipient hashes each and matches independently.
 - **Version byte** is `0x01`. Reserved for future format evolution, readers must reject unknown version bytes rather than guessing the layout.
 - **Transport.** The plaintext bytes are passed to ECIES (`MESSAGE` v2, method 1) **in binary mode**. No UTF-8 conversion. The on-chain `ENCRYPTED_MESSAGE` field is the ECIES ciphertext (KDF version byte `0x01` ‖ ephemeral pubkey, 33 bytes ‖ IV, 12 bytes ‖ GCM tag, 16 bytes ‖ encrypted bytes), opaque to anyone without the recipient's private key. Byte 0 selects the key-derivation version (`0x01` = HKDF-SHA256 v1; legacy v0 is sniffed as `0x02`/`0x03`); readers must reject unknown version bytes rather than guessing the layout.
 
@@ -191,7 +202,7 @@ These are the protocol-level rules the indexer enforces. See the individual acti
 
 ## Use cases
 
-- **Album drops / track packs.** Issuer mints a token, publishes a multi-file pack of FLAC stems plus liner notes PDF. Buyers of the token unlock everything atomically the moment the transfer confirms.
+- **Album drops / track packs.** Issuer mints a token, publishes a multi-file pack of FLAC stems plus liner notes PDF. A buyer unlocks the whole pack atomically when the transfer leaves their balance at or above its threshold, or on any handoff when the pack sets no threshold.
 - **Sealed bundles.** A creator can guarantee that no one has seen any file in the pack (not even the indexer operators or block explorers) until a holder unlocks. Useful for time-locked reveals, lottery / raffle distributions, surprise drops.
 - **Paid downloads.** Issuer sells the token via DISPENSER or ORDER. No payment gateway, no checkout server. Neither settlement path carries the key, so the seller follows the sale with a direct `SEND` that includes the key handoff, or sells by direct send in the first place.
 - **Holder-only resources.** Brand guidelines, board minutes, premium research: published once on-chain, accessible only to holders, durable as long as the chain exists.
@@ -202,7 +213,7 @@ These are the protocol-level rules the indexer enforces. See the individual acti
 ## Non-goals (initial release)
 
 - **Key rotation.** If a key is leaked, the only recourse is to republish the affected files under a new key. Republishing does not retire the old files: a valid gated `FILE` stays active, so an old pack with no `GATE_MIN_AMOUNT` keeps requiring the key-handoff `MESSAGE` on every later `SEND` the pack lookup matches, whatever threshold the republished pack sets.
-- **Per-file granular gating.** All gated files for a token are unlocked atomically when the holder receives the keys. If a creator wants tiered access, they should mint multiple tokens.
+- **Gating finer than a pack.** Files that share a key form one pack and unlock together, and the pack has one effective threshold: the minimum `GATE_MIN_AMOUNT` across its files. Tiered access under one token is supported by publishing each tier as a separate pack with its own key and threshold. Separate tokens remain an option when tiers need distinct gate tokens.
 - **Revocation.** Knowledge can't be ungranted. A holder who unlocks and then transfers the token still has the bytes. The chain reflects who holds it now, not who has ever read it.
 - **DRM.** A holder can rehost plaintext anywhere.
 - **Threshold or proxy re-encryption.** The initial release uses simple symmetric encryption + per-recipient ECIES envelopes. More advanced schemes are out of scope.
@@ -211,7 +222,7 @@ These are the protocol-level rules the indexer enforces. See the individual acti
 
 ## Related specs
 
-- [`FILE`](./actions/file.md): format 0 including the optional gating fields.
+- [`FILE`](./actions/file.md): format 0 and the multi-part format 1 manifest, including the optional gating fields.
 - [`MESSAGE`](./actions/message.md): v2 ECIES used for key handoff.
 - [`SEND`](./actions/send.md): gated-SEND validation rule.
 - [`BATCH`](./actions/batch.md): composition pattern for publish-with-key and transfer-with-handoff in one transaction. A `BATCH` is not atomic, so confirm both commands settled valid.

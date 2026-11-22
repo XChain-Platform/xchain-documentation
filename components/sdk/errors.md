@@ -201,7 +201,8 @@ Thrown by authentication operations: challenge generation, message signing, and 
 |------|-------------|
 | `NETWORK_NOT_CONFIGURED` | A signing or verification operation was called without a network configured |
 | `INVALID_ADDRESS` | Address is missing or not a string for challenge generation |
-| `INVALID_MESSAGE` | Message is missing or not a string for signing |
+| `INVALID_MESSAGE` | Message is missing or not a string for signing or custom challenge generation |
+| `CHALLENGE_UNBOUND` | `requireNonce` was set, but the SDK did not fill `{nonce}` and no SDK-generated nonce appears as a whole delimited token; literal matches for caller-supplied nonces do not bind |
 | `INVALID_WIF` | WIF string is malformed or cannot be decoded |
 | `SIGN_FAILED` | Message signing failed unexpectedly |
 

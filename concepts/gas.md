@@ -21,6 +21,14 @@ flowchart LR
 
 On BTC, the indexer uses implicit detection: if the transaction includes a native coin output to the fee destination address, it's validated as native coin payment against the oracle. If there is no fee output, the indexer debits XCHAIN from the user's balance. On LTC/DOGE, native coin payment is the only option; a missing fee output means the action is rejected. Both rules are about how a fee is paid, not about whether one is owed: payment mode is resolved only when the computed fee is greater than zero. An action whose fee works out to nothing (a betting market created wholly inside the duration-fee free window, for instance) needs no fee output on any chain.
 
+Top-level `EXECUTE` has a native-payment exception under
+`EXECUTE_NATIVE_METERED_GAS_ACTIVATION`. Before the gate, its native output pays only the
+`VM_EXECUTE_BASE` price while the call may run to the protocol ceiling. From the gate, the output
+buys the call's gas budget: whole paid gas units, floored at the base and capped at 1,000,000. Work
+beyond that budget fails out of gas and the fee output is kept. There is no top-level gas-budget
+field on the wire. The XCHAIN-balance lane still settles actual metered gas. See
+[EXECUTE](../protocol/actions/execute.md#top-level-gas-budget-and-fees).
+
 The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` value from the bundled coin registry (pinned per coin and network). On testnet and regtest it can be redirected at runtime with the `XCHAIN_FEE_DESTINATION_<COIN>_<NETWORK>` environment variable (e.g. `XCHAIN_FEE_DESTINATION_DOGE_TESTNET`); on mainnet the override is ignored with a warning, because fee acceptance is consensus-relevant and must not depend on operator environment. If the registry value were the unset placeholder, native-coin fee detection would be disabled and the indexer would fall back to XCHAIN-balance deduction on BTC (and reject fee-bearing actions on LTC/DOGE).
 
 ## GAS_PRICE
@@ -61,7 +69,7 @@ The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` value f
 |---|---|---|---|
 | **EXECUTE base fee** | 1,000 | 0.01 | Minimum to invoke any contract |
 | **DEPLOY base fee** | 100,000 | 1.0 | Permanent state: on par with ISSUE |
-| **DEPLOY per byte** | 10 | None | 10KB = 100,000 extra gas; 64KB max |
+| **DEPLOY per byte** | 10 | None | Inline deploys bill each decoded source byte. Chunked deploys bill each base64 character in every carrier's `CODE_PART`, about 13.3 gas per source byte. 64KB source max |
 | **State read** | 100 | 0.001 | Single indexed DB lookup |
 | **State write** | 200 | 0.002 | 2x read |
 | **State delete** | 100 | 0.001 | Same as read |
@@ -71,7 +79,7 @@ The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` value f
 | **Attestation request** | 5,000 | 0.05 | Covers off-chain data request overhead (`attestation.request`) |
 | **Cross-chain call request** | 2,000 | 0.02 | Additional fee on top of action emission for `emit.crossExecute()`; the federation relay work. The call also pre-pays its remote `gasLimit` plus the cross-chain callback ceiling, with no refund of unused remote gas |
 | **Cross-chain callback ceiling** | 20,000 | 0.2 | Fixed gas ceiling the result/expiry callback runs against on the source chain, pre-paid at `emit.crossExecute()` time |
-| **Computation** | 1/instruction | None | Metered by isolated-vm; one charge per control-flow point |
+| **Computation** | 1 per metered unit | None | AST-based metering: the VM parses source with acorn and injects charges for control flow, calls and selected size-dependent operations |
 | **Controller-guard ceiling** (`VM_GUARD_GAS_CEILING`) | 200,000 | 2.0 | Fixed ceiling the controller guard runs against on every chain, billed against `SOURCE` from the `CONTROLLER_GUARD` flag day. On BTC the full ceiling fee is reserved up front; on other chains no reservation is taken and the charge is capped at `SOURCE`'s `XCHAIN` balance, so it can be zero (see [Controller-Bound Tokens](../protocol/controller-bound-tokens.md#gas)). Consensus-critical: it is committed into the ledger and contract hashes, so an indexer whose schedule omits or mistypes it throws at the guard-fee site rather than billing a phantom default |
 
 > **Indexed `for` loops are charged twice per iteration.** The gas meter injects a control-flow charge at the top of the loop body and a second charge into the update expression, so a `for` loop of N iterations costs `2 × N` computation gas. `while`, `do-while`, `for-in`, and `for-of` loops have no update expression and cost 1 per iteration. Account for the doubled cost when budgeting a gas ceiling for contracts that use indexed `for` loops.
@@ -85,11 +93,13 @@ The fee destination address is the per-network `ADDRESS.FEE_DESTINATION` value f
 - 8MB memory limit per isolate
 - Max 64KB contract code size
 
+When `STATE_KEY_STORABLE_ACTIVATION` is active (testnet at the arm listed in [Flag-Day Values](../protocol/flag-days.md), regtest from genesis, and mainnet still unarmed), `state.set()` also refuses keys longer than 256 UTF-16 units or containing a code point above U+FFFF; `state.delete()` is unchanged.
+
 ### Execution Termination
 
 Contract execution is bounded by two independent mechanisms operating at different tiers:
 
-1. **Gas exhaustion (primary).** Every instruction and every host operation (state reads/writes, oracle reads, action emissions) consumes gas, metered by isolated-vm. When a contract's gas budget is depleted, execution halts immediately. This is the enforced limit that governs the common case: a normally-behaving contract terminates here, typically in well under 1 second of wall-clock time. Gas is the spam and resource-abuse deterrent, see the Hard Caps and fee schedule above.
+1. **Gas exhaustion (primary).** AST-injected charges cover control flow, calls and selected size-dependent operations, and host operations such as state reads/writes, oracle reads and action emissions charge the same VM gas tracker. `isolated-vm` supplies the sandbox, memory limit and wall-clock timeout; it does not meter instructions. When a contract's gas budget is depleted, execution halts immediately. This is the enforced limit that governs the common case: a normally-behaving contract terminates here, typically in well under 1 second of wall-clock time. Gas is the spam and resource-abuse deterrent, see the Hard Caps and fee schedule above.
 
 2. **Wall-clock timeout (secondary safety net).** A 30-second wall-clock limit backstops gas metering. It only fires when the gas ceiling fails to terminate execution in real time, for example, a contract engineered to maximize wall-clock time per unit of gas (calling host operations that are cheap in gas terms but slow in wall-clock terms). Under normal operation this limit is never reached; it exists solely to guarantee an execution cannot run unbounded if gas accounting is somehow outpaced.
 
@@ -116,7 +126,10 @@ A create that gives **ownership** still pays the flat 50,000-gas ownership-escro
 | 1-year ORDER | 151,250 | ~1.51 | $1.51 |
 | AIRDROP to 1,000 recipients | 100,000 | 1.0 | $1.00 |
 | Simple contract call | ~2,600 | 0.026 | $0.026 |
-| Deploy 10KB contract | 200,000 | 2.0 | $2.00 |
+| Deploy 10KB contract inline (10,000 decoded source bytes) | 200,000 | 2.0 | $2.00 |
+| Deploy 10KB contract chunked (13,336 base64 carrier characters) | 233,360 | ~2.33 | ~$2.33 |
+
+Inline deployment gas is `VM_DEPLOY_BASE + decoded_source_bytes * VM_DEPLOY_PER_BYTE`. Chunked deployment gas is `VM_DEPLOY_BASE + total_base64_CODE_PART_characters * VM_DEPLOY_PER_BYTE`, plus constructor gas in either case. See the [DEPLOY carrier gas rule](../protocol/actions/deploy.md#chunk-carrier-rules-v4).
 
 ## Fee Collection and Distribution
 
@@ -134,13 +147,13 @@ The accepted set is `{0, 1, 2}`, following the indexer's `validValues` for the f
 
 XCHAIN is a standard XChain token issued via ISSUE on the **BTC chain only**; it is never natively issued on LTC or DOGE, and the ticker is reserved (case-folded) on all chains to prevent unauthorized issuance. The [token bridge](./token-bridge.md) gives XCHAIN a real, provably-backed **shadow balance** on LTC and DOGE (lock on BTC into a protocol-owned escrow, mint a matching amount on the other chain), so XCHAIN can be held and spent there today, but supply, the mint cap and the price reference all still live on BTC alone; a foreign chain's supply is a shadow of the BTC escrow, never a second, independent mint, and XCHAIN-balance fee payment on LTC/DOGE (as opposed to native-coin fee payment, which works everywhere) is a later milestone. See [Cross-Chain Bridge](../protocol/xchain-bridge.md) for the full mechanism.
 
-**Fixed supply, zero pre-mint.** XCHAIN has a permanent `MAX_SUPPLY` cap of 100,000,000 (8 decimals) set at genesis, but supply starts at zero: the genesis `ISSUE` carries no `MINT_SUPPLY`. Every unit is minted, either as a pinned genesis distribution credit or by a public mint, up to the cap; once the open mint is exhausted, no further XCHAIN can ever be created, by anyone, including the issuing address. Supply only ever decreases after that, via the burn bucket above. The genesis allocation itself is in the [white paper](../whitepaper.md#133-genesis-and-fair-launch).
+**Genesis cap, zero pre-mint.** XCHAIN starts with `MAX_SUPPLY` set to 100,000,000 (8 decimals), but the genesis `ISSUE` carries no `MINT_SUPPLY`, so supply starts at zero. The cap limits supply outstanding at one time. Genesis sets no supply locks: until they are set, burns reopen room that public `MINT`s can refill, and the GAS owner can change the cap or issue `MINT_SUPPLY`. The launch plan becomes permanent only after `LOCK_MAX_SUPPLY` freezes the cap, `LOCK_MINT_SUPPLY` closes owner issuance, and `LOCK_MINT` closes public minting after the open-mint allocation is exhausted. Once all three locks are visible on the token record, fee burns can only lower supply. The genesis allocation itself is in the [white paper](../whitepaper.md#133-genesis-and-fair-launch).
 
 **Validator rewards** are paid from a dedicated, pre-funded **reward pool address**. Never by minting. The pool is seeded by the operator after the mint window opens (Step 2 of the [XCHAIN Genesis](../operations/xchain-genesis.md) runbook, since supply is zero at genesis) and topped up manually over time. When the pool cannot cover a pending reward, the `COLLECT` is rejected and the reward stays claimable until the pool is replenished (see [COLLECT](../protocol/actions/collect.md)).
 
 XCHAIN's value is driven by:
-- **Staking demand**: validators must stake XCHAIN (1,000 for oracle, 5,000 for cross-chain)
-- **Fixed, capped supply**: no inflation; rewards are paid from a finite pool, and the burn bucket is deflationary
+- **Staking demand**: validators must stake XCHAIN to qualify for capabilities, from 500 for `oracle_publish` up to 5,000 for `cross_chain` (see [capability stake floors](../getting-started/running-a-validator.md#capabilities-and-their-stake-floors))
+- **Planned locked supply**: the launch plan closes both minting paths and freezes the cap with the three locks above; rewards are paid from a finite pool, and the burn bucket is deflationary after those locks are set
 
 ## Oracle Price Validation
 
@@ -178,6 +191,10 @@ native-coin fee output on the commit (first) transaction. The commit is never mi
 fee is fully received before the action is processed; the decoder
 attributes the commit's fee output to the reveal action.
 
+Do not add a fee-destination output to the reveal. The decoder records it at its on-chain
+output index, before attributed commit outputs, so it is selected instead of the commit fee
+and can make an otherwise sufficient fee fail.
+
 ### Client pre-validation (sizing the fee + refusing doomed transactions)
 
 Because a native-coin fee is forfeited if the action fails, clients should never broadcast one
@@ -205,11 +222,13 @@ explorer (the indexer itself is not internet-facing):
   `supported: false` means the action is not quotable here (native fees not enabled on the chain,
   or `XEXEC`/`BATCH`: the first is never wallet-broadcast, the second's fee is the sum of its
   sub-actions' state-dependent fees).
-  `valid: null` is the third answer, returned for `DEPLOY` and `EXECUTE`. These never run in the
-  public pre-flight (they would execute caller-supplied code on a shared node), so they are priced
-  straight from the gas schedule instead: `staticQuote: true`, `validated: false`, and a fee that
-  is exactly what the chain checks the native output against, with NO validity verdict attached.
-  Size the output from it and broadcast, but tell the user the action itself is unverified.
+  `valid: null` is the third answer for `DEPLOY`, which is priced straight from the gas schedule
+  without running caller-supplied code. For top-level `EXECUTE` before
+  `EXECUTE_NATIVE_METERED_GAS_ACTIVATION`, the native quote is likewise the static base price. From
+  that gate, the EXECUTE quote uses a rollback-only dry-run gas estimate, adds a fixed safety margin,
+  floors the result at `VM_EXECUTE_BASE`, caps it at the 1,000,000 protocol ceiling, and converts
+  that budget into `requiredFeeSats`. Field names that expose estimate details are not a protocol
+  contract; clients size the output from `requiredFeeSats`.
   `valid: false` carries the handler's reason verbatim in `error`/`status`: an oracle price that
   is missing/stale, a supplied `feeOutputSats` below the acceptance floor, or the action itself
   being one the chain would reject (insufficient balance, taken ticker, expired order, ...), which
@@ -229,11 +248,12 @@ chokepoint and warns the user that a native-coin fee is forfeited if the transac
 
 > Phase-2 scope (live): the pre-flight covers every action except the VM/compound set. SEND,
 > edits, AIRDROP, DIVIDEND and the rest are quoted by the real handler, including failure
-> reasons a fee estimator could never see (insufficient balance, taken ticker, ...). `DEPLOY` and
-> `EXECUTE` get a fee but no verdict (see `valid: null` above); `XEXEC`/`BATCH` get neither.
+> reasons a fee estimator could never see (insufficient balance, taken ticker, ...). `DEPLOY` gets
+> a static fee but no verdict; native top-level `EXECUTE` uses the gated pricing described above.
+> `XEXEC`/`BATCH` get neither.
 > On LTC/DOGE the native output is the ONLY way to pay a protocol fee (no XCHAIN fee lane), so
-> "not quotable" there means "not payable": that is why the two VM actions are priced statically
-> rather than refused.
+> "not quotable" there means "not payable": that is why DEPLOY and pre-gate EXECUTE are priced
+> statically rather than refused. The gated EXECUTE quote does not make native BATCH quotes quotable.
 
 ## Changing Fees
 

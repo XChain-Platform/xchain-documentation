@@ -130,7 +130,7 @@ await sdk.delegateVote(wif, { tick: 'GOVTOKEN', delegateTo: 'bc1q...' });
 await sdk.clearVoteDelegation(wif, { tick: 'GOVTOKEN' });
 ```
 
-Poll finalization (VOTE v2) is system-synthesized at the poll's end block; there is no submit recipe for it. Read results back with `sdk.explorer.getPoll` / `getPollResults` (see [EXPLORER.md](./explorer.md)).
+Poll finalization (VOTE v2) is system-synthesized at the poll's end block; there is no submit recipe for it. Read results back with `sdk.explorer.getPoll` / `getPollResults` (see [explorer.md](./explorer.md)).
 
 ---
 
@@ -159,7 +159,7 @@ await sdk.workflows.resolveMarket(wif, { feedActionIndex: market.feedRef, outcom
 await sdk.workflows.cancelMarket(wif, { feedActionIndex: market.feedRef, memo: 'Event postponed' });
 ```
 
-Market closing (at the deadline) and expiry (when an oracle never resolves) are performed by the protocol at the end of a block; there is no submit recipe for either. Read markets back with `sdk.explorer.getBetFeed` / `getBets` (see [EXPLORER.md](./explorer.md)) and follow one live with `sdk.ws.subscribeBetFeed(index)`.
+Market closing (at the deadline) and expiry (when an oracle never resolves) are performed by the protocol at the end of a block; there is no submit recipe for either. Read markets back with `sdk.explorer.getBetFeed` / `getBets` (see [explorer.md](./explorer.md)) and follow one live with `sdk.ws.subscribeBetFeed(index)`.
 
 ```mermaid
 stateDiagram-v2
@@ -187,7 +187,7 @@ To deploy a stakeable contract (one that accepts STAKE v3 actions), pass `cooldo
 const result = await sdk.deployContract(
     wif,
     {
-        code:              'module.exports = { meta: { name: "Counter", description: "Counts calls to inc.", version: "1.0.0" }, initialize: function(xchain) { xchain.state.set("n", "0"); }, inc: function(xchain) { xchain.state.set("n", xchain.math.add(xchain.state.get("n") || "0", "1")); } }',
+        code:              'module.exports = { meta: { name: "Counter", description: "Counts calls to inc.", version: "1.0.0" }, initialize: function(xchain) { if (xchain.state.get("n") !== null) throw new Error("already initialized"); xchain.state.set("n", "0"); }, inc: function(xchain) { xchain.state.set("n", xchain.math.add(xchain.state.get("n") || "0", "1")); } }',
         gasLimit:          100000,
         constructorParams: []       // optional
     },
@@ -264,7 +264,7 @@ Deploy a smart contract and optionally deposit initial tokens:
 const result = await sdk.deployAndFund(
     wif,
     {
-        code: 'module.exports = { meta: { name: "MyContract", description: "Counts calls to increment.", version: "1.0.0" }, initialize: function(xchain) { xchain.state.set("count", "0"); }, increment: function(xchain) { xchain.state.set("count", xchain.math.add(xchain.state.get("count") || "0", "1")); } }',
+        code: 'module.exports = { meta: { name: "MyContract", description: "Counts calls to increment.", version: "1.0.0" }, initialize: function(xchain) { if (xchain.state.get("count") !== null) throw new Error("already initialized"); xchain.state.set("count", "0"); }, increment: function(xchain) { xchain.state.set("count", xchain.math.add(xchain.state.get("count") || "0", "1")); } }',
         gasLimit: 100000
     },
     [

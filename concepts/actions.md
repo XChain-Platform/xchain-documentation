@@ -97,7 +97,7 @@ The platform defines 38 named ACTIONs; 37 ACTION types are decoded from the wire
 |---|---|
 | `BROADCAST` | Post arbitrary on-chain data. Used for oracle feeds, announcements, or any message that should be permanently recorded and publicly readable. |
 | `MESSAGE` | Send a message to a specific address. Can be plaintext, ECDH-session, AES-shared-key, or ECIES (encrypted to the recipient's address pubkey). ECIES carries the key handoff for token-gated content. |
-| `FILE` | Upload file data on-chain with associated metadata (filename, content-type, size). As of v1, supports **token-gated cryptographic publishing**: encrypt files (or multi-file packs) on-chain so only token holders can decrypt. See [Token-Gated Content](../protocol/token-gated-content.md). |
+| `FILE` | Upload file data on-chain with associated metadata (filename, content-type, size). Optional fields on FILE format 0 support **token-gated cryptographic publishing**: encrypt files (or multi-file packs) on-chain so only token holders can decrypt. See [Token-Gated Content](../protocol/token-gated-content.md). |
 
 ### Utility
 

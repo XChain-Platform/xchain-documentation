@@ -37,12 +37,11 @@ Execute the 'increment' method on contract 12345 with no parameters
 - Available on all chains
 - The contract identified by `CONTRACT_ACTION_INDEX` must exist and be in an active (valid) state
 - `METHOD` is required, if the contract exports a single function, the method name is ignored; if it exports an object, the named method must exist
-- `SOURCE` address must hold sufficient XCHAIN tokens to cover the gas fee
-- Gas fee is calculated as the actual gas consumed during VM execution, multiplied by the gas price
-- If execution fails (revert, out of gas, runtime error), the caller is still charged gas up to the failure point
+- The caller must satisfy the fee rules for the selected native-coin or XCHAIN-balance payment mode
+- If execution fails (revert, out of gas, runtime error), the applicable fee is still charged or retained
 - All state changes and emitted actions are processed atomically via a database savepoint:
   - If any emitted action fails validation, ALL state changes and ALL earlier emissions are rolled back
-  - The caller's gas is still charged (outside the savepoint)
+  - The applicable top-level fee is still charged or retained (outside the savepoint)
 - Contracts can emit up to 50 platform actions per EXECUTE invocation; each cross-contract callee gets its own independent 50-emission budget
 - The contract's derived address (`C:<CHAIN>:<CONTRACT_ACTION_INDEX>`) is used as the source for all emitted actions; the contract can only spend tokens deposited to its derived address
 - `PARAMS` beyond `METHOD` are pipe-delimited and passed to the contract as an array of strings
@@ -56,6 +55,35 @@ Execute the 'increment' method on contract 12345 with no parameters
 - Use `DEPOSIT` to fund a contract with tokens before calling methods that emit token transfers
 - Gas schedule constants (`VM_EXECUTE_BASE`, `VM_COMPUTATION`, `VM_STATE_READ`, `VM_STATE_WRITE`, `VM_EMISSION`, `VM_ATTEST_REQUEST`, etc.) are defined in the gas schedule configuration
 
+## Top-Level Gas Budget and Fees
+
+A top-level `EXECUTE` has no gas-budget or gas-limit field in its wire format. Its four positional
+fields are exactly the ones listed under [PARAMS](#params). This differs from a contract-emitted
+`EXECUTE`, whose internal emission metadata carries a `gasLimit`.
+
+The XCHAIN-balance lane, fee payment mode 2, is unchanged: settlement charges actual metered gas at
+the gas price, subject to the existing ledger rules.
+
+Native-coin payment has a height-gated boundary:
+
+- Before `EXECUTE_NATIVE_METERED_GAS_ACTIVATION`, a native-paid top-level `EXECUTE` is priced at
+  `VM_EXECUTE_BASE` even if the VM consumes more gas, and the VM may run up to the protocol ceiling.
+- From `EXECUTE_NATIVE_METERED_GAS_ACTIVATION`, the native fee output buys the execution's gas
+  budget. The budget is the whole number of gas units that output pays for, with a floor of
+  `VM_EXECUTE_BASE` and a cap at the 1,000,000 protocol gas ceiling. A call that needs more gas
+  fails out of gas, its state changes roll back, and the native fee output is kept.
+
+For a native-paid top-level `EXECUTE` at or above the gate, the indexer fee quote dry-runs the call
+to obtain a gas estimate, adds a fixed safety margin, applies the same base floor and protocol
+ceiling, and returns the converted output amount in the existing `requiredFeeSats` field. The quote
+does not create a wire gas field. Native quotes for `BATCH`, including a batch that contains an
+`EXECUTE`, remain refused.
+
+`EXECUTE_NATIVE_METERED_GAS_ACTIVATION` is UNARMED on mainnet and every testnet chain until the
+v0.28.0 release writes post-roll heights. Regtest is UNPINNED and enters the rule only when
+`XC_EXECUTE_NATIVE_METERED_GAS_REGTEST_ACTIVATION` arms it. See [Flag-Day Values](../flag-days.md)
+and [Protocol Activation](../protocol-activation.md).
+
 ## System-Synthesized EXECUTE (attestation callbacks)
 When an `ATTEST v1` response (or `ATTEST v2` expiry) is accepted on-chain, the indexer synthesizes a fresh `EXECUTE` invoking the original `xchain.attestation.request(..., callbackMethod, callbackParams, ...)`. This is the same EXECUTE action used by users (same handler, same gas accounting, same emission semantics) with two differences:
 
@@ -66,7 +94,7 @@ Status values (`xchain.getInputParam(2)`): `ok` (response payload valid), `timeo
 
 Callback execution is wrapped in its own savepoint: if the callback method throws, runs out of gas, or otherwise fails, the v1 response row in the `attests` table is still durably recorded (so the validator network isn't asked to redo the work), and the contract's own state changes from the callback roll back. The v0 → v1 → callback chain is atomic for the v1 record but graceful-degrade for the callback's side effects.
 
-See [`ATTEST.md`](./attest.md) for the wire-level lifecycle.
+See [`attest.md`](./attest.md) for the wire-level lifecycle.
 
 ## Contract-Emitted EXECUTE (cross-contract calls and DEPLOY constructors)
 A contract may emit an `EXECUTE` targeting another (or the same) deployed contract via `xchain.emit.execute({contractIndex, method, params, gasLimit})`. Like all emissions this never appears on the wire (the only on-chain transaction is the original top-level EXECUTE) but it produces a real action row and a `contract_executions` record, processed through this same handler.
@@ -77,7 +105,7 @@ Differences from a user-submitted EXECUTE:
 
 - **Deferred, depth-limited.** The callee runs after the calling method completes, at `call depth = caller depth + 1`. Maximum depth is `VM_MAX_CALL_DEPTH = 4` (a user EXECUTE is depth 0); the VM throws at emit time and the indexer re-validates when processing the emission. Canonical constants: [`protocol/constants.js`](../constants.js).
 - **Caller-funded gas.** The emitter is charged `VM_EMISSION + gasLimit` from its own gas budget at emit time; the callee runs with `gasLimit` as its gas ceiling (`VM_MIN_CALL_GAS = 5,000` minimum). Unused gas is refunded into the top-level fee settlement when the whole call tree succeeds. Total work in a tree therefore never exceeds the top-level gas ceiling.
-- **Strict atomicity.** A failure anywhere in the call tree (revert, out of gas, unknown contract, failed emission) rolls back the entire tree (caller state, callee state, and every emission) and forfeits all refunds. The original caller still pays for the gas consumed.
+- **Strict atomicity.** A failure anywhere in the call tree (revert, out of gas, unknown contract, failed emission) rolls back the entire tree (caller state, callee state, and every emission) and forfeits all refunds. The applicable top-level fee remains charged or retained.
 - **Caller identity.** Inside the callee, `xchain.getSourceAddress()` is the calling contract's derived address (`C:<CHAIN>:<caller index>`), so contracts can authenticate their callers.
 - **No return value.** A callee that must respond calls back via its own `emit.execute` (the attestation-callback pattern). `gasLimit` travels in the emission metadata, not as a positional wire param.
 
@@ -104,7 +132,7 @@ sequenceDiagram
             VM->>Caller: refund unused gas into top-level fee settlement
         else failure anywhere in tree, revert, out of gas, unknown contract, or failed emission
             VM->>VM: roll back entire tree, caller state, callee state, every emission
-            Note over VM,Caller: all refunds forfeited, caller still pays for gas consumed
+            Note over VM,Caller: all refunds forfeited, top-level fee remains charged or retained
         end
     end
 ```

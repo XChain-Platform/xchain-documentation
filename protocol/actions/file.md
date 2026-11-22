@@ -8,6 +8,10 @@ This action uploads a file including file metadata. The action also supports **t
 | Name                | Type   | Description                                                              |
 | ------------------- | ------ | ------------------------------------------------------------------------ |
 | `VERSION`           | String | Format Version                                                           |
+| `FILE_HASH`         | String | (versions 1 and 2) Hash that binds the ordered part digests              |
+| `TOTAL_PARTS`       | String | (version 1) Number of parts                                               |
+| `TOTAL_BYTES`       | String | (version 1) Total stored bytes across all parts                           |
+| `PART_INDEX`        | String | (version 2) Zero-based part position                                      |
 | `NAME`              | String | Name of the file                                                         |
 | `TYPE`              | String | MIME Type of the file                                                    |
 | `TITLE`             | String | Title of the file                                                        |
@@ -24,6 +28,54 @@ This action uploads a file including file metadata. The action also supports **t
 - `VERSION|NAME|TYPE|TITLE|MEMO|GATE_TICKER|ENCRYPTION_METHOD|KEY_HASH|GATE_MIN_AMOUNT|COMPRESSION`
 
 The gating fields are optional and appended after `MEMO`. The encoder strips trailing empty fields, so a non-gated file serializes to the compact `FILE|0|NAME|TYPE|TITLE|MEMO` form and is wire-compatible with software that predates the gating extension. The same holds for `GATE_MIN_AMOUNT`: an eight-field gated FILE is byte-identical to what it was before the field existed, so every historical FILE reads the same way.
+
+## Multi-part files (versions 1 and 2)
+
+A file that does not fit in one transaction can be represented by one manifest and two or more parts. The *original bytes* are the bytes selected by the publisher. The *stored bytes* are the original bytes after optional deflate-raw compression, when compression is smaller and stays within the 150:1 limit. For a gated file, the compressed or raw result is then AES-256-GCM encrypted as `[nonce][tag][ciphertext]`. Each manifest or part is a *piece*. Each piece is carried by its own Taproot commit and reveal pair, called its *envelope*, or by its own Standard P2SH commit and reveal pair.
+
+The wire formats are:
+
+- Version 1 manifest: `VERSION|FILE_HASH|TOTAL_PARTS|TOTAL_BYTES|NAME|TYPE|TITLE|MEMO|GATE_TICKER|ENCRYPTION_METHOD|KEY_HASH|GATE_MIN_AMOUNT|COMPRESSION`. A manifest carries no `rawData`. Fields from `NAME` through `GATE_MIN_AMOUNT` follow version 0 rules, including all gating rules. `COMPRESSION` has the same presentational, never validated meaning as version 0 and is read from the stored action at serve time.
+- Version 2 part: `VERSION|FILE_HASH|PART_INDEX`. Its `rawData` is one non-empty slice of the stored bytes. A part cannot appear in a `BATCH`.
+
+Before `FILE_MULTIPART` activates, versions 1 and 2 follow the unchanged version 0 unknown-version path and are rejected as `invalid: VERSION (unknown)`. The activation is mainnet unarmed, regtest from genesis, and testnet at the arm listed for `FILE_MULTIPART` in [Flag-Day Values](../flag-days.md). Publishers use the median time of the newest 11 blocks and fail closed with `MULTIPART_NOT_ACTIVE` before the applicable time.
+
+`FILE_HASH` is 64-character lowercase hex `sha256(d_0 || ... || d_(N-1))`, where `d_i` is the raw 32-byte SHA-256 digest of part `i`. It binds every byte and the order of all parts. `TOTAL_PARTS` is a decimal integer in `[2, 65535]`; `PART_INDEX` is a decimal integer in `[0, 65534]`; and `TOTAL_BYTES`, the sum of the stored part lengths, is a decimal integer in `[1, 262140000000]`. None may have a leading zero. A bad spelling of any decimal field receives that field's range refusal. In addition to version 0 refusals, malformed pieces are recorded with these reasons:
+
+- `invalid: FILE_HASH (format)`
+- `invalid: TOTAL_PARTS (range)`
+- `invalid: TOTAL_BYTES (range)`
+- `invalid: PART_INDEX (range)`
+- `invalid: RAW_DATA (manifest carries no bytes)`
+- `invalid: RAW_DATA (empty part)`
+- `invalid: VERSION (batch)` for a part in a `BATCH`
+- `invalid: FILE_HASH (batch)` on the manifest itself when another `FILE` shares its `BATCH` and no earlier manifest check failed. A version 0 sibling is not refused by this rule; if two manifests share a `BATCH`, each manifest is refused.
+- `invalid: FILE_HASH (duplicate manifest)` when the source already has a valid manifest with that hash
+
+The 65,535-part ceiling bounds completion and serving bookkeeping. At that ceiling, hashing the winning part digests and reading one metadata row per part each involve about 10 MB of data. The byte ceiling is 65,535 parts times the 4,000,000-byte per-part block ceiling, or 262,140,000,000 bytes, so it cannot bind before the part count and per-part carrier limits do. Both values are exactly representable as JavaScript numbers. The practical reach is about 25.5 GB with 389,920-byte envelope parts and 531 MB with 8,114-byte Standard parts. Transaction fees and available block space are therefore the practical limits. After assembly, a reader limits inflation with the streamed cap `min(150 * stored bytes, 262140000000)`.
+
+### Completion and identity
+
+A group is identified by `(source_id, FILE_HASH)` and consists of its valid manifest plus valid parts from the same source. For each position, the lowest action index wins; duplicates are ignored. Positions at or above `TOTAL_PARTS` are also ignored. Nothing expires, and missing pieces leave the group pending without serving partial bytes.
+
+The first valid piece that leaves a group with its manifest and every required position creates one terminal completion under that piece's action index. The result is `complete` only if hashing the ordered part digests equals `FILE_HASH` and the part lengths sum to `TOTAL_BYTES`; otherwise it is `mismatch`. A mismatch must be republished under a new hash. Since the completion index is at or above every piece index, rolling back any orphaned piece also removes the completion and permits replay to complete it again.
+
+The manifest's action index is the file id. It follows the version 0 storage path, including `files`, file mappings, and a `gated_files` row when gated, so `LINK`, `mappings_files`, and token pages continue to use that id. A gated manifest joins its pack at its own index even while incomplete, with null raw data. A part writes only part state, so a `LINK` to a part is invalid, while a `LINK` to an incomplete manifest remains valid. Publishers that need the bytes, including Attach Artwork, wait for completion before signing the `LINK`. Icon downloading skips multi-part files.
+
+The manifest action detail exposes `multipart` as `{file_hash, total_parts, parts_received, total_bytes, status}`. Its status is `pending` until a completion exists, then `complete` or `mismatch` from that terminal row.
+
+### Carriers and sending
+
+Software signers use a Taproot envelope on Bitcoin and Litecoin when the source is native P2WPKH or P2TR. Other source types cannot fund that encoder path. On any chain, the Standard P2SH lane is available. Each envelope part holds at most 389,920 bytes; each Standard part holds at most 8,114 bytes. Hardware signers remain single-transaction because current firmware does not sign tapscript or chunk reveals. Watch-only and another-phone flows also remain single-transaction because they support one unsigned PSBT and no reveal transaction.
+
+Core 31's transaction-cluster policy is smaller than two full reveals, so pieces never spend unconfirmed change from another piece. One approval covers the whole file, including every piece value and every funding fee at the approved rate. The publisher funds pieces in manifest-first order in waves of at most 100. Each wave uses one funding transaction with one `customOutputs` output per piece back to the source. Each output covers its piece's quote from the existing upload-method estimator:
+
+- Envelope: `max(ceil(1.25 * rate * envelopePairVbytes), 2 * outputFloor) + 2 * outputFloor`, plus one more `outputFloor` on Litecoin. The encoder floors both the commit fee and the reveal fee at the dust floor, and on Litecoin it adds a second reveal output to meet the minimum stripped size.
+- Standard: `max(ceil(1.25 * rate * standardPairBytes), outputFloor) + (k + 1) * outputFloor`, where `k = ceil(partBytes / 476)`; the encoder floors the commit fee at the dust floor.
+
+Here `rate` is the high fee estimate approved for the whole upload and `outputFloor` is 1,000,000 koinu on Dogecoin or the encoder's `dustThreshold` elsewhere. After a wave's funding transaction confirms, its pieces publish with at most eight encoder calls in flight. The next wave is funded only after every piece in the current wave confirms, and its funding transaction spends the confirmed change from the previous wave's funding. Thus at most one wave, about 10 MB of reveals, is unconfirmed at a time. Software signers sign every wave without another approval, later fee increases only slow confirmation, the upload never spends above the approved quote, and Discard remains available. Pieces use `compress: false` because stored bytes were prepared before slicing, and `feePerKb = rate * 1000`. An envelope piece uses `encoding: 'TAPROOT'`, pins its own funding output with `options.exactInputs: true`, and records envelope recovery data. A Standard piece uses `encoding: 'P2SH'` and pins its output for the commit, then records the signed commit hex and transaction id before broadcasting the reveal using that hex and `p2shHash`; it does not use `exactInputs` for the reveal. Piece publication does not use an indexer dry-run.
+
+A publish needs `ceil((TOTAL_PARTS + 1) / 100) + 2 * (TOTAL_PARTS + 1)` transactions, including one funding transaction per wave, the manifest, and all parts. That is 55 transactions for a 26-part file, while a 300-part file uses four waves and 606 transactions. Publishers wait for `multipart.status` to become `complete`, not for a fixed block count. Crash-safe resume records no file bytes: the user selects the original file again, and the publisher verifies its original SHA-256 and resulting `FILE_HASH` before resuming.
 
 ## COMPRESSION
 

@@ -41,7 +41,7 @@ a suite's own results, and a transport hiccup never fails a run.
 | `E2E_STAKE_TEARDOWN_STRICT` | unset | `1` makes a leak **fail the run**, after every test has reported. Use it in any lane that runs against a shared venue. |
 | `E2E_STAKE_TEARDOWN_CAPABILITY` | `oracle_publish` | The capability whose set is measured. `oracle_publish` is the one that carries checkpoints and anchors, so it is the one that hurts first. |
 | `E2E_STAKE_TEARDOWN_SETTLE_BLOCKS` | 14 | Blocks mined after the release: 6 activation delay + 6 canonical reorg buffer + 2 margin. |
-| `E2E_STAKE_TEARDOWN_BUDGET_MS` | 600000 | Whole-sweep budget. A release that runs out says what it did not get to rather than hanging teardown. |
+| `E2E_STAKE_TEARDOWN_BUDGET_MS` | 1200000 | Whole-sweep budget. A release that runs out says what it did not get to rather than hanging teardown. |
 
 ## Dedicated staking venues
 

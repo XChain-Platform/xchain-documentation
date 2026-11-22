@@ -124,6 +124,7 @@ The action's block must itself be checkpointed; the explorer returns
 |---|---|
 | `CHECKPOINT_QUORUM_FAILED` | the checkpoint's signatures do not meet quorum under the trust root |
 | `CHECKPOINT_PRE_COMMITMENT` | the checkpoint predates root commitment (no `state_root` / `block_merkle_root`) |
+| `ROOTS_NOT_SIGNED` | the served checkpoint sits below the commitment flag day, so any root it carries is outside the signed bytes and is not trusted |
 | `LEAF_AMOUNT_MISMATCH` | the served amount does not match the committed leaf (tampering) |
 | `NONINCLUSION_NONZERO_AMOUNT` | a non-inclusion proof was returned for a non-zero amount |
 | `SMT_PROOF_INVALID` / `SUBROOT_BIND_INVALID` | the balance proof does not reconstruct the committed root |

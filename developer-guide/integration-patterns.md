@@ -344,6 +344,22 @@ For use cases where the gating logic itself must be trustless and on-chain (not 
 ```js
 // Contract: on-chain token gate
 // Deployed via the DEPLOY action
+// Return true when a >= b exactly, by the sign of the exact subtract ('-0' is zero).
+// xchain.math.gt/gte/lt/lte/eq/compare treat values within max(1e-12 relative, 1e-15) as
+// equal, so custody, cap and payment guards use this; `a <= b` is isAtLeastExact(xchain, b, a).
+// A non-finite difference ('Infinity', '-Infinity', 'NaN') returns false, so the guard fails closed.
+function isAtLeastExact(xchain, a, b) {
+    var diff = String(xchain.math.subtract(a, b));
+    var neg = diff.charAt(0) === '-';
+    var nonzero = false;
+    for (var i = neg ? 1 : 0; i < diff.length; i++) {
+        var c = diff.charAt(i);
+        if (c >= '1' && c <= '9') nonzero = true;
+        else if (c !== '0' && c !== '.') return false;
+    }
+    return !(neg && nonzero);
+}
+
 module.exports = {
   // Contract identity, read at deploy and recorded on chain. `name` and
   // `description` are required at/after the CONTRACT_META_REQUIRED flag day.
@@ -354,6 +370,7 @@ module.exports = {
   },
 
   initialize: function(xchain) {
+    if (xchain.state.get('owner') !== null) throw new Error('already initialized');
     xchain.state.set('owner', xchain.getSourceAddress());
     // requiredTick and minimumAmount are set via configure()
   },
@@ -386,7 +403,7 @@ module.exports = {
     var minimumAmount = xchain.state.get('minimumAmount');
 
     var balance = xchain.getBalance(caller, requiredTick);
-    if (!balance || xchain.math.lt(balance, minimumAmount)) {
+    if (!balance || !isAtLeastExact(xchain, balance, minimumAmount)) {
       throw new Error('Insufficient token balance for access');
     }
 
@@ -809,9 +826,9 @@ See the [SDK WebSocket documentation](../components/sdk/websocket.md) for the fu
 
 ## Next Steps
 
-- [Regtest_Development.md](regtest-development.md): build and test locally
-- [Query_The_Explorer.md](query-the-explorer.md): full explorer API reference
-- [Batch_Operations.md](batch-operations.md): multi-action efficiency patterns
+- [regtest-development.md](regtest-development.md): build and test locally
+- [query-the-explorer.md](query-the-explorer.md): full explorer API reference
+- [batch-operations.md](batch-operations.md): multi-action efficiency patterns
 
 ---
 

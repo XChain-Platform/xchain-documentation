@@ -46,7 +46,7 @@ Any other MCP client: run `npx -y xchain-mcp` as a stdio server. From a source c
 | Trading | `get_dispensers`, `get_markets`, `get_market`, `get_orderbook` |
 | Contracts | `get_contract`, `get_contract_state`, `get_executions` |
 | Trust | `get_attestations`, `verify_checkpoint` (client-side signature check) |
-| Transactions | `compose_action` (returns an unsigned PSBT; nothing is signed or broadcast) |
+| Transactions | `compose_action` (returns an unsigned PSBT; nothing is signed or broadcast), `release_reservation` (frees the inputs a compose reserved) |
 
 Plus two resources: `xchain://docs/llms.txt` and `xchain://docs/llms-full.txt`; the documentation, readable in-band.
 
@@ -60,11 +60,11 @@ Ask your agent things like:
 
 ## Pointing at a regtest stack
 
-The `R*` coins (`RBTC`, `RLTC`, `RDOGE`) default only the explorer to `localhost:8080`, so read tools work against a local stack, but `compose_action` and the write tools also need `ENCODER_URL` (or `ENCODER_PORT`). The standard SDK environment variables (`EXPLORER_URL`, `EXPLORER_PORT`, `ENCODER_URL`, `HUB_API_HOST`, …) override any endpoint (see [SDK configuration](../components/sdk/configuration.md)).
+The `R*` coins (`RBTC`, `RLTC`, `RDOGE`) default only the explorer to `localhost:8080`. That reaches an explorer running directly on its native port, not the default xchain-node stack, which publishes the explorer on host port `18080`. To reach that stack, set `EXPLORER_PORT=18080` or `EXPLORER_URL=http://localhost:18080`; when `EXPLORER_URL` includes a scheme, put the port in the URL because `EXPLORER_PORT` is not appended. The `compose_action` and write tools also need `ENCODER_URL` (or `ENCODER_PORT`). The standard SDK environment variables (`EXPLORER_URL`, `EXPLORER_PORT`, `ENCODER_URL`, `HUB_API_HOST`, …) override any endpoint (see [SDK configuration](../components/sdk/configuration.md)).
 
 ## Writes are off by default: and policy-gated when on
 
-Out of the box this server cannot sign, submit, or spend anything: there is no key material in it, and `submit_action` is not even listed. (`compose_action` is always available; it returns an *unsigned* transaction for external signing.)
+Out of the box this server cannot sign, submit, or spend anything: there is no key material in it, and `submit_action` is not even listed. (`compose_action` is always available; it returns an *unsigned* transaction for external signing. It is not a read-only call: the encoder reserves the sender's selected inputs for about five minutes, so a client should not auto-approve it, and the `reservation.id` in its result goes to `release_reservation` when the transaction will not be signed.)
 
 To let an agent transact, the **operator** (never the conversation) configures a wallet:
 
@@ -75,7 +75,7 @@ export XCHAIN_MCP_POLICY=/path/to/policy.json # or the server stays read-only
 
 ```json
 {
-  "allowedActions": ["SEND", "EXECUTE"],
+  "allowedActions": ["SEND"],
   "maxPerAction":  { "SEND": { "MYTOKEN": "100", "*": "10" } },
   "maxPerWindow":  { "hours": 24, "perTick": { "MYTOKEN": "500" }, "maxActions": 50 },
   "allowedDestinations": ["DTqQ...storefront"]
@@ -104,7 +104,7 @@ sequenceDiagram
     end
 ```
 
-Notes: `confirmAbove` is rejected in the MCP policy file, there is no human in this loop, use hard caps. Fund the agent's address like a spending account, not a vault.
+Notes: `confirmAbove` is rejected in the MCP policy file, there is no human in this loop, use hard caps. Every action in `allowedActions` needs a `'*'` entry in its upper-case `maxPerAction` table, or `maxPerWindow.perTick` needs a `'*'` entry. Keys match exactly, so `send` does not cap `SEND`, and a table that names only some tokens leaves every other token unbounded. Use `'*': '0'` beside named tokens to refuse all other tokens. The server refuses to start otherwise, and also when the policy would fail the agent session's own validation (for example `maxPerWindow` without positive `hours`). Keep `EXECUTE` and other actions whose value cannot be derived from their own fields out of an amount-capped policy: contract code can decide what they move, so no amount cap can bind an `EXECUTE` spend on this rail and the server refuses it. Fund the agent's address like a spending account, not a vault.
 
 ## An agent-authored contract must name itself
 

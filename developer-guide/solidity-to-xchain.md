@@ -52,8 +52,9 @@ do not express directly (escrow, vesting, an AMM with bespoke rules, a policy gu
 ## Contract shape
 
 A contract is a module of methods. Each method receives the `xchain` gateway.
-`initialize` runs once at deploy (your constructor). Parameters arrive as strings
-via `getInputParam(i)`.
+`initialize` runs automatically at deploy (your constructor), but unlike a Solidity
+constructor it remains callable through `EXECUTE` unless the contract guards it.
+Parameters arrive as strings via `getInputParam(i)`.
 
 ```javascript
 // SPDX-License-Identifier: MIT
@@ -65,6 +66,7 @@ module.exports = {
         version:     '1.0.0'
     },
     initialize: function (xchain) {            // constructor
+        xchain.require(xchain.state.get('owner') === null, 'already initialized');
         var owner = xchain.getInputParam(0);   // params are strings
         xchain.require(owner, 'owner required');
         xchain.state.set('owner', owner);
@@ -86,7 +88,7 @@ build step and nothing to install (contracts stay single-file and import-free).
 | Solidity | XChain | Notes |
 |---|---|---|
 | `contract Foo { ... }` (the contract name) | `meta.name` | a **label**, not an identity: names are not unique, and the derived address `C:CHAIN:index` is what identifies the contract. Required at the flag day, with `meta.description`; see [Contract identity](smart-contract-development.md#contract-identity) |
-| `constructor` | `initialize(xchain)` | runs once at deploy |
+| `constructor` | `initialize(xchain)` | runs automatically at deploy; refuse later `EXECUTE` calls with a state guard |
 | `function f() public` | `f: function (xchain) { ... }` | invoked by name via `EXECUTE` |
 | function arguments | `xchain.getInputParam(i)`, `getInputParamCount()` | all params are strings |
 | `msg.sender` | `xchain.getSourceAddress()` | the calling address |
@@ -114,7 +116,7 @@ build step and nothing to install (contracts stay single-file and import-free).
 | external data / API | `xchain.attestation.request(providerId, payload, callbackMethod, callbackParams, opts)` | PBFT-certified; `http_get` and `llm` providers |
 | `payable receive()` | (none) | `DEPOSIT` |
 | `selfdestruct` / `delegatecall` | (none) | not in the model |
-| gas limit | `GAS_LIMIT` on deploy/execute; `sdk.suggestGasLimit(...)` | metered per the gas schedule |
+| gas limit | Top-level EXECUTE has no gas-limit wire field; emitted calls carry `gasLimit` | native EXECUTE uses its paid-output budget from `EXECUTE_NATIVE_METERED_GAS_ACTIVATION`; XCHAIN-balance settlement remains metered |
 
 The `patterns/` column maps to the pattern library in `xchain-contracts/patterns/`,
 which ships an [OpenZeppelin alias table](https://github.com/XChain-Platform/xchain-contracts/blob/master/patterns/README.md#coming-from-openzeppelin)
@@ -189,6 +191,7 @@ module.exports = {
         version:     '1.0.0'
     },
     initialize: function (xchain) {
+        xchain.require(xchain.state.get('owner') === null, 'already initialized');
         xchain.state.set('owner', xchain.getSourceAddress());
         xchain.state.set('count', '0');
     },
@@ -266,7 +269,7 @@ sent to a single-tick contract are not recoverable by that template.
 
 ## Where to go next
 
-- Full contract authoring guide: [Smart_Contract_Development.md](./smart-contract-development.md).
+- Full contract authoring guide: [smart-contract-development.md](./smart-contract-development.md).
 - Templates: 14 audited, forkable contracts in `xchain-contracts/`. The custody and finance set is `escrow`, `escrowDelivery`, `vesting`, `crowdsale`, `amm`, `stableVault`, `treasury`; the auction set is `englishAuction` and `dutchAuction`; the oracle-consuming set is `priceBet`, `priceBetTimed`, `urlOracle`, and `counterpartyBridge` for burn-to-mint asset migration; plus `cardDispenser` for randomized inventory draws.
 - Building blocks + OpenZeppelin aliases: `xchain-contracts/patterns/`.
 - Typed gateway (editor autocomplete): `xchain-vm/src/gateway.d.ts`.

@@ -58,15 +58,15 @@ See [`../components/decoder/`](../components/decoder/) for full documentation.
 
 Key technical details:
 
-- Routes each ACTION string to one of 48 dedicated handler classes (`IssueAction`, `SendAction`, `OrderAction`, `PriceAction`, etc.).
+- Routes each ACTION string to one of 50 dedicated handler classes (`IssueAction`, `SendAction`, `OrderAction`, `PriceAction`, etc.).
 - Validates all fields before execution. Invalid actions are recorded with status `invalid` and produce no ledger effects.
-- Maintains a double-entry ledger: every token movement is a credit to one address and a debit from another. Balance = SUM(credits) - SUM(debits). A sanity check asserts `token_supply == net ledger total` after each issuance.
+- Maintains a double-entry ledger: every token movement is a credit to one address and a debit from another. Balance = SUM(credits) - SUM(debits). After every block, a sanity check verifies each token touched in that block against both the net ledger total and balances plus escrows; a mismatch halts the indexer.
 - Holds XCHAIN gas in escrow for time-bounded operations (orders, dispensers). Releases escrow on expiration or cancellation.
 - DEX matching engine handles `ORDER` and `SWAP` actions, matching bids and asks within each block.
 - Processes expirations after each block: open orders and active dispensers whose expiration timestamp is past the block's own time are closed automatically. Token-weighted governance polls (`VOTE`) are finalized the same way, by a deterministic sweep at each poll's end block.
 - All writes for a block are wrapped in a single MariaDB transaction. Either the full block commits or it rolls back entirely.
 - On reorg, rolls back across 80+ tables in a single transaction, then re-processes from the reorg block.
-- Watchdog timer (5-minute default) restarts the indexer if it hangs during block processing.
+- Watchdog timer (5-minute default) aborts a block that hangs during processing, rolls its transaction back and retries the same block.
 - Runs as one instance per chain/network combination.
 
 See [`../components/indexer/`](../components/indexer/) for full documentation.
@@ -85,9 +85,9 @@ See [`../components/indexer/`](../components/indexer/) for full documentation.
 
 Key technical details:
 
-- 323 REST endpoint patterns across the `/api` and `/explorer` namespaces, covering tokens, balances, holders, orders, dispensers, transactions, events, market data, contracts, staking, attestations, cross-chain calls, betting feeds and bets, governance polls and ballots, contract emissions, vote delegations, validator capabilities and slashing, chain reorgs, anchor reward attestations, per-block commitments, and more. The breakdown, re-derived from `xchain-explorer/src/XChainExplorer.js` on 2026-10-19:
+- 326 REST endpoint patterns across the `/api` and `/explorer` namespaces, covering tokens, balances, holders, orders, dispensers, transactions, events, market data, contracts, staking, attestations, cross-chain calls, betting feeds and bets, governance polls and ballots, contract emissions, vote delegations, validator capabilities and slashing, chain reorgs, anchor reward attestations, per-block commitments, and more. The breakdown, re-derived from `xchain-explorer/src/XChainExplorer.js` on 2026-10-19:
   - 192 `/{COIN}/api/...` and 112 `/{COIN}/explorer/...` patterns in the dispatch table built by `setupUrls()`, matched by the catch-all handler rather than registered with Express individually.
-  - 19 hand-registered `/{COIN}/api/...` routes that bypass the dispatch table: raw file download, fee quote (GET and POST), oracle fee quote, preflight (registered twice, GET and POST, because the largest legal action does not fit a query string), the two POST batch reads (balances, COINPay obligations), fee schedule, checkpoint list, checkpoint range, checkpoint verify, hub-mirror status, the five Merkle proof endpoints (balance, locked balance, action, validator set, contract state), and the POST contract-call query endpoint.
+  - 22 hand-registered `/{COIN}/api/...` routes that bypass the dispatch table: raw file download, fee quote (GET and POST), oracle fee quote, preflight (registered twice, GET and POST, because the largest legal action does not fit a query string), the two POST batch reads (balances, COINPay obligations), the three wallet range reads in their own rate bucket (POST batch address history, GET price history, POST native history), fee schedule, checkpoint list, checkpoint range, checkpoint verify, hub-mirror status, the five Merkle proof endpoints (balance, locked balance, action, validator set, contract state), and the POST contract-call query endpoint.
   - Outside those two namespaces the same server also registers 117 HTML page routes plus `/openapi.json`, `/icon`, `/relay`, and the static asset mounts.
 - JSON-RPC 2.0 interface compatible with Counterparty-style tooling.
 - Bootstrap-based web UI with Highcharts for order book and market price visualization.
@@ -106,24 +106,24 @@ See [`../components/explorer/`](../components/explorer/) for full documentation.
 
 | | |
 |---|---|
-| **Purpose** | Replicates indexer databases to validators and consumers for lightweight chain verification |
-| **Inputs** | Indexer MariaDB (SQL polling per chain/network), xchain-hub (JSON-RPC config discovery) |
+| **Purpose** | Replicates the decoder and indexer databases to validators and consumers for lightweight chain verification |
+| **Inputs** | Indexer and decoder MariaDB (SQL polling per chain/network), xchain-hub (JSON-RPC config discovery) |
 | **Outputs** | REST API (snapshots, status, transparency log), WebSocket (real-time block and reorg streaming) |
-| **Storage** | MariaDB (95 replicated indexer tables; one replica DB per chain/network) |
-| **Communication** | Inbound REST + WebSocket from validators/consumers; outbound JSON-RPC to hub; outbound SQL reads from indexer DBs |
+| **Storage** | MariaDB (indexer replica: 95 replicated indexer tables; decoder replica: 8 of 11 decoder tables, no `sync_meta`; one replica DB per chain/network/dbType) |
+| **Communication** | Inbound REST + WebSocket from validators/consumers; outbound JSON-RPC to hub; outbound SQL reads from indexer and decoder DBs |
 
 Key technical details:
 
-- Runs as a single instance serving all chains/networks on the node, discovers installed indexers by calling the hub's `getallconfigs` method.
-- Operates in two modes: **server mode** (polls indexer databases and serves data) and **client mode** (replicates from remote sync servers).
-- Polls each indexer database for new blocks every 3 seconds (configurable). Builds a complete block payload from all affected tables and broadcasts to WebSocket subscribers.
+- Runs as a single instance serving all chains/networks on the node, discovers installed indexers and decoders by calling the hub's `getallconfigs` method.
+- Operates in two modes: **server mode** (polls indexer and decoder databases and serves data) and **client mode** (replicates from remote sync servers).
+- Polls each indexer and decoder database for new blocks every 3 seconds (configurable). Builds a complete block payload from all affected tables and broadcasts to WebSocket subscribers.
 - Full snapshots are streamed as gzip-compressed JSON for bootstrapping new validators.
 - Incremental snapshots provide deltas since a given block height for catch-up after downtime.
-- Indexer block payloads carry the indexer's three per-block chained SHA256 hashes (ledger, actions, contracts) plus a fourth, replication-only `state_hash` covering the in-place mutations and backdated refund credits those three cannot see; decoder payloads carry a single `block_hash`.
+- Indexer block payloads carry the indexer's three per-block chained SHA256 hashes (ledger, actions, contracts) plus a fourth, replication-only `state_hash` covering the in-place mutations and backdated refund credits (from before `UNSTAKE_COOLDOWN_COMPLETION_ACTION`) those three cannot see; decoder payloads carry a single `block_hash`.
 - On apply, an indexer replica recomputes `state_hash` (`VERIFY_STATE_HASH`, default on) and the per-block SPV state-commitment roots (balances, block Merkle root) with sync's SHA-256 Merkle/SMT primitives (`VERIFY_STATE_COMMITMENT`, default on), and halts durably on a mismatch. Both checks still trust the source for the committed values, so they do not by themselves catch a single dishonest source.
 - Separately, server mode keeps a transparency log that groups indexer blocks into Merkle epochs (`MERKLE_EPOCH_SIZE`) and serves inclusion proofs and the latest root for external auditors.
 - Clients can sync from 2+ independent sources and cross-verify block hashes to detect tampered data.
-- Reorg detection mirrors the indexer's pattern: detects rollbacks in the source database and broadcasts reorg events. Clients roll back their local replicas using the same table lists as the indexer's `Rollback.js`.
+- Reorg detection mirrors the indexer's pattern: detects rollbacks in the source database and broadcasts reorg events. The source and replica generic rollback lists are both generated from byte-identical copies of the shared `table_lifecycle.js` registry.
 
 See [`../components/sync/`](../components/sync/) for full documentation.
 
@@ -195,7 +195,7 @@ Key technical details:
 - Discovers service endpoints via xchain-hub.
 - Implements retry with exponential backoff and connection pooling for all outbound calls.
 - Supports request hooks (pre/post processing middleware).
-- Three deployment modes: Node.js library, JSON-RPC microservice, browser bundle via webpack.
+- Three deployment modes: Node.js library, JSON-RPC microservice, browser bundle via browserify (minified with uglify-js).
 
 See [`../components/sdk/`](../components/sdk/) for full documentation.
 
@@ -239,12 +239,12 @@ See [`../components/hub/`](../components/hub/) for full documentation.
 | **Purpose** | CLI tool for installing, configuring, and managing all platform services as Docker containers |
 | **Inputs** | Operator CLI commands |
 | **Outputs** | Running Docker containers; status reports |
-| **Storage** | Local config files |
-| **Communication** | Docker Engine API; downloads service images from registry |
+| **Storage** | Local config files; module-to-container state in the `xchain_node` MariaDB database (`MariaDbStore`) |
+| **Communication** | Docker Engine API; clones service repositories and builds images locally; pulls the MariaDB base image from Docker Hub; downloads SHA-256-verified coin-node binaries from GitHub releases |
 
 Key technical details:
 
-- Downloads and configures coin nodes (bitcoind, litecoind, dogecoind) alongside all platform services.
+- Downloads verified coin-node binaries and builds local images for bitcoind, litecoind, and dogecoind alongside all platform services.
 - Creates Docker containers with a consistent naming scheme: per-chain services are `xchain-node-{coin}-{network}-{service}` (e.g. `xchain-node-bitcoin-mainnet-xchain-encoder`); shared services (database, hub, explorer, sync) are `xchain-node-{service}` (e.g. `xchain-node-xchain-hub`).
 - Each coin/network combination gets its own Docker bridge network (`xchain-node-{coin}-{network}`), giving DNS-based service discovery between that chain's containers. The database, hub and explorer are also connected to every coin/network network; sync stays on the base `xchain-node` network only. Each indexer also joins the networks of the other installed coins on the same network tier, for its cross-chain sibling reads.
 - Blessed TUI provides a real-time status dashboard in the terminal.

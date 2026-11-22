@@ -22,21 +22,23 @@
  *
  * This test re-derives the emitted set from the explorer source on every run and
  * fails naming any code that has no row in the page's Explorer REST API section,
- * and any row in that section that nothing emits unless the row is marked
- * historical.
+ * any row in that section that nothing emits unless the row is marked
+ * historical, and any historical row whose code is still emitted.
  *
- * Collection is by emit shape rather than by a bare literal scan. Seven shapes
+ * Collection is by emit shape rather than by a bare literal scan. Eight shapes
  * are read: a `code:` line, so the ternary fallback form
  * (`code: cond ? x : 'READ_FAILED'`) is caught alongside the plain `code: 'X'`
  * form; a status-map row (`CODE: [409, 'message']`), which the proof routes
  * declare and then send by reference as `code: code`; a positional helper
  * call (`error(res, 503, 'message', 'CODE')`), which the bridge panel routes
- * use; a `VmQueryError('CODE', ...)` throw, which the contract simulation
- * route forwards to the client as `code: e.code`; a mirror-gate verdict
+ * use; a `VmQueryError('CODE', ...)` or `MultipartFileError('CODE', ...)` throw,
+ * which its route forwards to the client as `code: e.code`; a mirror-gate verdict
  * (`blocked: 'CODE'`), which the mirror gate sends by reference as
  * `code: blocked`; a message/code pair row (`key: ['message', 'CODE']`),
  * which src/explorer/request/validate_params.js keeps in INTEGER_PATH_TYPES
- * and sends destructured as `{ error, code }`; and a
+ * and sends destructured as `{ error, code }`; a
+ * `refusal(message, 'CODE')` call (test/helpers/refusal_codes.js), whose helper
+ * builds the body with shorthand; and a
  * `new DbInputError(message, 'CODE')` throw under
  * src/db/, which src/explorer/request/load_data.js answers as a 400 with
  * `code: e.code`. A new emit shape needs its own rule here, or its codes go
@@ -63,16 +65,21 @@ const { test } = require('node:test');
 const fs   = require('node:fs');
 const path = require('node:path');
 const { sibling } = require('./helpers/sibling_checkout.js');
+const { callArguments, refusalCodes } = require('./helpers/refusal_codes.js');
 
 const ROOT          = path.resolve(__dirname, '..');
 const EXPLORER      = path.resolve(ROOT, '../xchain-explorer');
 const EXPLORER_SRC  = path.join(EXPLORER, 'src');
+const TRACKER       = path.resolve(ROOT, '../xchain-utxo-tracker');
 const REGISTRY_PAGE = path.join(ROOT, 'protocol/error-codes.md');
 const API_PAGE      = path.join(ROOT, 'components/explorer/api.md');
 
 // REST-side emit sites. src/ws/ is deliberately absent (separate surface).
 const SOURCES = ['XChainExplorer.js', 'api.js', 'http/concurrency_gate.js', 'contract/vm_query.js', 'http/bridge_panel_routes.js']
     .map((file) => path.join(EXPLORER_SRC, file));
+// native_history passes this route's answers back unchanged, making its codes
+// part of the Explorer REST surface even though their literals live elsewhere.
+const TRACKER_RELAY_SOURCES = [path.join(TRACKER, 'src/api/history_route.js')];
 
 // An entry file whose long methods were split keeps its path and gains a
 // sibling directory of parts, so an emit site can sit in either. The explorer
@@ -106,6 +113,8 @@ const DOCUMENTED_ELSEWHERE = Object.create(null);
 // Repo presence only: a pinned file gone from a PRESENT explorer fails inside the test by
 // name (readSource below). Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1.
 const noExplorer   = sibling('xchain-explorer').skip;
+const noTracker    = sibling('xchain-utxo-tracker').skip;
+const noRestSources = noExplorer || noTracker;
 
 // The observability logger's first argument is an EVENT name, not a response
 // code; a log line also carrying the Node errno as `code: err.code` would
@@ -123,6 +132,9 @@ const STATUS_HELPER_CALL = /\(\s*res\s*,\s*[0-9]{3}\s*,/;
 // A contract simulation throw, `new VmQueryError('CODE', message, status)`.
 const VM_QUERY_THROW = /\bVmQueryError\(\s*'([A-Z][A-Z0-9_]{2,})'/g;
 
+// A multipart FILE refusal forwarded by processFileRawRequest as `code: e.code`.
+const MULTIPART_FILE_ERROR = /\bMultipartFileError\(\s*'([A-Z][A-Z0-9_]{2,})'/g;
+
 // A mirror-gate verdict, `{ blocked: 'CODE', annotate }`, sent later as `code: blocked`.
 const MIRROR_BLOCKED = /\bblocked\s*:\s*'([A-Z][A-Z0-9_]{2,})'/g;
 
@@ -138,25 +150,6 @@ const EXPLORER_DB = path.join(EXPLORER_SRC, 'db');
 // so the codes sit at the call sites. A throw forwarding a code from any other function
 // fails the gate rather than going unread.
 const DB_INPUT_FORWARDERS = ['queryInteger'];
-
-// The top-level arguments of the call whose `(` sits at `open`, quote-aware, so a comma,
-// semicolon or parenthesis inside a message string does not split it.
-function callArguments(text, open) {
-    const args = [];
-    let depth = 0, quote = null, start = open + 1;
-    for (let i = open; i < text.length; i++) {
-        const ch = text[i];
-        if (quote) {
-            if (ch === '\\') i++;
-            else if (ch === quote) quote = null;
-        } else if (ch === "'" || ch === '"' || ch === '`') quote = ch;
-        else if (ch === '(' || ch === '[' || ch === '{') depth++;
-        else if (ch === ')' || ch === ']' || ch === '}') {
-            if (--depth === 0) { args.push(text.slice(start, i).trim()); return args; }
-        } else if (ch === ',' && depth === 1) { args.push(text.slice(start, i).trim()); start = i + 1; }
-    }
-    return null;
-}
 
 // Every code a DbInputError reaches the client with, from the throws and forwarder calls in
 // `files` ([{ name, text }]). A throw with no code argument answers the class default,
@@ -193,7 +186,7 @@ function dbInputSources() {
 // Every SCREAMING_SNAKE string literal on a line that carries `code:` or a
 // positional helper call, plus every status-map key, simulation throw and
 // mirror-gate verdict, minus a logger event name leading that line's log call.
-function emittedCodes() {
+function explorerCodes() {
     const found = new Map();
     const files = SOURCES.slice();
     for (const [entry, dir] of Object.entries(PART_DIRS)) {
@@ -205,13 +198,17 @@ function emittedCodes() {
         // this list has to follow it, never that the check may skip.
         assert.ok(fs.existsSync(file),
             path.relative(EXPLORER, file) + ' is gone from xchain-explorer; repoint SOURCES at the file the emit site moved to');
-        const lines = fs.readFileSync(file, 'utf8').split('\n');
+        const text  = fs.readFileSync(file, 'utf8');
+        for (const [code, where] of refusalCodes(text, path.basename(file)))
+            if (!found.has(code)) found.set(code, where);
+        const lines = text.split('\n');
         lines.forEach((line, i) => {
             const where   = `${path.basename(file)}:${i + 1}`;
             const record  = (code) => { if (!found.has(code)) found.set(code, where); };
             const emitted = line.replace(LOGGER_EVENT, '');
             for (const m of emitted.matchAll(STATUS_MAP_KEY)) record(m[1]);
             for (const m of emitted.matchAll(VM_QUERY_THROW)) record(m[1]);
+            for (const m of emitted.matchAll(MULTIPART_FILE_ERROR)) record(m[1]);
             for (const m of emitted.matchAll(MIRROR_BLOCKED)) record(m[1]);
             for (const m of emitted.matchAll(MESSAGE_CODE_PAIR)) record(m[1]);
             if (!line.includes('code:') && !STATUS_HELPER_CALL.test(line)) return;
@@ -221,6 +218,30 @@ function emittedCodes() {
     }
     for (const [code, where] of dbInputCodes(dbInputSources()))
         if (!found.has(code)) found.set(code, where);
+    return found;
+}
+
+function relayedTrackerCodes() {
+    const found = new Map();
+    for (const file of TRACKER_RELAY_SOURCES) {
+        assert.ok(fs.existsSync(file),
+            path.relative(TRACKER, file) + ' is gone from xchain-utxo-tracker; repoint TRACKER_RELAY_SOURCES');
+        const text = fs.readFileSync(file, 'utf8');
+        for (const [code, where] of refusalCodes(text, path.basename(file))) found.set(code, where);
+        text.split('\n').forEach((line, i) => {
+            if (!line.includes('code:')) return;
+            for (const quoted of line.match(/'([A-Z][A-Z0-9_]{2,})'/g) || []) {
+                const code = quoted.slice(1, -1);
+                if (!found.has(code)) found.set(code, `${path.basename(file)}:${i + 1}`);
+            }
+        });
+    }
+    return found;
+}
+
+function emittedCodes() {
+    const found = explorerCodes();
+    for (const [code, where] of relayedTrackerCodes()) if (!found.has(code)) found.set(code, where);
     return found;
 }
 
@@ -241,7 +262,7 @@ function restRows(section) {
     return rows;
 }
 
-// Emitted codes with no REST row, and REST rows nothing emits unless marked historical.
+// Report codes missing a row, live rows nothing emits, and historical rows still emitted.
 function registryDrift(emitted, rows) {
     const missing = [];
     for (const [code, where] of emitted) {
@@ -250,21 +271,29 @@ function registryDrift(emitted, rows) {
     }
     const phantoms = [...rows].filter(([code, historical]) => !historical && !emitted.has(code))
         .map(([code]) => code);
-    return { missing, phantoms };
+    const revived = [...rows].filter(([code, historical]) => historical && emitted.has(code))
+        .map(([code]) => code);
+    return { missing, phantoms, revived };
 }
 
-test('every explorer REST error code has a registry row', { skip: noExplorer }, () => {
-    const rows    = restRows(restSection(fs.readFileSync(REGISTRY_PAGE, 'utf8')));
+test('every explorer REST error code has a registry row', { skip: noRestSources }, () => {
+    const section = restSection(fs.readFileSync(REGISTRY_PAGE, 'utf8'));
+    const rows    = restRows(section);
     const emitted = emittedCodes();
 
     assert.ok(emitted.size > 20,
         `collected only ${emitted.size} codes from the explorer source; the emit `
         + 'shape changed, re-point the collection in this test');
 
-    assert.deepEqual(registryDrift(emitted, rows), { missing: [], phantoms: [] },
+    assert.deepEqual(registryDrift(emitted, rows), { missing: [], phantoms: [], revived: [] },
         'protocol/error-codes.md calls itself the complete append-only registry, so every '
         + 'code the explorer emits needs a REST row there, and a REST row nothing emits must '
-        + 'carry a **Historical:** marker (or the emit shape that sends it needs a rule here)');
+        + 'carry a **Historical:** marker, while a code still emitted must not carry that marker '
+        + '(or the emit shape that sends it needs a rule here)');
+    const upstream = section.match(/^\| `UPSTREAM_ERROR` \|.*$/m);
+    assert.ok(upstream, 'the Explorer REST registry lost its UPSTREAM_ERROR row');
+    assert.match(upstream[0], /Only when.*`"retryable": true`.*`Retry-After`.*bare body is final/,
+        'UPSTREAM_ERROR retries must follow the response classification instead of every 502');
 });
 
 test('INVALID_ADDRESS docs preserve the free-text search exception', () => {
@@ -291,23 +320,44 @@ test('INVALID_ADDRESS docs preserve the free-text search exception', () => {
         'the explorer API page must document both market counterparty lanes');
 });
 
-test('the REST registry check fails on a dropped row or an unemitted row', { skip: noExplorer }, () => {
+test('history validation meanings stay in the REST registry', () => {
+    const section = restSection(fs.readFileSync(REGISTRY_PAGE, 'utf8'));
+    const row = (code) => section.match(new RegExp('^\\| `' + code + '` \\|.*$', 'm'))[0];
+    assert.match(row('INVALID_LIMIT'), /`POST \/\{COIN\}\/api\/history`.*1 through 100.*refused rather than clamped/);
+    assert.match(row('INVALID_RANGE'), /`since` or `until`.*`since` is later than `until`/);
+    assert.match(row('INVALID_CURSOR'), /`before`.*JSON number or decimal string.*zero is refused/);
+    assert.match(row('NOT_READY'), /`POST \/\{COIN\}\/api\/native_history`/);
+    assert.match(row('BAD_REQUEST'), /native_history.*from_height/);
+    assert.match(row('INVALID_CURSOR'), /native_history.*cursor/);
+});
+
+test('the REST registry check fails on a dropped row or an unemitted row', { skip: noRestSources }, () => {
     const page    = fs.readFileSync(REGISTRY_PAGE, 'utf8');
     const emitted = emittedCodes();
+    const explorer = explorerCodes();
     // The message/code pair rule reads a map row, never an HTTP method list.
     assert.equal(emitted.has('POST'), false, 'the message/code pair rule read a method list as a code');
-    for (const code of ['VM_BUSY', 'MIRROR_STALE', 'INVALID_CURSOR', 'INVALID_TX_INDEX']) {
-        assert.ok(emitted.has(code), `${code} is no longer collected from the explorer source`);
+    assert.ok(explorer.has('BAD_REQUEST'), 'BAD_REQUEST is no longer collected from the final error handler');
+    for (const code of ['VM_BUSY', 'MIRROR_STALE', 'INVALID_CURSOR', 'INVALID_TX_INDEX',
+        'FILE_PART', 'FILE_INCOMPLETE', 'FILE_ASSEMBLY_MISMATCH', 'FILE_PART_CORRUPT']) {
+        assert.ok(explorer.has(code), `${code} is no longer collected from the explorer source`);
         const dropped = page.replace(new RegExp('^\\| `' + code + '` \\|.*\\n', 'm'), '');
         assert.notEqual(dropped, page, `falsification fixture did not drop the ${code} row`);
         assert.deepEqual(registryDrift(emitted, restRows(restSection(dropped))).missing.map((m) => m.split(' ')[0]),
             [code]);
     }
+    const withoutNotReady = page.replace(/^\| `NOT_READY` \|.*\n/m, '');
+    assert.notEqual(withoutNotReady, page, 'falsification fixture did not drop the NOT_READY row');
+    assert.deepEqual(registryDrift(emitted, restRows(restSection(withoutNotReady))).missing.map((m) => m.split(' ')[0]),
+        ['NOT_READY']);
     const fake    = '| `FAKE_GONE_CODE` | 400 | test | No |\n';
     const inRest  = page.replace('| `MISSING_PARAMETER` |', fake + '| `MISSING_PARAMETER` |');
     assert.deepEqual(registryDrift(emitted, restRows(restSection(inRest))).phantoms, ['FAKE_GONE_CODE']);
     const marked  = inRest.replace('| test |', '| test. **Historical: test.** |');
     assert.deepEqual(registryDrift(emitted, restRows(restSection(marked))).phantoms, []);
+    const revived = page.replace('| `VM_BUSY` | 429 |', '| `VM_BUSY` | 429 | **Historical: test.**');
+    assert.notEqual(revived, page, 'falsification fixture did not mark VM_BUSY historical');
+    assert.deepEqual(registryDrift(emitted, restRows(restSection(revived))).revived, ['VM_BUSY']);
     const rpcRow  = page.indexOf('\n| `', page.indexOf('\n## JSON-RPC'));
     assert.ok(page.indexOf('\n## JSON-RPC') >= 0 && rpcRow >= 0, 'protocol/error-codes.md lost its JSON-RPC table');
     const inRpc   = page.slice(0, rpcRow + 1) + fake + page.slice(rpcRow + 1);
@@ -349,8 +399,19 @@ function emittedWsCodes() {
     return found;
 }
 
+test('the refusal rule reads literal codes and refuses one it cannot read', () => {
+    const codes = (text) => [...refusalCodes(text, 'fixture.js').keys()];
+    const call  = "return refusal('Too many (max ' + MAX + ', total); narrow', 'FIRST_CODE');\n"
+        + "return refusal('a', 'SECOND_CODE');";
+    assert.deepEqual(codes('function refusal(error, code){\n    return { refusal: { error, code } };\n}\n' + call),
+        ['FIRST_CODE', 'SECOND_CODE']);
+    assert.deepEqual(codes('if (assets.refusal) send(range.refusal);'), []);
+    assert.throws(() => codes('return refusal(message, someCode);'), /cannot read/);
+});
+
 test('the websocket.md Error Codes table matches the codes src/ws sends', { skip: noExplorer }, () => {
     const page    = fs.readFileSync(path.join(ROOT, 'components/explorer/websocket.md'), 'utf8');
+    const registry = fs.readFileSync(REGISTRY_PAGE, 'utf8');
     const start   = page.indexOf('\n## Error Codes\n');
     assert.ok(start >= 0, 'components/explorer/websocket.md lost its "## Error Codes" section');
     const table   = page.slice(start + '\n## Error Codes\n'.length).split(/\n(?:## |---\n)/)[0];
@@ -362,4 +423,7 @@ test('the websocket.md Error Codes table matches the codes src/ws sends', { skip
     const phantoms = rows.filter((code) => !emitted.has(code));
     assert.deepEqual({ missing, phantoms }, { missing: [], phantoms: [] },
         'websocket.md Error Codes must list exactly the codes the WebSocket server sends');
+    assert.match(registry,
+        /Errors on the Explorer WebSocket channel[^\n]*including[^\n]*`CATCH_UP_REORGED`[^\n]*websocket\.md#error-codes/,
+        'the REST registry pointer must present WebSocket codes as examples and link the complete table');
 });

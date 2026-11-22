@@ -218,15 +218,15 @@ await mineBlock();
 
 ## Same-Chain Swap
 
-If both tokens are on the same chain, an ORDER is simpler and does not require hub coordination. See [Integration_Patterns.md](integration-patterns.md) for DEX patterns.
+If both tokens are on the same chain, an ORDER is simpler and does not require hub coordination. See [integration-patterns.md](integration-patterns.md) for DEX patterns.
 
 ---
 
 ## Next Steps
 
-- [Query_The_Explorer.md](query-the-explorer.md): discover and monitor open swaps
-- [Integration_Patterns.md](integration-patterns.md): building a DEX frontend
-- [Advanced_Token_Features.md](advanced-token-features.md): allow/block lists for swaps
+- [query-the-explorer.md](query-the-explorer.md): discover and monitor open swaps
+- [integration-patterns.md](integration-patterns.md): building a DEX frontend
+- [advanced-token-features.md](advanced-token-features.md): allow/block lists for swaps
 
 ---
 

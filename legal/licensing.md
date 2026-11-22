@@ -68,8 +68,11 @@ You can, under the AGPL, *if* you publish your modified source to your users. If
 No. That repository is MIT-licensed, so keep the copyright and permission notice from its `xchain-contracts/LICENSE.md` file and the AGPL's source-disclosure requirement does not apply to what you copied. The rest of the platform stays under the AGPL-or-commercial terms above.
 
 **Can I call my deployment "XChain"?**
-The software license lets you run the code; it does not grant rights to the **XChain name or brand**. See [TRADEMARK.md](./trademark.md).
+The software license lets you run the code; it does not grant rights to the **XChain name or brand**. See [trademark.md](./trademark.md).
 
 ---
 
-*This page is a plain-language summary for convenience. The binding documents are the [AGPL-3.0 LICENSE](../LICENSE.md) and any signed commercial agreement; if anything here conflicts with them, they control.*
+*This page is a plain-language summary for convenience. For AGPL use, the binding
+documents are the [AGPL-3.0 LICENSE](../LICENSE.md) and [NOTICE](../NOTICE.md),
+including the NOTICE attribution requirement under section 7(b) of the AGPL. For
+commercial use, the signed commercial agreement controls.*

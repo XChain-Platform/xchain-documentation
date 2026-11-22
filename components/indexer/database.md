@@ -62,6 +62,9 @@ The indexer creates and manages all tables in this database. SQL schema files li
 | `dispenses` | Individual dispense events triggered by sends. `get_amount` records the coin attributed to that specific event; when one payment fills several dispenses in the same transaction, each row's `get_amount` is its share of the payment rather than the payment's full amount. Testnet and regtest already behave this way; mainnet activates the change at `2026-08-16T00:00:00Z` |
 | `dividends` | DIVIDEND distribution records |
 | `files` | FILE upload metadata |
+| `file_manifests` | Multipart FILE manifests: one row per manifest action, with its source, file hash, declared part count and total bytes |
+| `file_parts` | Multipart FILE parts: one row per part action, with its source, file hash, part position, byte length, part digest and block |
+| `file_completions` | Multipart FILE assembly verdicts: one row per completing action, naming its manifest action; `complete` when the earliest part at every position matches the manifest hash and byte total, otherwise `mismatch` |
 | `issues` | ISSUE (token creation/update) records |
 | `links` | LINK cross-reference records |
 | `lists` | LIST definitions |
@@ -114,7 +117,7 @@ The indexer creates and manages all tables in this database. SQL schema files li
 | `rollcall_absences` | Responsible-set members that did not sign a rolled epoch: `(epoch_height, source_id)` PK, `close_block`, and `evicted` (1 = this absence completed a K-streak and evicted the source at that close) |
 | `rollcall_actions` | One row per valid ROLLCALL action on the DOGE side, so an explorer can list an action whose every pubkey was already landed (rollcall_signers keeps only first-seen pubkeys): `action_index` PK, `block_index`, `epoch_height`, `ledger_hash` as carried, `publisher`, `gates` (the v1 GATES field, NULL on v0), `carried_count` (verified signatures carried) and `first_seen_count` (of those, pubkeys new to the epoch). It decides nothing: the BTC close still reads rollcall_signers only |
 | `rollcall_gates` | The consensus-gate list each verified signer re-signed in a ROLLCALL v1 at a rolled epoch: `(epoch_height, pubkey)` PK, `close_block`, and `gates_json` (a sorted JSON array of `<module>.<EXPORT>` keys). Written by the epoch close from `ROLLCALL_GATES_ACTIVATION` on and read by the rules-aware attestation set filter, which selects an epoch by `close_block` so a replay reads exactly what the live run read |
-| `gated_files` | FILE v1 token-gated metadata: `gate_ticker`, `encryption_method`, `key_hash` (groups pack members), and `raw_data` (ciphertext bytes) |
+| `gated_files` | Token-gated FILE metadata (format 0): `gate_ticker`, `encryption_method`, `key_hash` (groups pack members), and `raw_data` (ciphertext bytes) |
 | `pubkeys` | Address-to-public-key mapping, populated from the decoder at index time. Keyed by `address_id` |
 | `icons` | Token icon cache: source URL, fetch/generation status, and generated PNG hash. Keyed by `token_id`; managed by the icon-fetch pipeline, not by block processing |
 
@@ -145,13 +148,13 @@ The indexer creates and manages all tables in this database. SQL schema files li
 | Table | Purpose |
 |---|---|
 | `stakes` | Active and historical capability-staking STAKE records (`version` 1=new / 2=top-up): `signing_pubkey_id`, `amount`, `activation_block` (`block_index + 6`), `deactivation_block` (set on UNSTAKE), `status_id`, `source_id`. Capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`, `full_node`) are derived from a pubkey's aggregate active `amount` against the governance-configured minimums: there is no `tier` column. |
-| `unstakes` | Capability UNSTAKE v0 records: `signing_pubkey_id`, `amount`, `cooldown_end_block`, `status_id`; links back to the originating stake by pubkey. The cooldown end is `block_index + STAKING.COOLDOWN_BLOCKS`; the cooldown length is governance-configurable via the `STAKING.COOLDOWN_BLOCKS` parameter (default 1000 blocks), not a hardcoded constant. Contract-targeted UNSTAKE v1 records do **not** appear here; they are written to `contract_unstakes` with a per-contract cooldown (see below). |
+| `unstakes` | Capability UNSTAKE v0 records: `signing_pubkey_id`, `amount`, `cooldown_end_block`, `status_id`; links back to the originating stake by pubkey. The cooldown end is `block_index + STAKING.COOLDOWN_BLOCKS`; the cooldown length is a fixed chain-wide consensus constant (1000 blocks) that changes only through a coordinated consensus upgrade. Contract-targeted UNSTAKE v1 records do **not** appear here; they are written to `contract_unstakes` with a per-contract cooldown (see below). |
 | `delegations` | Active and historical DELEGATE records: `signing_pubkey_id`, `activation_block`, `deactivation_block` (set on DELEGATE v2 revoke), `status_id` |
 | `validator_rewards` | Per-validator accumulated rewards: `source_id`, `signing_pubkey_id`, `reward_type` (`oracle_round`, `oracle_base`, `oracle_full_node`, `attest_fee`, `rollcall_publish`, `anchor_bundle`, or `anchor_archive`), `round_reference`, `amount`, `block_index`. `attest_fee` rows are derived by the indexer during block processing; a `rollcall_publish` row is derived at the BTC-side ROLLCALL epoch close, paying the frozen `ROLLCALL_REWARD_AMOUNT` to the elected leader of a rolled epoch (an unrolled epoch mints none), and a rollback deletes it with its derive block (see [ROLLCALL](../../protocol/actions/rollcall.md)); the oracle labels (`oracle_round` / `oracle_base` / `oracle_full_node`) are reserved by the schema, but no consensus rail mints them today (which one a rail would use depends on whether the full-node reward tier is active: see [COLLECT](../../protocol/actions/collect.md#reward-population-path)); `anchor_bundle` and `anchor_archive` rows are derived by the indexer from the on-chain ANCHOR bytes at or above their own flag-days (`ANCHOR_REWARD_ACTIVATION` / `ARCHIVE_REWARD_ACTIVATION`); rows below those heights were pushed from the hub via `pushvalidatorrewards` and are restored by ANCHOR full-parse recovery rather than re-derived. One `anchor_bundle` row is written per published bundle, keyed on the bundle's snapshot block, not one per chain. |
 | `stake_key_revocations` | Records DELEGATE v2 revocations of the original stake signing key: `source_id`, `signing_pubkey_id`, `deactivation_block`, `action_index`, `block_index`, `status_id`. A later STAKE v2 (higher `action_index`) by the same `(source, pubkey)` clears the revocation. Queried via `createStakeKeyRevocation` / `getStakeKeyRevocation` in `src/db/stakes.js`. |
 | `reward_claims` | COLLECT records: `source_id`, `amount`, `status_id`, `block_index` |
 
-Staking tables enforce an activation/deactivation delay via `activation_block` and `deactivation_block` columns. Capability staking (`stakes`) is BTC-only and uses a fixed **6-block** delay. Contract-targeted staking (`contract_stakes`) runs on every chain and uses the per-chain `STAKING.ACTIVATION_DELAY_BLOCKS` default, calibrated for equivalent ~60-min reorg protection (**6 blocks on BTC, 24 on LTC, 60 on DOGE**); see `protocol/Contract_Staking.md`. Active-stake queries filter by `activation_block <= current_block AND (deactivation_block IS NULL OR deactivation_block > current_block)` to prevent short-range reorgs from affecting the active validator set.
+Staking tables enforce an activation/deactivation delay via `activation_block` and `deactivation_block` columns. Capability staking (`stakes`) is BTC-only and uses a fixed **6-block** delay. Contract-targeted staking (`contract_stakes`) runs on every chain and uses the fixed per-chain `STAKING.ACTIVATION_DELAY_BLOCKS` consensus constant, calibrated for equivalent ~60-min reorg protection (**6 blocks on BTC, 24 on LTC, 60 on DOGE**); see `protocol/Contract_Staking.md`. Active-stake queries filter by `activation_block <= current_block AND (deactivation_block IS NULL OR deactivation_block > current_block)` to prevent short-range reorgs from affecting the active validator set.
 
 ### Contract-Staking Tables
 
@@ -168,11 +171,11 @@ Contract-targeted staking (STAKE v3 / UNSTAKE v1 / DELEGATE v1) is a developer p
 
 Two slashing systems produce distinct table families.
 
-**Contract-targeted slashing** (triggered by a VM EXECUTE that calls `xchain.stake.slash`):
+**Contract-targeted slashing** (triggered by a VM EXECUTE that calls `xchain.contract.slash`):
 
 | Table | Purpose |
 |---|---|
-| `slash_events` | One row per VM-emitted slash: `execution_index` (the EXECUTE), `target_contract_index`, `signing_pubkey_id`, `tick_id`, `amount` slashed, and `destination_id` (resolved BURN address or custom destination) |
+| `slash_events` | One row per VM-emitted slash that deducts a non-zero amount: `execution_index` (the EXECUTE), `target_contract_index`, `signing_pubkey_id`, `tick_id`, `amount` slashed, and `destination_id` (resolved BURN address or custom destination). A no-op writes no row. |
 | `contract_slash_debits` | Append-only audit log of in-place `amount` reductions on `contract_stakes`/`contract_unstakes` rows. Stores `prev_amount` (pre-slash string) for byte-identical reorg restoration. Keyed by `block_index` for rollback |
 
 **Capability-stake equivocation slashing** (permissionless SLASH wire action, WI-2 bump 2):

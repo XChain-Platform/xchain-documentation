@@ -39,10 +39,12 @@ and closes on its own.
    `bridge_transfers`, streamed to every indexer over the existing hub-DB mirror, the same
    channel `cross_chain_matches` and `capability_snapshots` already ride. No per-transfer
    on-chain transaction.
-3. **Mint (destination).** The destination indexer applies the record at the first block whose
-   protocol time is at or past the record's `effective_time`, verifies the quorum against the
-   mirrored capability snapshot at the record's `snapshot_block`, and injects `XBRIDGE` version
-   `2`: credit the destination address, raise that chain's XCHAIN supply by the amount.
+3. **Mint (destination).** The record becomes eligible at the first block whose protocol time is
+   at or past its `effective_time`. It applies at or after that block, subject to
+   `XBRIDGE_MAX_PER_BLOCK` (25 per destination chain per block), with overflow carrying forward in
+   `(snapshot_block, transfer_id)` order. The destination indexer verifies the quorum against the
+   mirrored capability snapshot at the record's `snapshot_block` and injects `XBRIDGE` version `2`:
+   credit the destination address and raise that chain's XCHAIN supply by the amount.
 4. **Burn (destination) and release (BTC).** The reverse: `XBRIDGE` version `1` on DOGE or LTC
    debits the holder and lowers that chain's supply; the federation attests after that chain's
    own depth; the BTC indexer injects `XBRIDGE` version `2` that moves the amount from the
@@ -116,8 +118,7 @@ The assumption is therefore "the `cross_chain` quorum and the checkpoint quorum 
 same assumption every validator action on the platform already rests on. A compromised hub that
 supplies both the record and the roster that verifies it can no longer mint on its own. This
 replaces the earlier **hub-trusted mint** (milestone 1), where the record and its verifying roster
-came from the same mirror and no checkpoint cross-check existed. Other guide pages still
-describe that earlier model and are tracked for a follow-up edit.
+came from the same mirror and no checkpoint cross-check existed.
 
 ## Reorgs and finality
 

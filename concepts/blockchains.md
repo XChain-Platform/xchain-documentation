@@ -3,7 +3,7 @@
 
 # Supported Blockchains
 
-The XChain Platform is designed to run on any number of blockchains. Adding support for a new blockchain requires only a coin-specific configuration file defining fee schedules, special addresses, and network parameters; the protocol specification, indexer logic, action handlers, and all tooling remain unchanged. The architecture scales horizontally: each blockchain runs its own independent pipeline (decoder, indexer, explorer, UTXO tracker) with its own databases, while a shared hub coordinates cross-chain operations.
+The XChain Platform is designed to run on any number of blockchains. Adding support for a new blockchain requires only a coin-specific configuration file defining fee schedules, special addresses, and network parameters; the protocol specification, indexer logic, action handlers, and all tooling remain unchanged. The architecture scales horizontally: the decoder, indexer, encoder, and UTXO tracker run once per chain/network, while the hub, explorer, and sync each run as a single shared instance across all chains. The explorer routes each request to its coin's databases by the `/{COIN}/` URL prefix.
 
 ## Currently Supported
 

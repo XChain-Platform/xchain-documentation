@@ -132,8 +132,12 @@ means *qualified*. Without this, off-BTC chains could not verify cross-chain mat
 
 ## Determinism
 
-- **When:** each indexer applies a match at the first block whose `block_time ≥ effective_time`.
-  Wall-clock is used because chains have independent block heights.
+- **When:** a match becomes eligible at the first block whose `block_time ≥ effective_time` and
+  settles no earlier than that block. Each chain's CROSS_SETTLE pass applies at most
+  `CROSS_SETTLE_MAX_PER_BLOCK` (25) effective, unsettled matches per block in
+  `(snapshot_block, match_id)` order. Any overflow carries forward in that order to the next block
+  and is never dropped. The cap is active from genesis on every network. Wall-clock is used because
+  chains have independent block heights.
 - **Sync barrier:** the block loop waits (`waitForMatchSync`) until the local match mirror has
   caught up to the block's time, so every operator of a chain settles the same matches at the same
   block. Never against a stale mirror.

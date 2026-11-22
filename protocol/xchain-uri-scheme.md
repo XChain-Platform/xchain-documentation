@@ -149,7 +149,10 @@ Open the wallet's contract EXECUTE form for the named chain with the call target
 | `method` | No | Method name to invoke. Pre-fills the form; the user can change it before signing. |
 | `params` | No | Positional arguments as a single pipe-delimited string, percent-encoded (`a\|b` → `a%7Cb`). Elements must not themselves contain `\|` or `;` (the same rule as `EXECUTE`'s `PARAMS` wire field). Parameter names/types, when the contract declares them, are display metadata only; see [Contract ABI](contract-abi.md). |
 
-There is no gas parameter: a top-level `EXECUTE` has no gas-limit field on the wire and always runs under the protocol's gas ceiling. Wallets should ignore a `gas` query parameter if a link carries one.
+There is no gas parameter: a top-level `EXECUTE` has no gas-limit field on the wire. Its ceiling is
+the protocol gas ceiling except when `EXECUTE_NATIVE_METERED_GAS_ACTIVATION` makes a smaller native
+fee output the paid gas budget. Wallets should ignore a `gas` query parameter if a link carries one
+and size a native fee output through the indexer quote.
 
 #### Examples
 

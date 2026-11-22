@@ -24,7 +24,7 @@ const sdk = new XChainSDK(options);
 | `timeout` | number | `30000` | Request timeout in milliseconds applied to all HTTP requests. |
 | `retry` | RetryConfig or `false` | See [Retry Configuration](#retry-configuration) | Retry policy for transient errors. Pass `false` to disable retries entirely. |
 | `hooks` | SDKHooks object | `{}` | Lifecycle callbacks for requests, responses, errors, and retries. See [Request Hooks](#request-hooks). |
-| `pool` | PoolConfig object | See [Connection Pooling](#connection-pooling) | HTTP keep-alive agent settings for the explorer and encoder clients. |
+| `pool` | PoolConfig object | See [Connection Pooling](#connection-pooling) | HTTP keep-alive agent settings, or injected `httpAgent` / `httpsAgent` members, for the explorer, encoder, hub and WebSocket clients. |
 | `websocketUrl` | string | `WEBSOCKET_URL` env var, falls back to a resolved `explorerUrl` (not the regtest `localhost` explorer fallback, so a zero-config regtest SDK has no WebSocket client) | Hostname of the xchain-explorer WebSocket server. |
 | `websocketPort` | number | `WEBSOCKET_PORT` env var, falls back to `explorerPort` | Port of the xchain-explorer WebSocket server. |
 
@@ -58,6 +58,8 @@ const sdk = new XChainSDK(options);
 | `keepAliveMsecs` | number | `1000` | Initial delay (ms) between keep-alive packets. |
 | `maxSockets` | number | `10` | Maximum concurrent sockets per host. |
 | `maxFreeSockets` | number | `5` | Maximum idle sockets to keep open per host. |
+| `httpAgent` | `http.Agent` | none | Injected agent used instead of the default keep-alive agent for `http://` and `ws://` connections, for example a SOCKS proxy agent. |
+| `httpsAgent` | `https.Agent` | none | Injected agent used for `https://` and `wss://` connections. |
 
 ## Config Resolution Priority
 
@@ -67,7 +69,7 @@ When the same setting can be specified in multiple places, the SDK resolves it i
 2. **Hub-discovered endpoints**: endpoint URLs and ports fetched from xchain-hub during `init()`. Only applies to `explorerUrl`, `explorerPort`, `encoderUrl`, and `encoderPort`, and skips a service the caller pinned with a constructor option: `explorerUrl` or `explorerPort` pins the explorer and the WebSocket that follows it, `encoderUrl` or `encoderPort` pins the encoder, and `websocketUrl` pins the WebSocket. Environment variables do not pin.
 3. **Environment variables**: values read from process environment or a `.env` file.
 4. **Public endpoint defaults**: for mainnet/testnet networks only, the public XChain Platform hosts (`https://hub.xchain.io/{COIN}`, `https://explorer.xchain.io`, `https://encoder.xchain.io/{COIN}`; the explorer client adds the coin path itself). See [Public Endpoint Defaults](#public-endpoint-defaults).
-5. **Localhost fallback**: the last resort host, used when nothing above supplied a URL. On a regtest network (inherently local) with nothing configured, only the explorer client is built from it (`localhost:8080`); the encoder and WebSocket clients are built only once a URL or port for them is supplied.
+5. **Localhost fallback**: the last resort host, used when nothing above supplied a URL. On a regtest network (inherently local) with nothing configured, only the explorer client is built from it (`localhost:8080`); the encoder and WebSocket clients are built only once a URL or port for them is supplied. The default xchain-node stack publishes the explorer on host port `18080`, so use `explorerPort: 18080` / `EXPLORER_PORT=18080`, or include `:18080` in a scheme-bearing explorer URL.
 
 Constructor options always win. Hub discovery fills gaps that explicit options did not cover. Environment variables fill gaps that hub discovery did not cover. For mainnet/testnet, public endpoint defaults fill gaps environment variables did not cover, so a network-only construction (`new XChainSDK({ network: 'bitcoin-mainnet' })`) already has working explorer, encoder, and hub clients with no other configuration. The localhost fallback only applies when no URL was resolved, which on a zero-config construction means the regtest explorer, and on any network means a service given a port option and no URL.
 
@@ -122,6 +124,7 @@ The SDK reads these environment variables at construction time. A `.env` file in
 | `XC_BRIDGE_POLICY_APPLY_ORDER_REGTEST_ACTIVATION` | **Regtest only.** Arms the `regtest` entry of `BRIDGE_POLICY_APPLY_ORDER_ACTIVATION` in the SDK's registry copy. `armed`, `genesis` or `on` arms at `0`; a non-negative integer arms at that height. Unset or `off` leaves the gate inert; anything else is refused with a warning and leaves the gate inert. Set identically on every process in the venue. | Activation registry copy (`src/consensus/gate_registry.js`) |
 | `XC_VM_EMISSION_AMOUNT_FORMAT_REGTEST_ACTIVATION` | **Regtest only.** Arms the `regtest` entry of `VM_EMISSION_AMOUNT_FORMAT_ACTIVATION` in the SDK's registry copy. `armed`, `genesis` or `on` arms at `0`; a non-negative integer arms at that height. Unset or `off` leaves the gate inert; anything else is refused with a warning and leaves the gate inert. Set identically on every process in the venue. | Activation registry copy (`src/consensus/gate_registry.js`) |
 | `XC_EXECUTE_FEE_CAP_REGTEST_ACTIVATION` | **Regtest only.** Arms the `regtest` entry of `EXECUTE_FEE_CAP_ACTIVATION` in the SDK's registry copy. `armed`, `genesis` or `on` arms at `0`; a non-negative integer arms at that height. Unset or `off` leaves the gate inert; anything else is refused with a warning and leaves the gate inert. Set identically on every process in the venue. | Activation registry copy (`src/consensus/gate_registry.js`) |
+| `XC_EXECUTE_NATIVE_METERED_GAS_REGTEST_ACTIVATION` | **Regtest only.** Arms the `regtest` entry of `EXECUTE_NATIVE_METERED_GAS_ACTIVATION` in the SDK's registry copy. `armed`, `genesis` or `on` arms at `0`; a non-negative integer arms at that height. Unset or `off` leaves the gate inert; anything else is refused with a warning and leaves the gate inert. Set identically on every process in the venue. | Activation registry copy (`src/consensus/gate_registry.js`) |
 | `XC_VOTE_V3_TICK_EXISTENCE_REGTEST_ACTIVATION` | **Regtest only.** Arms the `regtest` entry of `VOTE_V3_TICK_EXISTENCE_ACTIVATION` in the SDK's registry copy. `armed`, `genesis` or `on` arms at `0`; a non-negative integer arms at that height. Unset or `off` leaves the gate inert; anything else is refused with a warning and leaves the gate inert. Set identically on every process in the venue. | Activation registry copy (`src/consensus/gate_registry.js`) |
 | `XC_MATCH_ORIGIN_OPEN_REGTEST_ACTIVATION` | **Regtest only.** Arms the `regtest` entry of `MATCH_ORIGIN_OPEN_ACTIVATION` in the SDK's registry copy. `armed`, `genesis` or `on` arms at `0`; a non-negative integer arms at that height. Unset or `off` leaves the gate inert; anything else is refused with a warning and leaves the gate inert. Set identically on every process in the venue. | Activation registry copy (`src/consensus/gate_registry.js`) |
 | `XC_MATCH_EQUAL_PRICE_OLDEST_FIRST_REGTEST_ACTIVATION` | **Regtest only.** Arms the `regtest` entry of `MATCH_EQUAL_PRICE_OLDEST_FIRST` in the SDK's registry copy. `armed`, `genesis` or `on` arms at `0`; a non-negative integer arms at that height. Unset or `off` leaves the gate inert; anything else is refused with a warning and leaves the gate inert. Set identically on every process in the venue. | Activation registry copy (`src/consensus/gate_registry.js`) |
@@ -188,7 +191,7 @@ When only `network` is specified (no explicit service URLs, no environment overr
 
 `{COIN}` is the coin prefix derived from your `network` (e.g. `BTC` for `bitcoin-mainnet`, `TBTC` for `bitcoin-testnet`). These defaults use HTTPS on port 443; no port number is appended.
 
-Regtest networks get no public defaults because regtest stacks are inherently local. With nothing else configured, the explorer falls back to `localhost:8080`, but the encoder (needed for any write) and the WebSocket client stay unset. The encoder is built once `encoderUrl` or `encoderPort` (or `ENCODER_URL` / `ENCODER_PORT`) is supplied; the WebSocket client once any of `websocketUrl`, `websocketPort`, `explorerUrl` or `explorerPort` is (or the matching `WEBSOCKET_*` / `EXPLORER_*` variables).
+Regtest networks get no public defaults because regtest stacks are inherently local. With nothing else configured, the explorer falls back to `localhost:8080`, but the default xchain-node stack publishes it on host port `18080`. Point at that stack with `explorerPort: 18080` / `EXPLORER_PORT=18080`, or with `explorerUrl: 'http://localhost:18080'` / `EXPLORER_URL=http://localhost:18080`. A URL that includes a scheme is used verbatim, so its port must be in the URL instead of a separate port setting. The encoder (needed for any write) and the WebSocket client stay unset until their URLs or ports are supplied; the WebSocket client can also follow an explicit explorer endpoint.
 
 ```javascript
 // Minimal config: hub, explorer, and encoder all resolve to the public platform
@@ -303,7 +306,7 @@ const sdk = new XChainSDK({
 
 ## Connection Pooling
 
-The explorer and encoder clients share an HTTP keep-alive agent. Keeping connections open reduces latency for repeated requests to the same host. The default settings suit most applications; tune them for high-throughput workloads.
+The explorer and encoder clients share an HTTP keep-alive agent. A host that must route traffic differently, such as through a SOCKS proxy, injects `httpAgent` and `httpsAgent`; every connection (explorer, encoder, hub and the live WebSocket) then picks one by URL scheme, with `https://` and `wss://` using `httpsAgent`, and never uses the other scheme's agent. Keeping connections open reduces latency for repeated requests to the same host. The default settings suit most applications; tune them for high-throughput workloads.
 
 **Default pool settings:** keepAlive `true`, keepAliveMsecs `1000`, maxSockets `10`, maxFreeSockets `5`.
 

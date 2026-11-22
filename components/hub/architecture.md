@@ -402,6 +402,7 @@ flowchart LR
 | `GET /hub-db/snapshot/remote_token_snapshots?since_id=N&limit=10000` | Federation-finalized remote token facts after `since_id` |
 | `GET /hub-db/snapshot/bridge_transfers?since_id=N&limit=10000` | Signed transfer rows after `since_id`; retracted rows excluded |
 | `GET /hub-db/snapshot/policy_snapshots?since_id=N&limit=10000` | Append-only signed token-policy versions after `since_id` |
+| `GET /hub-db/snapshot/list_snapshots?since_id=N&limit=10000` | Append-only, quorum-signed shared-list versions after `since_id` |
 | `GET /hub-db/snapshot/anchor_reward_attestations?since_id=N&limit=10000` | Quorum-attested ANCHOR publisher reward rows after `since_id` |
 | `GET /hub-db/snapshot/attestation_responses?since_id=N&limit=10000` | Finalized ATTEST response rows after `since_id` |
 | `GET /hub-db/snapshot/capability_snapshot_proof?snapshot_block=S&capability=C&pubkeys=k1,k2` | The BTC snapshot checkpoint and `stakes_root` proof for the `capability_snapshots` rows at S; not paginated |

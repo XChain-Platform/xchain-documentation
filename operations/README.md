@@ -13,7 +13,7 @@ This section covers everything needed to deploy, configure, monitor, and maintai
 | [XCHAIN Genesis](./xchain-genesis.md) | One-time fixed-supply XCHAIN issuance and validator reward-pool funding |
 | [Docker](./docker.md) | Docker Compose configuration and container management |
 | [Configuration](./configuration.md) | All configuration options across each service |
-| [API Keys](./api-keys.md) | The platform-wide no-key posture: fail-open with a loud startup warning |
+| [API Keys](./api-keys.md) | The platform-wide no-key posture: fail-open with a loud startup warning, except the hub, which must be declared keyless |
 | [Monitoring](./monitoring.md) | Health checks, metrics, and alerting for a running node |
 | [Disk Management](./disk-management.md) | Moving a chain's block data or datadir to a larger disk safely |
 | [Reorg Handling](./reorg-handling.md) | How the platform detects and recovers from blockchain reorganizations |

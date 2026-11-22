@@ -22,7 +22,7 @@ Regtest is a fully local, self-contained blockchain environment where you contro
 `xchain-node` is the CLI tool that installs and manages all services as Docker containers.
 
 ```bash
-# Install the regtest stack (downloads images, creates containers, starts everything)
+# Install the regtest stack (clones service repos, builds images, creates containers, starts everything)
 xchain-node install all bitcoin regtest
 
 # Start all services
@@ -56,7 +56,7 @@ The coin node's RPC port is reachable on the stack's Docker network. xchain-node
 
 The explorer marks a coin stale once its newest indexed block has aged past a wall-clock threshold, so a frozen replica never passes old data off as current. That threshold is `EXPLORER_TIP_MAX_AGE_S` and it defaults to `21600` seconds (6 hours).
 
-A live chain never reaches it, because blocks keep arriving. Regtest reaches it all the time, because blocks are mined on demand. Leave a dev stack idle overnight and by morning the coin has aged out:
+A live chain never reaches it because blocks keep arriving. The regtest miner also keeps a default dev stack fresh: its idle heartbeat mines one empty block after `IDLE_MINE_INTERVAL_MS`, which defaults to `60000` ms. A regtest chain ages past the threshold only when that heartbeat is disabled (`IDLE_MINE_INTERVAL_MS=0`), mining is paused, or the miner is not running. See [regtest miner configuration](../components/regtest-miner/configuration.md). In those cases the explorer reports:
 
 - REST reads still answer, carrying `XChain-Freshness: stale` and a body `freshness` object
 - WebSocket frames carry a top-level `stale: true`
@@ -68,7 +68,7 @@ With `EXPLORER_STALE_FAIL_CLOSED=1` the same idle chain is refused instead:
 - WebSocket subscribe and catch-up frames come back as an `error` frame with the same code
 - `/{COIN}/api/status` drops the coin from its `available` map, while leaving it in `supported`
 
-Nothing is broken and nothing is lost. Mining one block clears it immediately. To stop it happening at all, switch the gate off for your regtest coin:
+Mining one block clears the stale state immediately. If you disabled the heartbeat intentionally, as block-counting test venues often do, switch the gate off for your regtest coin:
 
 | Setting | Effect |
 |---|---|
@@ -86,7 +86,7 @@ echo 'EXPLORER_TIP_MAX_AGE_S=0' >> .env
 xchain-node recreate xchain-explorer
 ```
 
-That turns the gate off for every coin the shared explorer serves, which is fine on a dev box that serves only regtest. If the same explorer also serves live chains, mine a block when you come back to the stack instead, or run the explorer from its own repo.
+That turns the gate off for every coin the shared explorer serves, which is fine on a dev box that serves only regtest. If the same explorer also serves live chains, keep the miner heartbeat on, mine a block by hand when needed, or run the explorer from its own repo.
 
 Running the explorer straight from its repo, put the line in its `.env`. There the per-coin form works, so prefer it: it leaves the gate working for anything else the same instance serves.
 
@@ -236,7 +236,7 @@ curl http://localhost:18080/RBTC/api/balances/YOUR_ADDRESS
 curl http://localhost:18080/RBTC/api/history/MYTOKEN/token
 ```
 
-If the explorer answers `503 COIN_DATA_STALE` for every endpoint on a coin, the query is fine and the chain has simply gone quiet: see [Keeping an Idle Chain Available](#keeping-an-idle-chain-available).
+If the explorer answers `503 COIN_DATA_STALE` for every endpoint on a coin, the query is fine but no recent block has reached it. On regtest, check that the miner is running, is not paused, and has a nonzero `IDLE_MINE_INTERVAL_MS`; see [Keeping an Idle Chain Available](#keeping-an-idle-chain-available).
 
 ### Service Logs
 
@@ -278,9 +278,9 @@ This drops all MariaDB data, LevelDB data, and the regtest blockchain, giving yo
 
 ## Next Steps
 
-- [Build_Your_First_Token.md](build-your-first-token.md): your first token against this environment
-- [Integration_Patterns.md](integration-patterns.md): structuring test harnesses and production apps
-- [Query_The_Explorer.md](query-the-explorer.md): verifying state during development
+- [build-your-first-token.md](build-your-first-token.md): your first token against this environment
+- [integration-patterns.md](integration-patterns.md): structuring test harnesses and production apps
+- [query-the-explorer.md](query-the-explorer.md): verifying state during development
 
 ---
 

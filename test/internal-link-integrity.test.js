@@ -26,6 +26,8 @@
  *   1. Every relative link and image target resolves to a file on disk.
  *   2. Every `#fragment`, in-page or cross-page, matches a heading in the
  *      target file, slugged exactly as the site slugs it.
+ *   3. Every filename-style Markdown label uses the target's real filename,
+ *      including labels that display a `#fragment` after the filename.
  *
  * External links (http/https/mailto) are not fetched: a network call in the
  * test suite trades a real check for a flaky one.
@@ -83,7 +85,16 @@ for (const f of FILES) {
 }
 
 const LINK = /\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+const FILENAME_LINK = /\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 const rel  = (p) => path.relative(DOC_ROOT, p);
+
+function filenameLabelMismatch(label, target) {
+    const visible = label.replace(/[`*]/g, '');
+    if (!/\.md(?:#[^\s]+)?$/.test(visible)) return null;
+    const shown  = path.posix.basename(visible.split('#')[0]);
+    const linked = path.posix.basename(target.split('#')[0]);
+    return shown === linked ? null : `${label} -> ${target}`;
+}
 
 // Raw HTML links. The pages that use <table> for the on-chain format specs
 // carry their cross-references as <a href="..."> rather than as markdown, and
@@ -132,6 +143,39 @@ function existsCaseExact(abs) {
 }
 
 describe('internal link integrity', () => {
+
+    test('the filename-label check can reject an anchored stale label', () => {
+        assert.equal(
+            filenameLabelMismatch(
+                'user-guide/Use_Cases.md#native-multi-chain-staking',
+                '../user-guide/use-cases.md#native-multi-chain-staking'),
+            'user-guide/Use_Cases.md#native-multi-chain-staking -> ' +
+                '../user-guide/use-cases.md#native-multi-chain-staking');
+        assert.equal(
+            filenameLabelMismatch(
+                'user-guide/use-cases.md#native-multi-chain-staking',
+                '../user-guide/use-cases.md#native-multi-chain-staking'),
+            null);
+        assert.equal(filenameLabelMismatch('Use cases', '../user-guide/use-cases.md'), null);
+    });
+
+    test('filename-style Markdown labels match their targets', () => {
+        const stale = [];
+        for (const f of FILES) {
+            if (rel(f) === 'CHANGELOG.md') continue;
+            const text = fs.readFileSync(f, 'utf8');
+            FILENAME_LINK.lastIndex = 0;
+            let m;
+            while ((m = FILENAME_LINK.exec(text)) !== null) {
+                const mismatch = filenameLabelMismatch(m[1], m[2]);
+                if (!mismatch) continue;
+                const line = text.slice(0, m.index).split('\n').length;
+                stale.push(`${rel(f)}:${line}: ${mismatch}`);
+            }
+        }
+        assert.deepEqual(stale, [],
+            'filename-style labels that do not match their targets:\n  ' + stale.join('\n  '));
+    });
 
     // A link that climbs out of this repo resolves on a developer's monorepo
     // checkout and nowhere else: not in a docs-only clone, and not on the

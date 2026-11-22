@@ -16,6 +16,8 @@
  * publishes the explorer on the host at EXPLORER_PORT_HTTP (18080); 8080 is
  * only the container-internal port. Four tutorials pointed the SDK and curl at
  * localhost:8080, so a reader who skipped hub discovery got connection refused.
+ * Check the MCP quickstart and SDK configuration too: their 8080 fallback is
+ * not the default stack's published host endpoint.
  *
  * The prose side runs unconditionally; the source side skips by name when the
  * xchain-node sibling is absent.
@@ -28,6 +30,10 @@ const { sibling } = require('./helpers/sibling_checkout.js');
 
 const DOC_ROOT = process.env.XCHAIN_DOCS_ROOT || path.join(__dirname, '..');
 const TUTORIAL_DIRS = ['developer-guide', 'getting-started'];
+const REGTEST_FALLBACK_PAGES = [
+    'ai-agents/mcp-quickstart.md',
+    'components/sdk/configuration.md',
+];
 const DEFAULTS_REL = 'src/services/config_service/defaults.js';
 const node = sibling('xchain-node', [DEFAULTS_REL]);
 
@@ -48,6 +54,22 @@ test('no tutorial points at the container-internal explorer port', () => {
     assert.deepStrictEqual(hits, [],
         'tutorial pages use localhost:8080, the explorer port inside the container. The '
         + 'regtest stack publishes the explorer on the host at EXPLORER_PORT_HTTP (18080).');
+});
+
+test('regtest fallback paragraphs distinguish the SDK default from the stack host port', () => {
+    const hits = [];
+    for (const rel of REGTEST_FALLBACK_PAGES) {
+        const paragraphs = fs.readFileSync(path.join(DOC_ROOT, rel), 'utf8').split(/\n\s*\n/);
+        for (const paragraph of paragraphs) {
+            if (paragraph.includes('localhost:8080') && /regtest|local stack|RBTC/i.test(paragraph)
+                && !paragraph.includes('18080')) {
+                hits.push(`${rel}: ${paragraph.replace(/\s+/g, ' ').trim()}`);
+            }
+        }
+    }
+    assert.deepStrictEqual(hits, [], 'regtest fallback paragraphs name localhost:8080 without '
+        + 'explaining that the xchain-node stack publishes the explorer on host port 18080:\n'
+        + hits.join('\n'));
 });
 
 test('the regtest guide publishes the host port the tutorials use', () => {

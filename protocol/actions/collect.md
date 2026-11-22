@@ -73,7 +73,7 @@ Reward rows reach the indexer's `validator_rewards` table only by derivation dur
 
 ## Reward Funding
 
-XCHAIN is a fixed-supply token: a permanent `MAX_SUPPLY` cap is set at genesis, but supply starts at zero (no pre-mint) and is created only by minting, whether as a pinned genesis distribution credit or a public mint, up to the cap (see [GAS](../../concepts/gas.md)). Rewards are therefore **not minted**; they are paid out of a dedicated **reward pool address** (`config['ADDRESS']['REWARD']`, BTC only). A valid `COLLECT` debits the pool for the reward amount and credits the broadcasting address, leaving total XCHAIN supply unchanged.
+XCHAIN starts with a 100,000,000 `MAX_SUPPLY` ceiling and zero supply because genesis carries no pre-mint. Genesis does not lock the ceiling or either minting path; the launch plan and its required locks are described in [GAS](../../concepts/gas.md). Rewards are **not minted**; they are paid out of a dedicated **reward pool address** (`config['ADDRESS']['REWARD']`, BTC only). A valid `COLLECT` debits the pool for the reward amount and credits the broadcasting address, leaving total XCHAIN supply unchanged.
 
 The pool is seeded by the operator after the mint window opens (Step 2 of the [XCHAIN Genesis](../../operations/xchain-genesis.md) runbook, since supply is zero at genesis) and **topped up manually** (an ordinary XCHAIN `SEND` to the pool address). Because the balance check reads the pool at the action's block/action index, every validator computes the same accept/reject outcome.
 

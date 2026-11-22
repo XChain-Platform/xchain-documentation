@@ -36,7 +36,8 @@ const VM_SRC = path.join(vm.root, 'src');
 // Pointers the page must keep making, so an extractor that stops reading the page
 // fails here rather than grading an empty set.
 const REQUIRED_SYMBOLS = [
-    'BINARY_ALLOC_GATE_BLOCK_TIME', 'ITER_SET_METER_ACTIVATION', 'isConsensusWallClockActive',
+    'BINARY_ALLOC_GATE_BLOCK_TIME', 'ITER_SET_METER_ACTIVATION', 'STATE_KEY_STORABLE_ACTIVATION',
+    'isConsensusWallClockActive',
     'isSlashTokenDelimGuardActive', 'isSlashAmountPrecisionActive', 'mathOutputMeterOn',
     'emissionDeepStrip', 'nonFiniteFailClosed', 'PKG3_SANDBOX_ACTIVATION',
     'EXEC_LINT_ACTIVATION', 'LINT_GLOBAL_ALIAS_ACTIVATION',

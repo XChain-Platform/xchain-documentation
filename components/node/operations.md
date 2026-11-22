@@ -53,6 +53,8 @@ xchain-node reset xchain-decoder <chain> <network> --with-indexer
 
 The coupling is one-directional, so `reset xchain-indexer` on its own stays available: it re-derives the indexer from an intact decoder, which is an ordinary reindex. `reset all` already moves both.
 
+On regtest, resetting the coin node also stops and restarts an installed regtest miner after the node. The node reset removes its wallet state, so the miner must run wallet preparation again before it can fund tests.
+
 ### Logging & Monitoring
 
 | Command | Syntax | Description |

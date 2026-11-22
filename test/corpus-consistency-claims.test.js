@@ -79,6 +79,10 @@
  *      those screens prepare user-signed protocol transactions without turning
  *      the extension into a custodian, counterparty or fiat exchange.
  *
+ *  11. Pin desktop store channel status to the release declaration whenever at
+ *      least one backing lane is NOT-SHIPPED. Windows release guidance tells
+ *      users to distrust unpublished builds, so the pages must agree with it.
+ *
  * The capacity figure is read out of the sibling xchain-encoder checkout
  * rather than typed here, and SKIPS when that sibling is absent: the
  * convention fee-and-limit-claims.test.js and consensus-wall-clock-claims.js
@@ -570,6 +574,100 @@ const DESKTOP_TRADING_REVIEW_PAGES = {
     'components/wallet/release/desktop/microsoft-store.md': 'Microsoft Store',
     'components/wallet/release/desktop/snap-store.md': 'Snap Store',
 };
+
+const SHIPPED_LANES_REL = 'tools/release/shipped-lanes.txt';
+const walletRelease = sibling('xchain-wallet', [SHIPPED_LANES_REL]);
+const DESKTOP_STORE_LANES = {
+    'components/wallet/release/desktop/microsoft-store.md': ['msstore', 'windows'],
+    'components/wallet/release/desktop/mac-app-store.md': ['mas', 'mac'],
+    'components/wallet/release/desktop/snap-store.md': ['snap', 'linux'],
+};
+const DESKTOP_DIRECT_LANES = {
+    'components/wallet/release/desktop/windows.md': 'windows',
+    'components/wallet/release/desktop/macos.md': 'mac',
+    'components/wallet/release/desktop/linux.md': 'linux',
+};
+const CHANNELS_SHIP = new RegExp(
+    String.raw`\b(?:both|the two)\b[^.\n]{0,40}\bchannels?\b[^.\n]{0,30}`
+        + String.raw`\b(?:ship|ships|shipping|shipped|live)\b`,
+    'i');
+
+function shippedLaneStatuses(markdown) {
+    return new Map(markdown.split('\n').flatMap((line) => {
+        const match = /^([a-z-]+)\s+(SHIPPED|NOT-SHIPPED)\b/.exec(line);
+        return match ? [[match[1], match[2]]] : [];
+    }));
+}
+
+function channelShippingClaims(rel, markdown) {
+    return markdown.split('\n').flatMap((line, i) =>
+        CHANNELS_SHIP.test(line) ? [`${rel}:${i + 1}  ${line.trim()}`] : []);
+}
+
+const NOT_SHIPPED_MARKER = /\b(?:not shipped|has not (?:yet )?(?:shipped|been published)|not (?:yet )?(?:been )?published)\b/i;
+const PENDING_ROW_MARKER = /\b(?:pending|not (?:yet )?shipped)\b/i;
+
+function directLaneStatusProblems(rel, status, page, row) {
+    const shouldBePending = status === 'NOT-SHIPPED';
+    const introIsPending = NOT_SHIPPED_MARKER.test(page.split('\n## ')[0]);
+    const rowIsPending = PENDING_ROW_MARKER.test(row);
+    return [
+        ...(introIsPending === shouldBePending ? [] : [`${rel} status marker`]),
+        ...(rowIsPending === shouldBePending ? [] : [`${rel} README row`]),
+    ];
+}
+
+test('desktop store pages do not call channels shipped while a lane is NOT-SHIPPED',
+    { skip: walletRelease.skip }, () => {
+        const statuses = shippedLaneStatuses(
+            fs.readFileSync(path.join(walletRelease.root, SHIPPED_LANES_REL), 'utf8'));
+        const offenders = [];
+        for (const [rel, lanes] of Object.entries(DESKTOP_STORE_LANES)) {
+            assert.ok(lanes.every((lane) => statuses.has(lane)),
+                `${rel} has a lane missing from shipped-lanes.txt`);
+            if (lanes.some((lane) => statuses.get(lane) === 'NOT-SHIPPED')) {
+                offenders.push(...channelShippingClaims(rel, readDoc(rel)));
+            }
+        }
+        assert.deepEqual(offenders, [], 'store pages claim channels ship while shipped-lanes.txt says '
+            + 'at least one backing lane is NOT-SHIPPED:\n' + offenders.join('\n'));
+    });
+
+test('falsification: channel-state claims are caught without matching build contents', () => {
+    for (const stale of ['Both channels ship.', 'Both Windows channels are shipping.']) {
+        assert.equal(channelShippingClaims('fixture.md', stale).length, 1, `not caught: ${stale}`);
+    }
+    assert.deepEqual(channelShippingClaims('fixture.md',
+        'The complete trading surface ships in the Microsoft Store build.'), []);
+});
+
+test('desktop direct-download pages match the shipped-lane declaration',
+    { skip: walletRelease.skip }, () => {
+        const statuses = shippedLaneStatuses(
+            fs.readFileSync(path.join(walletRelease.root, SHIPPED_LANES_REL), 'utf8'));
+        const readme = readDoc('components/wallet/release/README.md');
+        const offenders = [];
+        for (const [rel, lane] of Object.entries(DESKTOP_DIRECT_LANES)) {
+            assert.ok(statuses.has(lane), `${lane} is missing from shipped-lanes.txt`);
+            const link = `](${rel.replace('components/wallet/release/', '')})`;
+            const row = readme.split('\n').find((line) => line.includes(link));
+            assert.ok(row, `${rel} is missing from the release README table`);
+            offenders.push(...directLaneStatusProblems(
+                rel, statuses.get(lane), readDoc(rel), row));
+        }
+        assert.deepEqual(offenders, [], 'direct-download docs disagree with shipped-lanes.txt:\n'
+            + offenders.join('\n'));
+    });
+
+test('falsification: an unmarked Windows lane is caught as not shipped', () => {
+    const stalePage = 'The Windows desktop build ships two artifacts from the same source tree.';
+    const staleRow = '| Desktop: Windows | [desktop/windows.md](desktop/windows.md) | update channel |';
+    assert.deepEqual(directLaneStatusProblems(
+        'components/wallet/release/desktop/windows.md', 'NOT-SHIPPED', stalePage, staleRow), [
+        'components/wallet/release/desktop/windows.md status marker',
+        'components/wallet/release/desktop/windows.md README row',
+    ]);
+});
 
 function desktopTradingReviewNotes(markdown) {
     const section = /^### Review notes: trading screens\n\n([\s\S]*?)(?=\n### |\n## |$)/m.exec(markdown);

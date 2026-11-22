@@ -80,7 +80,7 @@ In client mode, the service connects to remote sync servers and replicates their
 | `VERIFY_HASHES` | No | `true` | When `true`, cross-verifies block hashes from multiple sources before applying. Requires 2+ sources. |
 | `HALT_ON_DIVERGENCE` | No | `true` | **Security-critical. Default ON. Set to `false` only for read-only convenience mirrors whose state nothing downstream trusts.** When `true`, a confirmed cross-source hash divergence (two honest sources committed different ledger/actions/contract hashes for the same block) causes a durable halt instead of logging and silently stalling. |
 | `VERIFY_RECOMPUTE` | No | `true` | **Security-critical. Default ON. Disabling is DECLARED UNSAFE for consensus-relevant replicas.** When `true`, each block's consensus hashes (ledger/actions/contract) are independently recomputed from the replicated rows and checked against the committed hash. This is the only mechanism that verifies the catch-up join block: with it disabled, a reorg that occurs while the client is disconnected is silently stitched onto the orphaned pre-reorg tip, permanently forking the replica. |
-| `VERIFY_STATE_HASH` | No | `true` | **Security-critical. Default ON.** When `true`, the per-block state hash (covering in-place mutations and backdated refund credits not captured by the three consensus hashes) is recomputed on apply and checked. A mismatch triggers a durable halt. A NULL state hash (block from a source without the feature) is skipped, so enabling this can never false-halt against a back-level source. |
+| `VERIFY_STATE_HASH` | No | `true` | **Security-critical. Default ON.** When `true`, the per-block state hash (covering in-place mutations and pre-`UNSTAKE_COOLDOWN_COMPLETION_ACTION` backdated refund credits not captured by the three consensus hashes) is recomputed on apply and checked. A mismatch triggers a durable halt. A NULL state hash (block from a source without the feature) is skipped, so enabling this can never false-halt against a back-level source. |
 | `VERIFY_STATE_COMMITMENT` | No | `true` | **Security-critical. Default ON.** When `true`, the per-block SPV state-commitment roots (balances, block Merkle root) are recomputed over the replica and compared to the source's committed values. A mismatch triggers a durable halt. NULL roots (blocks before the flag-day) are skipped. **Set to `false` on truncated replicas** seeded via `SYNC_BOOTSTRAP_DEPTH_*`, because their incomplete balances history would produce wrong roots. |
 | `VERIFY_RANGE_BATCH` | No | `500` | Blocks recomputed per window when a replica verifies the committed blocks above its durable last-verified block (a catch-up range, or the unverified tail at startup or after a halt clear). The verified marker is written after each window, so memory stays at one block and a restart resumes from the last finished window. Minimum 1. |
 | `INDEX_MAP_PARITY_CHECK` | No | `false` | **Advisory only; never halts.** When `true`, periodically checks that the replica's `index_addresses` id-to-address mapping matches the source's deterministic-subset checksum. A mismatch is logged and counted but never halted on. Off by default because computing it scans `index_addresses` (an index on `block_index` is advisable before enabling on a high-volume chain). |
@@ -109,6 +109,7 @@ In client mode, the service connects to remote sync servers and replicates their
 | `CLIENT_SOURCE_STALE_MS` | No | `180000` | How long (ms) without any WebSocket event from the source (block pushes or the periodic status heartbeat) before the replica's `/status` reports `source_height_stale: true`. |
 | `DISPENSERS_RECONCILE_EVERY` | No | `20` | Reconcile the decoder-replica `dispensers` table (which converges by snapshot, not the block stream) every Nth catch-up in steady state. |
 | `DISPENSERS_RECONCILE_MAX_INTERVAL_MS` | No | `1800000` | Upper bound (ms, default 30 minutes) on time between `dispensers` reconciles regardless of catch-up cadence. |
+| `DISPENSERS_RECONCILE_REORG_RETRY_MS` | No | `300000` | Backoff (ms, default 5 minutes) before a failed post-reorg `dispensers` reconcile is retried; it applies even when the periodic bound is `0`. |
 | `LOOKUP_PAGE_SIZE` | No | `50000` | Rows per page when a client pages the append-only lookup tables by id cursor (at least `1`; the client clamps it to `100000`). |
 | `GAP_LOG_INTERVAL_MS` | No | `30000` | Throttle window (ms) for the client's catch-up gap log summaries (at least `1`). |
 | `CHECKPOINT_ANCHOR_URL` | No | None | Dedicated source URL for checkpoint fetches when `VERIFY_CHECKPOINT_QUORUM=true`; falls back to the first `SYNC_SOURCES` entry. The client rejects checkpoint sequence rollback and withholding from this source without anchoring. This is advisory by default; with `CHECKPOINT_FRESHNESS_STRICT=true`, a rollback, a withheld checkpoint or an unreachable anchor (transport fault or 404) counts toward the freshness bound and halts once the tip passes it. |
@@ -123,7 +124,7 @@ In client mode, the service connects to remote sync servers and replicates their
 | `HUB_API_KEY` | No | None | API key sent to the hub as `x-api-key` during chain discovery (`getallconfigs`). Required whenever the hub runs keyed, which is always in validator mode. Treat as a credential. |
 | `HUB_CONFIG_SECRETS_API_KEY` | No | None | API key sent as `x-api-key` on hub reads that return credentials (`getallconfigs` with `include_secrets`, which is how this client receives its replication sources' database passwords). Takes precedence over `HUB_API_KEY`; unset, `HUB_API_KEY` covers both tiers. Treat as a credential. |
 | `MAX_CONCURRENT_SNAPSHOTS` | No | pool size minus 2 | Maximum snapshot streams served concurrently per database, so a snapshot stampede cannot starve the block poller of its last connection. Clamped to `[1, poolSize - 1]`. On saturation the server answers `503` with `Retry-After` rather than queueing. |
-| `STATE_TREE_METRIC_INTERVAL_MS` | No | `14400000` (4 h) | Interval for the state-tree orphan-statistics sweep. Set to `0` to disable. Decoder replicas are skipped (they have no `state_tree_*` tables). |
+| `STATE_TREE_METRIC_INTERVAL_MS` | No | `14400000` (4 h) | Interval for the state-tree orphan-statistics sweep. Set to `0` to disable. Positive values are clamped to `60000` through `2147483647`; a value that is negative or not a whole decimal integer (for example `60000garbage`) uses the default; every adjustment logs a warning. Decoder replicas are skipped (they have no `state_tree_*` tables). |
 | `STATE_TREE_METRIC_MAX_NODES` | No | `2000000` | Node ceiling for a single state-tree metric pass, bounding the cost of the sweep on a large tree. |
 | `SYNC_QUERY_METRIC_INTERVAL_MS` | No | `900000` (15 m) | Interval between `[METRIC] sync_action_scoped_queries_per_block` lines, which record how many action-scoped queries a block payload cost and how many of them returned rows. The per-table read loop grows with every replicated table added, so this is how the trend against poll cadence stays observable. Set to `0` to disable. Indexer pollers only (a decoder has no action-scoped tables). |
 
@@ -187,7 +188,7 @@ A separate MariaDB connection pool is created per chain/network/dbType.
 
 ## Database Naming
 
-The sync service uses the same database naming convention as the rest of the platform:
+The sync service connects only to the per-chain decoder and indexer databases, so it uses the same per-chain database naming convention as those components:
 
 ```
 XChain_{TICKER}_{Network}_{Component}
@@ -204,7 +205,7 @@ XChain_{TICKER}_{Network}_{Component}
 
 In **server mode**, the service reads from the authoritative indexer and decoder databases; the same ones the indexer/decoder write to.
 
-In **client mode**, the service creates replica databases with the same names and schema. Indexer replicas contain an exact copy of the indexer data; decoder replicas contain 8 of the 10 decoder tables (`mempool_transactions` and `dispenser_extension_undo` excluded).
+In **client mode**, the service creates replica databases with the same names and schema. Indexer replicas contain an exact copy of the indexer data; decoder replicas contain 8 of the 11 decoder tables (`mempool_transactions`, `dispenser_extension_undo` and `block_tx_index_end` excluded).
 
 ## Database Schema
 
@@ -229,7 +230,7 @@ One additional table is used by the sync service itself for indexer replicas onl
 
 ### Decoder replicas
 
-Decoder replica databases use a smaller schema derived from the decoder DB. Of the 10 tables in the decoder DB, xchain-sync replicates 8 (`mempool_transactions` is excluded as it is non-deterministic across nodes, and `dispenser_extension_undo` is decoder-local reorg bookkeeping that stays local):
+Decoder replica databases use a smaller schema derived from the decoder DB. Of the 11 tables in the decoder DB, xchain-sync replicates 8 (`mempool_transactions` is excluded as it is non-deterministic across nodes, `dispenser_extension_undo` is decoder-local reorg bookkeeping, and `block_tx_index_end` is decoder-local cursor bookkeeping; all three stay local):
 
 - `blocks`, `transactions`, `transaction_outputs`, `dispensers`
 - `index_addresses`, `index_transactions`, `pubkeys`, `events`

@@ -191,7 +191,7 @@ settlement to a federation drill venue.
 ## Wire/spec details
 
 Formats, canonical signing strings, statuses, gas buckets, and the lifecycle
-state machine: [actions/XCALL.md](actions/xcall.md). Constants:
+state machine: [actions/xcall.md](actions/xcall.md). Constants:
 [constants.js](constants.js). Developer-facing API:
 `developer-guide/Smart_Contract_Development.md` (§ Calling contracts on other
 chains).

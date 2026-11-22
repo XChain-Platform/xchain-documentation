@@ -9,7 +9,7 @@ The provider determines two things: how the request payload is interpreted, and 
 
 The set of providers is **governance-controlled**; new providers can be added without changing the contract API.
 
-Each provider also carries a **`min_fee_xchain`** setting; a governance-configurable floor on the optional paid-attestation fee (`feeTick`/`feeAmount` in the request). Requests whose on-chain `FEE_AMOUNT` falls below the provider's floor are skipped by validators: the request expires on its deadline and the fee is refunded to the caller rather than being served.
+Each provider also carries a **`min_fee_xchain`** setting; a governance-configurable floor on the optional paid-attestation fee (`feeTick`/`feeAmount` in the request). Requests whose on-chain `FEE_AMOUNT` falls below the provider's floor are skipped by validators: the request expires after its deadline and the fee is refunded to the caller rather than being served. Under an expiry backlog, the callback and refund can land a few blocks later because the [ATTEST expiry sweep](../actions/attest.md#version-2-expire) is capped per block.
 
 ```mermaid
 flowchart TD
@@ -20,7 +20,7 @@ flowchart TD
     Consensus -->|"yes, before deadline"| Respond["ATTEST v1 written on-chain with the canonical result"]
     Consensus -->|"no"| Pending["Request stays pending until its deadline block"]
     Skipped --> Pending
-    Pending --> Expire["Deadline passes: request expires,<br>status=expired, empty payload,<br>attestation fee refunded"]
+    Pending --> Expire["Capped expiry sweep after deadline:<br>request expires, status=expired,<br>empty payload, fee refunded"]
 ```
 
 ## Available providers

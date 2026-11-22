@@ -55,7 +55,7 @@ Stake 250 MYTOKEN against contract at action_index 500, signing as abc123...def 
 - Works on any chain (BTC, LTC, DOGE). Contract staking is a developer primitive; each contract defines its own staking semantics.
 - `TARGET_CONTRACT_INDEX` must be a positive integer pointing at a stakeable contract (deployed with `COOLDOWN_BLOCKS` + `SLASH_DESTINATION`). Contracts that lack those fields reject with `invalid: TARGET_CONTRACT_INDEX (contract is not stakeable)`.
 - `TICK` must be a known token; broadcasting address must hold at least `AMOUNT` of `TICK`.
-- New-vs-topup is auto-detected by `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK, SOURCE)`. If an active row exists owned by `SOURCE`, this STAKE adds to it; otherwise it creates a new row. There is no separate VERSION for top-up.
+- New-vs-topup is auto-detected by `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK, SOURCE)`. If a valid row exists for `(TARGET_CONTRACT_INDEX, SIGNING_PUBKEY, TICK)` owned by `SOURCE`, even one since unstaked, this STAKE adds to it; a valid row owned by another source refuses the STAKE, and otherwise it creates a new row. There is no separate VERSION for top-up.
 - A pubkey can have separate v3 stakes per `(contract, tick)` pair; they do not collide with v1/v2 capability stakes or with each other.
 - If the staked `TICK` binds a `stake`-class controller (or the catch-all `all`), the contract's `guard` runs before a v3 stake settles and may `revert` it; `SOURCE` pays the bounded guard gas. v1/v2 (XCHAIN-only capability) stakes are never controller-gated. See [Controller-Bound Tokens](../controller-bound-tokens.md).
 
@@ -72,7 +72,9 @@ The protocol uses a capability model: a v1/v2 stake auto-qualifies for every cap
 
 A 5,000 XCHAIN stake qualifies for all five capabilities. A 500 XCHAIN stake qualifies only for `oracle_publish`. Minimums are governance-tunable.
 
-A capability becomes active on a hub when all three conditions hold: (a) stake qualifies, (b) per-capability `selfTest()` passes, (c) operator has not added it to `disabled_capabilities`. Sub-features (chains for `cross_chain`, fiats for `price`, providers for `attestation`) live in operator hub config and are not on-chain.
+Capability qualification is not the whole stake requirement for `attestation`. At and above `STAKE_WEIGHTED_QUORUM_ACTIVATION`, each provider also has a governance-set `min_stake_xchain` floor: by default 10,000 XCHAIN for `http_get` and 25,000 XCHAIN for `llm`. The floor is checked against the staking source's aggregate `attestation` stake, not each delegated key, when the responsible set is selected. A source below the floor keeps the capability but receives no requests for that provider. One 25,000 XCHAIN stake therefore clears every capability and every default provider floor. See [ATTEST: Responsible-set selection](./attest.md#responsible-set-selection) and [Attestation Providers](../providers/README.md).
+
+A capability becomes active on a hub when all three conditions hold: (a) stake qualifies, (b) per-capability `selfTest()` passes, (c) operator has not added it to `disabled_capabilities`. Chains for `cross_chain` and fiats for `price` live in operator hub config. Attestation provider definitions, including `min_stake_xchain`, are governance-controlled, tied to activation blocks, and identical across the federation.
 
 ## Activation Delay
 - Stakes do not become active until **6 BTC blocks** after confirmation.
@@ -80,7 +82,7 @@ A capability becomes active on a hub when all three conditions hold: (a) stake q
 - Applies to the BTC-only capability forms: STAKE v1, STAKE v2 (top-up), UNSTAKE v0, and DELEGATE v0/v2 (capability rotate/revoke). The contract-targeted forms (STAKE v3, UNSTAKE v1, DELEGATE v1/v3) run on every chain and use the per-chain calibrated delay below instead. See [UNSTAKE](./unstake.md) and [DELEGATE](./delegate.md).
 - Tracked via the `activation_block` column on the `stakes` table (set to `block_index + 6`) for STAKE and capability UNSTAKE. Contract-targeted stakes carry the same column on `contract_stakes`, and DELEGATE is tracked on `delegations` (v0/v2) / `contract_delegations` (v1/v3).
 - Active-stake queries filter by `activation_block <= current_block`.
-- The 6-block figure is the BTC value (capability staking is BTC-only). The contract-targeted forms run on every chain and use a per-chain calibrated delay for equivalent ~60-min reorg protection: **6 blocks on BTC, 24 on LTC, 60 on DOGE**, set via each chain's `STAKING.ACTIVATION_DELAY_BLOCKS` default.
+- The 6-block figure is the BTC value (capability staking is BTC-only). The contract-targeted forms run on every chain and use a per-chain calibrated delay for equivalent ~60-min reorg protection: **6 blocks on BTC, 24 on LTC, 60 on DOGE**. Each chain's `STAKING.ACTIVATION_DELAY_BLOCKS` is a fixed consensus constant that changes only through a coordinated consensus upgrade.
 
 ## Storage Model
 Each STAKE action (v1 or v2) inserts a new row into the `stakes` table. The active stake amount for a pubkey is `SUM(amount)` across all valid rows for that pubkey within the activation window. This append-only ledger preserves rollback correctness: block-level rewinds simply delete rows past the rewind point.

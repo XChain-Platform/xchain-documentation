@@ -5,7 +5,7 @@
 
 This guide covers the full range of controls available when issuing and managing tokens: access lists, mint windows, lockable parameters, callbacks, sleep, sub-tokens, and ownership transfer.
 
-For basic token creation, see [Build_Your_First_Token.md](build-your-first-token.md).
+For basic token creation, see [build-your-first-token.md](build-your-first-token.md).
 
 ---
 
@@ -540,15 +540,15 @@ If you want to sell the **entire content archive** (keys, future republish right
 - **No key rotation.** If a key leaks, the only recourse is to republish under a new key. Old ciphertexts remain on-chain but become useless.
 - **Loss of address = loss of access.** Same custody model as the token itself.
 
-For the protocol-level spec (wire format, handoff payload layout, indexer validation rules), see [`protocol/Token_Gated_Content.md`](../protocol/token-gated-content.md).
+For the protocol-level spec (wire format, handoff payload layout, indexer validation rules), see [`protocol/token-gated-content.md`](../protocol/token-gated-content.md).
 
 ---
 
 ## Next Steps
 
-- [Batch_Operations.md](batch-operations.md): combine advanced operations in one transaction
-- [Build_A_Dispenser.md](build-a-dispenser.md): sell tokens with access control
-- [Integration_Patterns.md](integration-patterns.md): building on top of these features
+- [batch-operations.md](batch-operations.md): combine advanced operations in one transaction
+- [build-a-dispenser.md](build-a-dispenser.md): sell tokens with access control
+- [integration-patterns.md](integration-patterns.md): building on top of these features
 
 ---
 

@@ -40,6 +40,24 @@ const swqVectors = require('../protocol/test-vectors/stake_weighted_quorum.json'
 const eqhVectors = require('../protocol/test-vectors/equivocation_header.json');
 const activationVectors = require('../protocol/test-vectors/activation_predicates.json');
 
+describe('canonical vector corpus: every group is a non-empty list', () => {
+    const groups = {
+        'stake_weighted_quorum.meetsStakeThreshold': swqVectors.meetsStakeThreshold,
+        'stake_weighted_quorum.totalStake': swqVectors.totalStake,
+        'equivocation_header.equivKey': eqhVectors.equivKey,
+        'equivocation_header.equivPrefix': eqhVectors.equivPrefix,
+        'equivocation_header.buildEquivCanonical': eqhVectors.buildEquivCanonical,
+        'activation_predicates.isStakeWeightedQuorumActive': activationVectors.isStakeWeightedQuorumActive,
+        'activation_predicates.isEquivHeaderActive': activationVectors.isEquivHeaderActive,
+        'activation_predicates.snapshotBurial': activationVectors.snapshotBurial,
+    };
+    for (const [name, vectors] of Object.entries(groups)) {
+        test(name + ' is a non-empty list', () => {
+            assert.ok(Array.isArray(vectors) && vectors.length > 0, name + ' is missing or empty');
+        });
+    }
+});
+
 function decodeSnapshotBlock(value) {
     if (!value || typeof value !== 'object') return value;
     if (value.special === 'nan') return Number.NaN;

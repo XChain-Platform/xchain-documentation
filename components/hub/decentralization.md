@@ -5,7 +5,7 @@
 
 ## Overview
 
-xchain-hub has evolved from a centralized config oracle into a fully decentralized validator network across nine implementation phases. Phases 0–5 shipped v1.0.0 → v2.0.0; Phase 6 (capability model + external attestation framework, 2026-05), Phase 7 (federation key rotation + quorum hardening, 2026-06), and Phase 8 (full-node verified tier: `full_node` capability, `FullNodeChallengeRound`, NODEPROOF verdicts, 2026-06) are all complete.
+xchain-hub has evolved from a centralized config oracle into a fully decentralized validator network across nine implementation phases. Phases 0–5 shipped in 2026-04 under the hub's legacy pre-train version stream (legacy hub v1.0.0 → v2.0.0, not comparable to platform release versions); Phase 6 (capability model + external attestation framework, 2026-05), Phase 7 (federation key rotation + quorum hardening, 2026-06), and Phase 8 (full-node verified tier: `full_node` capability, `FullNodeChallengeRound`, NODEPROOF verdicts, 2026-06) are all complete.
 
 ## Motivation
 
@@ -66,7 +66,7 @@ All staking operations (STAKE, UNSTAKE, DELEGATE, COLLECT) are standard XChain a
 | Eviction (on-chain, where ROLLCALL is active) | A source absent for K consecutive rolled epochs is deactivated, leaving the capability set through the ordinary stake predicate. Its stake refunds after the cooldown; nothing is burned. |
 | Activation delay | 6 BTC blocks (~1 hour): protects against ≤5-block reorgs |
 | Deactivation delay | 6 BTC blocks on UNSTAKE (same reorg safety) |
-| Cooldown | 1000 BTC blocks before staked XCHAIN returns to source (configurable via `STAKING.COOLDOWN_BLOCKS`) |
+| Cooldown | 1000 BTC blocks before staked XCHAIN returns to source (`STAKING.COOLDOWN_BLOCKS`, a fixed consensus constant that changes only through a coordinated consensus upgrade) |
 | Delegation | DELEGATE manages signing keys, never stake: v0 adds a signing key that may sign for the broadcaster's own capability stake and v2 revokes one (contract stakes use v1 / v3). A delegated key is backed by the delegating address's active stake; staked amounts never move or change, and there is no third-party stake delegation. See [DELEGATE](../../protocol/actions/delegate.md). |
 | Rewards | Not weighted by stake: stake decides which capabilities a pubkey qualifies for, not the size of its share. The per-round oracle budget is designed to split equally across the qualified signers of each finalized round, but no consensus rail mints an oracle round reward today, so none is claimable with `COLLECT`; the hub keeps a local per-round ledger for visibility only (see [COLLECT reward sources](../../protocol/actions/collect.md#reward-sources) and [Reward Population Path](../../protocol/actions/collect.md#reward-population-path)). A pubkey may hold both `price` and `oracle_publish`; the claimable rewards tied to `oracle_publish` are the ANCHOR publisher rewards (`anchor_bundle`). |
 
@@ -90,17 +90,19 @@ A validator's P2P signing key is authorized by the **union** of the hub's local 
 
 ## Implementation Phases
 
-| Phase | Name | Version | Status |
+| Phase | Name | Shipped | Status |
 |---|---|---|---|
-| 0 | **MariaDB migration**; Replace LevelDB with MariaDB | v1.0.0 | Complete |
-| 1 | **Multi-instance hub**; Run multiple instances against shared MariaDB; consumer fallback via `HUB_VALIDATORS` | v1.0.0 | Complete |
-| 2 | **Gossip + PBFT consensus**; P2P gossip layer (WebSocket), PBFT consensus for config writes, Ed25519 validator identity, leader rotation, view change | v1.1.0–v1.3.0 | Complete |
-| 3 | **Decentralized price oracle**; External price fetching, trimmed median aggregation, oracle PBFT consensus, price snapshots, reward tracking, slash detection, fee quotes | v1.4.0–v1.6.0 | Complete |
-| 4 | **Cross-chain coordination**; Attestation engine, reorg propagation, SWAP lifecycle tracking, per-chain-pair validator filtering | v1.7.0–v1.9.0 | Complete |
-| 5 | **Open validator set + governance**; Off-chain PBFT voting for parameter changes, version signaling in heartbeats | v2.0.0 | Complete |
+| 0 | **MariaDB migration**; Replace LevelDB with MariaDB | 2026-04 (legacy hub v1.0.0) | Complete |
+| 1 | **Multi-instance hub**; Run multiple instances against shared MariaDB; consumer fallback via `HUB_VALIDATORS` | 2026-04 (legacy hub v1.0.0) | Complete |
+| 2 | **Gossip + PBFT consensus**; P2P gossip layer (WebSocket), PBFT consensus for config writes, Ed25519 validator identity, leader rotation, view change | 2026-04 (legacy hub v1.1.0–v1.3.0) | Complete |
+| 3 | **Decentralized price oracle**; External price fetching, trimmed median aggregation, oracle PBFT consensus, price snapshots, reward tracking, slash detection, fee quotes | 2026-04 (legacy hub v1.4.0–v1.6.0) | Complete |
+| 4 | **Cross-chain coordination**; Attestation engine, reorg propagation, SWAP lifecycle tracking, per-chain-pair validator filtering | 2026-04 (legacy hub v1.7.0–v1.9.0) | Complete |
+| 5 | **Open validator set + governance**; Off-chain PBFT voting for parameter changes, version signaling in heartbeats | 2026-04 (legacy hub v2.0.0) | Complete |
 | 6 | **Capability model + external attestation framework**; Replace Tier 1/2 with four independent capabilities (`price`, `cross_chain`, `oracle_publish`, `attestation`) auto-qualified by stake amount; block-boundary federation snapshots; external attestation framework (`http_get` byte_equality + `llm` judge_model providers); STAKE rewritten as `VERSION|AMOUNT|SIGNING_PUBKEY` with v1=new / v2=top-up; UNSTAKE rewritten as pubkey-based | 2026-05 | Complete |
 | 7 | **Federation key rotation + quorum hardening**: addr-keyed `rotatevalidator`/`deregistervalidator` RPC; stake-key revocation via `DELEGATE` v2; Option A union-membership transport auth (on-chain effective signer set + local registry, never fail-open); anchor reward archive (shipped as the `anchor_<chain>` reward_type, since superseded by `anchor_bundle`, see [COLLECT](../../protocol/actions/collect.md)) + hub-local oracle/attest_fee reward separation; simple-majority quorum floor (`max(2f+1, ceil((N+1)/2))`) across all consensus engines | 2026-06 | Complete |
 | 8 | **Full-node verified tier**: `full_node` capability and `FullNodeChallengeRound`; derived possession challenge (no broadcast of the question); answer = scriptPubKey of a seed-selected UTXO in a buried block, provably absent from a sync mirror; verdict collected as NODEPROOF; full-node reward tranche (`oracle_full_node`) defined but shipped inert (`FULLNODE.REWARD_SHARE` 0, no genesis verifiers), so no consensus rail mints it (see [COLLECT](../../protocol/actions/collect.md#reward-population-path)); `failed_full_node_challenge` slash detection (later removed; tier is reward-only, no slashing) | 2026-06 (bcbe4b8) | Complete |
+
+Legacy hub versions come from the hub's own version stream before the v0.9.0 release train and are not comparable to platform release versions; on the platform stream, 1.0.0 is reserved for mainnet.
 
 ## Architecture Summary
 

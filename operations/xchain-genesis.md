@@ -13,9 +13,10 @@ validator **reward pool**. XCHAIN exists on the **BTC chain only**.
 
 ## Monetary model (why)
 
-- **Hard-capped supply.** XCHAIN has a permanent `MAX_SUPPLY` of 100,000,000 (8 decimals),
-  fixed at genesis. There is **no pre-mint**: the genesis `ISSUE` carries no `MINT_SUPPLY`, so
-  supply starts at zero and every unit is minted afterward, up to the cap.
+- **Genesis cap, no pre-mint.** XCHAIN starts with a `MAX_SUPPLY` of 100,000,000 (8
+  decimals), and the genesis `ISSUE` carries no `MINT_SUPPLY`, so supply starts at zero. Genesis
+  sets none of `LOCK_MAX_SUPPLY`, `LOCK_MINT_SUPPLY`, or `LOCK_MINT`. Until those locks are set,
+  the cap is editable, owner issuance remains open, and burns can reopen public-mint headroom.
 - **Fair-mint distribution.** The genesis pass credits the pinned distribution buckets (the
   snapshot-holder airdrop below), and the remainder of the cap is minted publicly: once the mint
   window opens, anyone can `MINT` their share, 1,000 XCHAIN per mint, capped at 1,000 XCHAIN
@@ -39,8 +40,8 @@ genesis action:
 | Parameter | Value | Why |
 |---|---|---|
 | `TICK` | `XCHAIN` | The reserved gas tick |
-| `MAX_SUPPLY` | `100000000` | Permanent cap |
-| `DECIMALS` | `8` | Editable until the first mint (locked once `SUPPLY > 0`) |
+| `MAX_SUPPLY` | `100000000` | Current ceiling; not locked at genesis |
+| `DECIMALS` | `8` | Editable only while current `SUPPLY` is `0` |
 | `MINT_SUPPLY` | empty | **No pre-mint**; supply starts at 0 |
 | owner | GAS address | Only GAS can re-`ISSUE` (tune caps / open the window) |
 | `MINT_START_BLOCK` | `999999999` | Far-future sentinel: the token exists but is un-mintable until the operator lowers this |
@@ -145,8 +146,12 @@ Until then, any `MINT` fails `invalid: MINT_START_BLOCK`. After the window opens
 public and bounded by `MAX_SUPPLY` (`invalid: mint exceeds MAX_SUPPLY` past the cap) and the
 per-tx / per-address caps if set.
 
-> **Guard the GAS key like a treasury key.** It cannot mint anyone's XCHAIN, but it authors the
-> mint window and caps.
+Genesis sets none of the supply locks. `LOCK_MAX_SUPPLY` closes cap edits,
+`LOCK_MINT_SUPPLY` closes owner issuance, and `LOCK_MINT` closes public minting. The planned
+permanent close depends on all three, with `LOCK_MINT` set only after the open mint is exhausted.
+
+> **Guard the GAS key like a treasury key.** Until the locks above are set, it authors the mint
+> window and caps and can issue `MINT_SUPPLY` to its own address.
 
 ## Step 2: Seed the reward pool
 

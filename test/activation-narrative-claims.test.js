@@ -218,6 +218,47 @@ function gateBullet(section, gate) {
     return out.join(' ');
 }
 
+/** Top-level bullets and their indented children from the exceptions section. */
+function exceptionGroups(section) {
+    const groups = [];
+    for (const line of section.split('\n')) {
+        if (/^- \*\*/.test(line)) groups.push([line]);
+        else if (groups.length > 0) groups.at(-1).push(line);
+    }
+    return groups.map((lines) => lines.join('\n'));
+}
+
+const COUNT_WORDS = new Map([
+    ['One', 1], ['Two', 2], ['Three', 3], ['Four', 4], ['Five', 5], ['Six', 6],
+    ['Seven', 7], ['Eight', 8], ['Nine', 9], ['Ten', 10], ['Eleven', 11],
+    ['Twelve', 12], ['Thirteen', 13],
+]);
+
+test('shared-instant exception groups match the registry and their count word', {
+    skip: noIndexer,
+}, () => {
+    const arms = new Map(gen.collectTestnetArms().map(({ gate, time }) => [gate, time]));
+    let checked = 0;
+    for (const group of exceptionGroups(exceptionsSection())) {
+        const lead = group.replace(/\s+/g, ' ');
+        if (!/together at one (?:later )?shared instant/.test(lead)) continue;
+        checked += 1;
+        const gates = [...group.matchAll(/^\s+- `([A-Z0-9_]+)`/gm)].map((m) => m[1]);
+        const countWord = group.match(/^- \*\*([A-Za-z]+)/)?.[1];
+        assert.equal(gates.length, COUNT_WORDS.get(countWord), `${countWord} group has ${gates.length} gates`);
+        for (const gate of gates) {
+            assert.ok(arms.has(gate), `${gate} has no nonzero testnet arm in the registry`);
+        }
+        const times = new Map(gates.map((gate) => [gate, arms.get(gate)]));
+        assert.equal(
+            new Set(times.values()).size, 1,
+            `${group.split('\n')[0]} mixes registry instants: ${JSON.stringify(Object.fromEntries(times))}. `
+            + 'Move the gate out of this group and do not quote the instant in prose.',
+        );
+    }
+    assert.ok(checked >= 3, `only ${checked} shared-instant groups matched; the prose parse stopped matching`);
+});
+
 test('no testnet-armed gate is called inert in the exception list', {
     skip: noIndexer,
 }, () => {

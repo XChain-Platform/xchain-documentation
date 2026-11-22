@@ -16,6 +16,8 @@
  * and GENESIS_VERIFIERS is empty on mainnet and testnet. The validator guides
  * said so, but the quickstart listed full-node proof as a level a 2,000 stake
  * qualifies for, with nothing saying it earns nothing yet.
+ * The operator guides also pin all three payment preconditions and reject the
+ * invented activation-flag-day account.
  *
  * The prose side runs unconditionally; the source side skips by name when the
  * xchain-indexer sibling is absent.
@@ -39,6 +41,27 @@ test('the quickstart marks the full-node level as not active yet', () => {
         + 'expects income from a tier that ships with a zero reward share');
     assert.match(quickstart, /running-a-validator\.md#rewards-and-what-is-not-live-yet/,
         'the quickstart no longer links the explanation of what is not live yet');
+});
+
+test('the operator guides state every full-node reward precondition', () => {
+    const guides = [
+        ['operations/run-a-validator.md', '`full_node` is listed for completeness'],
+        ['getting-started/running-a-validator.md', '**The full-node tranche is not active yet.**'],
+        ['whitepaper.md', '**Verified-node reward tier.**'],
+    ];
+    for (const [rel, lead] of guides) {
+        const text = fs.readFileSync(path.join(DOC_ROOT, rel), 'utf8');
+        const paragraph = text.split('\n\n').find((block) => block.startsWith(lead));
+        assert.ok(paragraph, `${rel} no longer has its full-node reward paragraph`);
+        assert.doesNotMatch(paragraph, /until (?:its |a )?activation flag[- ]day/i,
+            `${rel} invents an already-defined full-node activation flag day`);
+        assert.match(paragraph, /REWARD_SHARE|reward share/,
+            `${rel} omits the non-zero reward-share precondition`);
+        assert.match(paragraph, /GENESIS_VERIFIERS|verifier set/,
+            `${rel} omits the seeded verifier-set precondition`);
+        assert.match(paragraph, /mint/i,
+            `${rel} omits the consensus minting-rail precondition`);
+    }
 });
 
 test('the indexer still ships the full-node tier inert', { skip: indexer.skip }, () => {

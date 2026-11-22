@@ -26,6 +26,7 @@ test('the broadcast_tx section documents both node-verdict reasons and node_code
   assert.match(section, /`NODE_REJECTED`/);
   assert.match(section, /`TX_ALREADY_IN_CHAIN`/);
   assert.match(section, /`node_code`/);
+  assert.match(section, /`node_reason`/);
 });
 
 test('the broadcast_tx section keeps transport faults on -32603', () => {
@@ -38,6 +39,7 @@ test('the registry rows carry both reasons and name broadcast_tx', () => {
     assert.ok(row, `${reason} has a registry row`);
     assert.match(row, /broadcast_tx/);
     assert.match(row, /node_code/);
+    assert.match(row, /node_reason/);
   }
   assert.match(registry, /`create_envelope_cancel_tx`, `broadcast_tx`/);
 });

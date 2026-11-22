@@ -23,6 +23,8 @@ A pure function library. Takes contract code + state + inputs + block context. R
 - **Deploy-time validation**: V8 syntax check, acorn metering pass, reserved identifier detection, float warnings
 - **Per-block compilation cache**: V8 cached compilation data reused for hot contracts within a block
 
+When `STATE_KEY_STORABLE_ACTIVATION` is active (testnet at the arm listed in [Flag-Day Values](../../protocol/flag-days.md), regtest from genesis, and mainnet still unarmed), `state.set()` also refuses keys longer than 256 UTF-16 units or containing a code point above U+FFFF; `state.delete()` is unchanged.
+
 ## Documentation
 
 | Document | Description |

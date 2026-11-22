@@ -5,13 +5,13 @@
 
 A dispenser is a token vending machine. You escrow tokens into it, set a price in another token (or in coin), and anyone who sends the required amount to the dispenser address automatically receives the dispensed tokens. No counterparty needed.
 
-This tutorial assumes you already have a token. If not, complete [Build_Your_First_Token.md](build-your-first-token.md) first.
+This tutorial assumes you already have a token. If not, complete [build-your-first-token.md](build-your-first-token.md) first.
 
 ---
 
 ## Prerequisites
 
-- SDK connected to regtest (see [Regtest_Development.md](regtest-development.md))
+- SDK connected to regtest (see [regtest-development.md](regtest-development.md))
 - `MYTOKEN` exists and you hold at least `100` units
 - You hold UTXO(s) to cover the transaction fee
 
@@ -234,9 +234,9 @@ const privateDispenser = sdk.dispenser({
 
 ## Next Steps
 
-- [Advanced_Token_Features.md](advanced-token-features.md): allow/block lists, mint windows
-- [Query_The_Explorer.md](query-the-explorer.md): monitor dispenser state via API
-- [Batch_Operations.md](batch-operations.md): issue and create a dispenser in one transaction
+- [advanced-token-features.md](advanced-token-features.md): allow/block lists, mint windows
+- [query-the-explorer.md](query-the-explorer.md): monitor dispenser state via API
+- [batch-operations.md](batch-operations.md): issue and create a dispenser in one transaction
 
 ---
 

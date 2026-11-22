@@ -41,7 +41,7 @@ Creating a token carries a protocol fee that is priced in XCHAIN, the platform's
 
 ### Can I change my token's settings after creation?
 
-Yes, for any settings that have not been locked. You can update the description, adjust minting windows, modify access lists, and change other parameters at any time as the token owner. The only settings you cannot change are ones you have explicitly locked. Locking is a permanent, one-way action.
+Most settings remain editable until you lock them, and locking is a permanent, one-way action. Other state-dependent restrictions also apply without a lock flag: decimals cannot be changed while current supply is above zero, and `CALLBACK_BLOCK`, `CALLBACK_TICK`, and `CALLBACK_AMOUNT` cannot be changed while supply is distributed. Supply is distributed when more than one address holds it, or when its only holder is not the owner. Choose decimals and callback terms before issuing or distributing supply.
 
 ### What happens if I lock a parameter?
 
@@ -58,6 +58,10 @@ The exceptions belong to the token's issuer rather than to the platform, and the
 - **Allow lists and block lists.** These gate the sending address as well as the receiving one, so taking a holder off the allow list, or adding them to the block list, freezes the balance they already hold until the lists change. See [Access Control](./creating-tokens.md#access-control).
 
 None of these hand an override to XChain, to its validators, or to any company. They are token-level policies that issuers publish on-chain, and a token that uses none of them has none of them. Read a token's settings and its controller bindings before you acquire it.
+
+### Can I publish a file that is too large for one transaction?
+
+Yes. XChain can publish a large file by splitting it into parts, each its own transaction, which the network reassembles byte-for-byte. A multi-part file is one manifest plus its parts. The wallet's Publish file, Attach artwork and Gated publish forms offer it as an upload method: the review screen shows the number of parts and transactions and the total fee, one approval covers the funding and every part transaction, and artwork is linked only after the last part confirms. The explorer serves the reassembled file, identical to the original, at `/api/file/<manifest action index>/raw`. See [Multi-part files](../protocol/actions/file.md#multi-part-files-versions-1-and-2) for the wire format. A file can have up to 65,535 parts and 262,140,000,000 bytes (about 262 GB), so the practical limit is the cost of its transactions. A gated file is limited to 64 MiB (67,108,864 bytes).
 
 ### Can I sell encrypted content as a token?
 
@@ -85,7 +89,7 @@ The XChain DEX is an on-chain order book. When you place a buy or sell order, it
 
 ### What is a dispenser?
 
-A dispenser is a token vending machine. You set it up with a token, a price, and a maximum number of sales. Anyone who sends the correct payment to the dispenser address automatically receives the tokens. The price is usually an amount of coin (BTC, LTC, or DOGE); it can instead be an amount of another token, or an amount in a traditional currency such as USD, in which case the buyer still pays in coin and the coin amount tracks the exchange rate at the time of purchase. See [How dispensers are priced](./trading.md#how-dispensers-are-priced). It works 24 hours a day without any action from you, up until the expiration you set for it (90 days by default). When a dispenser expires it closes automatically and any tokens still in it are returned to you, so no dispenser runs indefinitely. Dispensers are useful for token sales, fundraisers, and any situation where you want reliable, hands-off availability without negotiating with buyers.
+A dispenser is a token vending machine. You set it up with a token, a price, and a maximum number of sales. Anyone who sends the correct payment to the dispenser address automatically receives the tokens. The price is usually an amount of coin (BTC, LTC, or DOGE); it can instead be an amount of another token, a fixed amount in a traditional currency, or a traditional-currency token price supplied by a named oracle. For a fixed traditional-currency price, a coin payment is checked against finalized rates from the previous 24 hours, newest first, and settles at the most recent rate it covers, which may be older than the latest one. An oracle-priced dispenser counts only quotes that took effect within the previous 24 hours, so its oracle must publish at least once a day, and an oracle-priced payment worth less than one whole dispense at the matched quote buys nothing. See [How dispensers are priced](./trading.md#how-dispensers-are-priced). It works 24 hours a day without any action from you, up until the expiration you set for it (90 days by default). When a dispenser expires it closes automatically and any tokens still in it are returned to you, so no dispenser runs indefinitely. Dispensers are useful for token sales, fundraisers, and any situation where you want reliable, hands-off availability without negotiating with buyers.
 
 ### Can I trade tokens across different blockchains?
 

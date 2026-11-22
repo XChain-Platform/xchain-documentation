@@ -52,6 +52,8 @@ const { sibling } = require('./helpers/sibling_checkout.js');
 const ROOT = path.join(__dirname, '..');
 const SPECS = path.join(ROOT, 'protocol', 'actions');
 const E2E = sibling('xchain-e2e-test');
+const HANDLER_WIRING = 'src/actions/actions_class/handler_wiring.js';
+const INDEXER = sibling('xchain-indexer', [HANDLER_WIRING]);
 
 /** Actions that exist but are never decoded from a wire transaction. */
 const MIRROR_INJECTED = ['XCALL'];
@@ -84,6 +86,9 @@ function namedActions() {
  * src/actions/*.js files actions.js does not require are deploy_chunk.js (a
  * sub-handler deploy.js loads), execContext.js and faultGuard.js (not
  * handlers), which is what the old "51 handler files" tally was counting.
+ * The wiring later moved to src/actions/actions_class/handler_wiring.js and
+ * grew to 50 after ROLLCALL and XBRIDGE. The handler-count test below now
+ * derives that number from the wiring assignments instead of trusting prose.
  */
 /*
  * The wire-decoded count (named minus XCALL) is correct only where the text is
@@ -118,11 +123,15 @@ const WIRE_SCOPED = [
 ];
 
 const SCOPED = [
-  { file: 'components/e2e-test/architecture.md', claim: '81 action', count: 1,
-    why: 'test files, several per action; git ls-files xchain-e2e-test/test/actions on 2026-10-18. '
-       + 'Count the COMMITTED tree: an untracked suite from another lane inflates a filesystem '
-       + 'scan, and the gate gates the commit. count-action-suites.js scans the working tree, so '
-       + 'its file tally runs ahead of this number whenever a lane holds unlanded suites' },
+  { file: 'components/e2e-test/architecture.md', claim: '143 action', count: 1,
+    why: 'test files at every depth, several per action; the recursive mocha glob and git ls-files '
+       + 'xchain-e2e-test/test/actions both count the committed tree on 2026-11-20' },
+  { file: 'components/e2e-test/README.md', claim: '33 ACTION', count: 1,
+    why: 'ACTION names some test/actions suite builds a payload for, not the ACTION set; recounted by '
+       + 'xchain-e2e-test bin/count-action-suites.js and pinned to the tree by its '
+       + 'test/unit/scripts/action_suite_count.test.js' },
+  { file: 'components/e2e-test/architecture.md', claim: '33 ACTION names', count: 1,
+    why: 'the same e2e coverage figure as the README bullet, recounted by the same script' },
   { file: 'components/indexer/architecture.md', claim: '50 action', count: 1,
     why: 'handler classes, not the ACTION set: xchain-indexer src/actions/actions_class/handler_wiring.js '
        + 'builds 50 (`new <handler>(...)`), counted on 2026-10-14 after ROLLCALL and XBRIDGE landed' },
@@ -159,11 +168,77 @@ function markdownFiles() {
   return out;
 }
 
+function wiredHandlerCount() {
+  const src = fs.readFileSync(path.join(INDEXER.root, HANDLER_WIRING), 'utf8');
+  const assignments = src.match(/actions\.action[A-Za-z0-9_]+\s*=\s*new\s+[a-z][A-Za-z0-9_]*\(actions\);/g) || [];
+  assert.ok(assignments.length > 0,
+    `${HANDLER_WIRING} no longer exposes handler assignments in the expected shape`);
+  return assignments.length;
+}
+
+function assertHandlerClaims(expected, docs) {
+  const patterns = [
+    /\b(\d+)\s+(?:(?:dedicated|action)\s+)*handler classes\b/gi,
+    /\b(\d+)\s+handlers\s*\+\s*aliases\b/gi,
+  ];
+  const claims = [];
+  for (const { rel, text } of docs) {
+    const lines = text.split('\n');
+    lines.forEach((line, index) => {
+      for (const pattern of patterns) {
+        pattern.lastIndex = 0;
+        for (const match of line.matchAll(pattern)) {
+          claims.push({ count: Number(match[1]), where: `${rel}:${index + 1}` });
+        }
+      }
+    });
+  }
+  assert.ok(claims.length > 0, 'no handler-count claims were found, so the guard checked nothing');
+  const bad = claims.filter(({ count }) => count !== expected)
+    .map(({ count, where }) => `${where} claims ${count}, wiring has ${expected}`);
+  assert.deepStrictEqual(bad, [], `handler-count claims disagree with the indexer:\n${bad.join('\n')}`);
+}
+
+test('published handler-class counts match the indexer wiring', { skip: INDEXER.skip }, () => {
+  const docs = markdownFiles().map((file) => ({
+    rel: path.relative(ROOT, file),
+    text: fs.readFileSync(file, 'utf8'),
+  }));
+  assertHandlerClaims(wiredHandlerCount(), docs);
+});
+
+test('the handler-count guard rejects a stale nonzero claim', { skip: INDEXER.skip }, () => {
+  const expected = wiredHandlerCount();
+  assert.throws(() => assertHandlerClaims(expected, [
+    { rel: 'negative-control.md', text: `${expected - 1} dedicated handler classes` },
+  ]), /negative-control\.md:1 claims/);
+});
+
 test('the counts are derived from the spec directory, not from prose', () => {
   const named = namedActions();
   assert.ok(named.length > 0, 'protocol/actions/ must hold the ACTION specs');
   for (const a of [...MIRROR_INJECTED, ...NOT_USER_SUBMITTABLE]) {
     assert.ok(named.includes(a), `${a} is named in this test but has no spec in protocol/actions/`);
+  }
+});
+
+test('the glossary names the canonical validator actions and separates mirror-injected actions', () => {
+  const prose = fs.readFileSync(path.join(ROOT, 'getting-started', 'key-terms.md'), 'utf8');
+  const start = prose.indexOf('## Validator and System Actions');
+  const end = prose.indexOf('\n---', start);
+  assert.ok(start >= 0 && end > start,
+    'key-terms.md must retain its Validator and System Actions section');
+  const section = prose.slice(start, end);
+  const entries = new Map([...section.matchAll(/^\*\*([A-Z]+)\*\*: (.+)$/gm)]
+    .map((match) => [match[1], match[2]]));
+  const canonical = [...entries.keys()]
+    .filter((name) => !MIRROR_INJECTED.includes(name))
+    .sort();
+  assert.deepStrictEqual(canonical, [...NOT_USER_SUBMITTABLE].sort(),
+    'glossary validator actions must match the canonical non-user-submittable set');
+  for (const name of MIRROR_INJECTED) {
+    assert.match(entries.get(name) || '', /mirror-injected/i,
+      `${name} must be described as mirror-injected and separate from the canonical five`);
   }
 });
 

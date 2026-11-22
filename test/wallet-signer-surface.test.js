@@ -40,6 +40,8 @@
  *      in the wallet source. keys-signing.md, multisig.md and testing.md named
  *      `UnsupportedSignerOperation`, `ESignerDeferred` and `EActionUnsupported`,
  *      none of which the code defines, so a reader had no identifier to match on.
+ *   5. While hardware and remote multisig methods defer, README capability
+ *      sentences that name those signers also state the limitation.
  *
  * Checks 2 and 3 also read the top-level README.md, and check 2 catches the
  * lowercase prose form ("multisig signers") the backtick match cannot see: the
@@ -59,9 +61,12 @@ const { sibling } = require('./helpers/sibling_checkout.js');
 const DOC_ROOT   = path.join(__dirname, '..');
 const WALLET     = path.resolve(DOC_ROOT, '../xchain-wallet');
 const SIGNER_SRC = path.join(WALLET, 'packages/core/src/signers/Signer.js');
+const TREZOR_SRC = path.join(WALLET, 'packages/signers-trezor/src/TrezorSigner.js');
+const LEDGER_SRC = path.join(WALLET, 'packages/signers-ledger/src/LedgerSigner.js');
+const REMOTE_SRC = path.join(WALLET, 'packages/core/src/signers/RemoteSigner.js');
 const ARCH_DOC   = path.join(DOC_ROOT, 'components/wallet/architecture.md');
 // Skips by name on a bare clone; throws under XCHAIN_REQUIRE_SIBLINGS=1 when the signer is unreadable.
-const noWallet   = sibling('xchain-wallet', [SIGNER_SRC]).skip;
+const noWallet   = sibling('xchain-wallet', [SIGNER_SRC, TREZOR_SRC, LEDGER_SRC, REMOTE_SRC]).skip;
 
 // A member-position `name(` and a member-position `if (` are the same shape, so
 // shape alone cannot tell them apart. Refuse the keywords that can legally sit
@@ -127,6 +132,26 @@ const PLANNED = /\b(planned|not yet implemented|not implemented|future|proposed)
 // Split on sentence boundaries, keeping enough context that "X is planned"
 // stays attached to X.
 const sentencesOf = (line) => line.split(/(?<=[.;])\s+/);
+
+function deferredMultisigSigners() {
+    const trezor = fs.readFileSync(TREZOR_SRC, 'utf8');
+    const ledger = fs.readFileSync(LEDGER_SRC, 'utf8');
+    const remote = fs.readFileSync(REMOTE_SRC, 'utf8');
+    const deferred = [];
+    if (trezor.includes('HW_MUSIG2_UNSUPPORTED') && trezor.includes('not yet wired')) deferred.push('Trezor');
+    if (ledger.includes('HW_MUSIG2_UNSUPPORTED') && ledger.includes('not yet wired')) deferred.push('Ledger');
+    if (!/\bsignMultisigClassical\s*\(/.test(remote)) deferred.push('remote');
+    return deferred;
+}
+
+function multisigCapabilityOverclaims(markdown, deferred = ['Trezor', 'Ledger', 'remote']) {
+    const signer = new RegExp(`\\b(?:${deferred.join('|')})\\b`, 'i');
+    const multisig = /\b(?:multisig|MuSig2)\b/i;
+    const limit = /\b(?:only the software signer|defer|unsupported|cannot|not yet)\b/i;
+    return markdown.split('\n').flatMap((line, i) => sentencesOf(line)
+        .filter((sentence) => signer.test(sentence) && multisig.test(sentence) && !limit.test(sentence))
+        .map((sentence) => `${i + 1}: ${sentence}`));
+}
 
 // Every *Signer identifier that exists as a class anywhere in the wallet.
 function concreteSignerClasses() {
@@ -236,6 +261,20 @@ describe('wallet signer surface', () => {
         assert.deepEqual(wrong, [],
             'concrete-signer counts that disagree with the wallet source (' +
             [...concrete].sort().join(', ') + '):\n  ' + wrong.join('\n  '));
+    });
+
+    test('hardware and remote multisig claims state the software-only limit',
+        { skip: noWallet }, () => {
+        const deferred = deferredMultisigSigners();
+        if (deferred.length === 0) return;
+        const readme = fs.readFileSync(path.join(DOC_ROOT, 'README.md'), 'utf8');
+        assert.deepEqual(multisigCapabilityOverclaims(readme, deferred), [],
+            'README multisig claims name hardware or remote signers without their current limitation');
+    });
+
+    test('falsification: the old hardware multisig capability claim is rejected', () => {
+        const stale = 'software + Trezor + Ledger + remote signers (multisig runs as flows over these)';
+        assert.equal(multisigCapabilityOverclaims(stale).length, 1);
     });
 
     test('every error type or code the wallet pages name exists in the wallet source',

@@ -25,6 +25,10 @@ rejected.
 - [Token Information Standard JSON Example](./json/token-information-standard-v1.1.1-example.json)
 
 Frozen as published; its `dns` requirement is the draft-07 form v1.1.2 restates.
+Its example is also out of date for gated content: the locked `stems.zip` entry
+references a sibling-chain `FILE` the token cannot gate, and its public artwork
+shares a `data_ref` with a locked entry. Follow the v1.1.2 example and the
+[`data_ref` and `locked` rules](#file-entry-fields) for new documents.
 v1.1.1 relaxes a single constraint over v1.1.0 and adds no field. An entry in `images`,
 `audio`, `video` or `files` requires `type` plus at least one of `data` or `data_ref`,
 where v1.1.0 required `data` outright and so rejected the fully on-chain form this
@@ -45,6 +49,10 @@ with a type or length it now declares (for example `"locked": "yes"`, a numeric 
 a `data_ref` over 255 characters, or `"packs": []`). Every other v1.0.0 document stays
 valid. Its four media definitions require `["type", "data"]`, which is the constraint
 v1.1.1 relaxes.
+
+Its example is out of date for gated content because the locked `stems.zip` entry
+references a sibling-chain `FILE` the token cannot gate. Follow the v1.1.2 example
+and the [`data_ref` and `locked` rules](#file-entry-fields) for new documents.
 
 ### v1.0.0
 - [Token Information Standard JSON Schema](./json/token-information-standard-v1.0.0-schema.json)
@@ -86,11 +94,11 @@ all four arrays.
 | Field       | Type    | Description
 | :---        | :---    | :---
 | data        | String  | URL to the file (off-chain). Used for non-gated content.
-| data_ref    | String  | *(since v1.1.0)* Reference to an on-chain [`FILE`](./actions/file.md) action by `ACTION_INDEX`: `action:<index>` (same chain as the token) or `action:<COIN>:<index>` (sibling chain: base coin ticker `BTC`/`LTC`/`DOGE`, network tier implied by the token's network, same convention as [`LINK`](./actions/link.md)'s `COIN1`/`COIN2`). Lets cheap chains carry the bytes for tokens on expensive ones: e.g. a BTC token whose artwork FILE lives on DOGE. A sibling-chain FILE is not gated by the token, so use this form for public content and keep `locked` entries on the token's own chain. When both `data` and `data_ref` are present, clients prefer `data_ref`.
+| data_ref    | String  | *(since v1.1.0)* Reference to an on-chain [`FILE`](./actions/file.md) action by `ACTION_INDEX`: `action:<index>` (same chain as the token) or `action:<COIN>:<index>` (sibling chain: base coin ticker `BTC`/`LTC`/`DOGE`, network tier implied by the token's network, same convention as [`LINK`](./actions/link.md)'s `COIN1`/`COIN2`). Lets cheap chains carry the bytes for tokens on expensive ones: e.g. a BTC token whose artwork FILE lives on DOGE. A sibling-chain FILE is not gated by the token, so use this form for public content and keep `locked` entries on the token's own chain. Clients trim surrounding whitespace before matching these forms; publishers SHOULD omit that whitespace. A matching `data_ref` takes precedence over `data` on the same entry. An empty or non-matching value is not a reference, so clients ignore it and use `data` as if `data_ref` were absent.
 | name        | String  | Filename
 | hash        | String  | (Optional) A sha256 hash of the file. 64 characters max.
-| size        | String  | *(images only)* (Optional) The image's pixel dimensions, such as `48x48`, or `svg` for an SVG image. Read together with `type` to pick a token icon.
-| type        | String  | Entry classification, drawn from the vocabulary of the array the entry sits in, and NOT a MIME type. `images`: display role, one of `icon`, `standard`, `large`, `hires`, paired with `size` so clients can pick a token icon. `audio`: container, one of `m4a`, `mp3`, `wav`. `video`: container, one of `mp4`, `mov`, `wmv`. `files`: free-form category such as `doc`, `pdf`, `xls`, `other`. The schema pins the first three lists as enums and leaves the `files` vocabulary open. The media type of the bytes comes from elsewhere: a `data_ref` entry inherits it from the referenced [`FILE`](./actions/file.md) action's `TYPE`, and a `data` URL from the server's `Content-Type`.
+| size        | Any     | *(images only)* (Optional) The image's pixel dimensions, such as `48x48`, or `svg` for an SVG image. Published schema v1.1.2 does not constrain its JSON type; publishers SHOULD use a string. Read together with `type` to pick a token icon.
+| type        | String / Any | Entry classification, drawn from the vocabulary of the array the entry sits in, and NOT a MIME type. For `images`, `audio`, and `video`, the schema pins a string enum: display role for `images` (`icon`, `standard`, `large`, `hires`), and container for `audio` (`m4a`, `mp3`, `wav`) and `video` (`mp4`, `mov`, `wmv`). For `files`, published schema v1.1.2 does not constrain the JSON type; publishers SHOULD use a free-form string such as `doc`, `pdf`, `xls`, or `other`. The media type of the bytes comes from elsewhere: a `data_ref` entry inherits it from the referenced [`FILE`](./actions/file.md) action's `TYPE`, and a `data` URL from the server's `Content-Type`.
 | title       | String  | *(since v1.1.0)* Display title
 | locked      | Boolean | *(since v1.1.0)* `true` if the file is encrypted and gated. Clients use this to render locked/unlocked states without first fetching the FILE action. Key-handoff enforcement on `SEND` and unlock thresholds apply only to a gated FILE on the token's own chain, so a `locked` entry should use a same-chain `action:<index>` reference; a gated FILE on a sibling chain unlocks only with a key delivered some other way (see [Token-Gated Content](./token-gated-content.md#what-the-handoff-rule-does-and-does-not-guarantee)).
 | pack_id     | String  | *(since v1.1.0)* (Optional) Pack identifier grouping files that share an unlock key. References the top-level `packs` map for display name and description. Does not need to be present for unlocking to work: clients match each file's key by its `KEY_HASH` (`sha256(K) == KEY_HASH`). The protocol defines a pack by the (publisher, `GATE_TICKER`, `KEY_HASH`) triple on the token's own chain (see [FILE pack semantics](./actions/file.md#pack-semantics)), so files that share a `KEY_HASH` but come from different publishers are separate packs with independent thresholds and should not share a `pack_id`.
@@ -147,15 +155,15 @@ Below are a number of token description formats which should be recognized by XC
 <table>
 <tr><td><b>Format</b></td><td>https://domain.com/info.json</td></tr>
 <tr><td><b>Note</b></td><td>URL to a JSON file ending in .json</td></tr>
-<tr><td><b>Example</b></td><td>example.com/json/JDOG.json </td></tr>
+<tr><td><b>Example</b></td><td>https://example.com/json/JDOG.json</td></tr>
 </table>
 
 ### JSON Format with Hash
 <table>
 <tr><td><b>Format</b></td><td>https://domain.com/info.json;HASH</td></tr>
-<tr><td><b>HASH</b></td><td>64-character sha256 hash</td></tr>
+<tr><td><b>HASH</b></td><td>64-character lowercase hexadecimal SHA-256 hash of the exact response bytes. Clients MUST refuse to render the document when its digest does not match; a suffix that is not 64 hexadecimal characters is not a hash.</td></tr>
 <tr><td><b>Note</b></td><td>URL to a JSON file ending in .json</td></tr>
-<tr><td><b>Example</b></td><td>example.com/json/JDOG.json;96fc96754c913f60e9d7a0be07d76ffbcdc53338295cbd69595e69cf49616c3b</td></tr>
+<tr><td><b>Example</b></td><td>https://example.com/json/JDOG.json;96fc96754c913f60e9d7a0be07d76ffbcdc53338295cbd69595e69cf49616c3b</td></tr>
 </table>
 
 ### On-Chain Format (action index)

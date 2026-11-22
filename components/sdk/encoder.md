@@ -176,6 +176,11 @@ console.log(estimate.actionString); // the serialized action string
 
 **Native-coin protocol fee (opt-in):** pass `encoderOpts.payFeeInNativeCoin: true` to include the protocol fee in BTC/LTC/DOGE. The SDK calls `sdk.quoteNativeFee()` first and refuses to build a transaction for any action that cannot be priced (unsupported action, stale oracle). The quote is attached as `estimate.nativeFeeQuote`.
 
+For a top-level `EXECUTE` under `EXECUTE_NATIVE_METERED_GAS_ACTIVATION`, that quote's `requiredFeeSats`
+represents a dry-run gas estimate plus the indexer's fixed safety margin, bounded by the execution
+base and protocol ceiling. The encoder uses that value for the native fee output; it does not add a
+gas-budget field to the EXECUTE wire data. Native BATCH quotes remain unsupported.
+
 ```js
 const estimate = await sdk.estimateFees(
     { action: 'SEND', params: { tick: 'MYTOKEN', amount: '100', destination: 'bc1q...' } },

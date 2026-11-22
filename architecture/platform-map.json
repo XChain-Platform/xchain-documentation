@@ -306,7 +306,7 @@
       "id": "r16",
       "source": "sync",
       "target": "decoderdb",
-      "label": "snapshots decoded txs (8 of 10 tables)",
+      "label": "snapshots decoded txs (8 of 11 tables)",
       "kind": "read"
     },
     {
@@ -776,7 +776,7 @@
           "n": 2,
           "node": "sync",
           "edge": "r16",
-          "action": "Decoder DB is snapshotted too (8 of 10 tables; mempool_transactions and dispenser_extension_undo excluded by design)."
+          "action": "Decoder DB is snapshotted too (8 of 11 tables; mempool_transactions, dispenser_extension_undo and block_tx_index_end excluded by design)."
         },
         {
           "n": 3,

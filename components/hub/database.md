@@ -438,7 +438,7 @@ Individual validator votes cast on governance proposals.
 
 | Table | Purpose |
 |---|---|
-| `validator_rewards` | Per-round oracle reward accounting |
+| `validator_rewards` | Hub-local per-round reward ledger (not a `COLLECT` source) |
 | `slash_proposals` | Detected validator misbehavior records |
 | `attestation_validator_stats` | Per-validator attestation spot-check outcomes feeding the failure-window slash trigger |
 
@@ -462,21 +462,24 @@ One row per (validator, spot-checked attestation request): `passed = 1` when the
 
 ### `validator_rewards`
 
-Tracks XCHAIN rewards earned by validators for participating in oracle rounds. Rewards are distributed equally among all participants in a finalized round.
+A hub-local ledger, kept for `getRewardHistory`, `getvalidatorstatus` and dashboards. `RewardTracker` writes one `oracle_round` row per validator for each finalized oracle round (an equal split of `ORACLE_REWARD_PER_ROUND`) plus `anchor_bundle` and `anchor_archive` rows for anchor publishes. Nothing here is pushed to the indexer and the chain mints no oracle round reward, so this table is not a `COLLECT` source: the rewards a `COLLECT` can claim are the rows in the indexer's own `validator_rewards` table (see [COLLECT](../../protocol/actions/collect.md#reward-sources) and the [indexer database](../indexer/database.md)).
 
 | Column | Type | Description |
 |---|---|---|
 | `id` | `BIGINT AUTO_INCREMENT` | Primary key |
 | `validator_pubkey` | `CHAR(64) NOT NULL` | Validator's Ed25519 pubkey |
-| `round_number` | `BIGINT NOT NULL` | Oracle round that generated the reward |
-| `reward_type` | `VARCHAR(20) NOT NULL` | Reward type (default: `oracle_round`) |
-| `amount` | `VARCHAR(40) NOT NULL` | Reward amount (8 decimal precision) |
-| `block_index` | `BIGINT NULL` | On-chain block index where the reward was settled (NULL for pending rewards) |
-| `batch_seq` | `BIGINT NULL` | ANCHOR archive batch associated with this reward (NULL when not yet archived) |
-| `claimed` | `TINYINT(1) NOT NULL` | Whether the reward has been claimed (default: 0) |
+| `round_number` | `BIGINT NOT NULL` | Oracle round that generated the row (the snapshot block for `anchor_bundle`, the batch sequence for `anchor_archive`) |
+| `reward_type` | `VARCHAR(20) NOT NULL` | `oracle_round` (default), `anchor_bundle` or `anchor_archive` |
+| `amount` | `VARCHAR(40) NOT NULL` | Ledger amount (8 decimal precision) |
+| `block_index` | `BIGINT NULL` | Snapshot block an anchor row is recorded against (NULL on `oracle_round` rows) |
+| `batch_seq` | `BIGINT NULL` | ANCHOR archive batch associated with this row (NULL when not yet archived) |
+| `claimed` | `TINYINT(1) NOT NULL` | Never set by the hub, so it stays at its default of 0; it does not record a payout (default: 0) |
 | `created_at` | `DATETIME` | Record creation time |
+| `round_qualifier` | `BIGINT NOT NULL` | Part of the ledger key: the snapshot block for `anchor_archive` rows, 0 for every other type (default: 0) |
 
-**Unique key:** `(validator_pubkey, round_number, reward_type)`. **Keys:** `(validator_pubkey)`, `(round_number)`, `(validator_pubkey, claimed)`, `(batch_seq)`
+**Unique key:** `(validator_pubkey, round_number, reward_type, round_qualifier)`. **Keys:** `(validator_pubkey)`, `(round_number)`, `(validator_pubkey, claimed)`, `(batch_seq)`
+
+The `unclaimed_rewards` figure `getvalidatorstatus` returns is the sum of this ledger's rows with `claimed = 0`, a running total of the local ledger and not a balance a `COLLECT` can claim.
 
 ### `slash_proposals`
 

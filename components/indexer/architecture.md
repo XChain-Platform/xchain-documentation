@@ -236,7 +236,7 @@ After all transactions in a block are processed:
 
 ### 5. Watchdog Timeout
 
-The entire block processing pipeline runs under a configurable timeout (`BLOCK_PROCESS_TIMEOUT`, default 5 minutes). If a block takes longer than this, the indexer throws an error and rolls back the transaction, preventing deadlocks or infinite loops from stalling the indexer.
+The entire block processing pipeline runs under a configurable timeout (`BLOCK_PROCESS_TIMEOUT`, default 5 minutes). If a block takes longer than this, the indexer throws an error, rolls back the transaction and retries the same block after `BLOCK_CHECK_INTERVAL`. The process does not exit. A block that always times out still stalls the indexer, but loudly (an error log line and a `/health` stall reason) rather than silently.
 
 ```mermaid
 flowchart TD
@@ -246,10 +246,12 @@ flowchart TD
     P4["4. Block Finalization<br>write blocks record, update DEX info, sanity check"]
     WD{"5. Watchdog Timeout<br>exceeded BLOCK_PROCESS_TIMEOUT?"}
     ERR["Throw error, roll back the transaction"]
+    RETRY["Retry the same block after BLOCK_CHECK_INTERVAL"]
     NEXT["Next loop iteration"]
 
     P1 --> P2 --> P3 --> P4 --> WD
     WD -->|yes| ERR
+    ERR --> RETRY
     WD -->|no| NEXT
 ```
 

@@ -60,11 +60,18 @@ const { sibling } = require('./helpers/sibling_checkout.js');
 const ROOT = path.join(__dirname, '..');
 const CONSTANTS = require(path.join(ROOT, 'protocol', 'constants.js'));
 
-/*
- * Constants whose value is quoted in prose as a number of bytes. `superseded`
- * lists values this constant USED to have; each one is a value that must never
- * again be presented as a byte size anywhere in the docs.
- */
+test('multi-part FILE limits and activation times are pinned', () => {
+  assert.strictEqual(CONSTANTS.MULTIPART_FILE_MAX_PARTS, 65535);
+  assert.strictEqual(CONSTANTS.MULTIPART_FILE_MAX_BYTES, 262140000000);
+  assert.deepStrictEqual(CONSTANTS.FILE_MULTIPART_ACTIVATION_TIME, {
+    mainnet: null,
+    testnet: 1794787200,
+    regtest: 0,
+  });
+});
+
+// Constants quoted in prose as a byte count; each `superseded` value must never
+// again appear in the docs as a byte size.
 const GUARDED = [
   {
     name: 'ENVELOPE_MAX_PAYLOAD',
@@ -79,32 +86,17 @@ const GUARDED = [
   },
 ];
 
-/*
- * Sentences that legitimately state a superseded value as bytes: a page
- * narrating the correction itself, for instance. Each needs a reason, because
- * an unexplained exemption is how a guard rots into a list of numbers somebody
- * silenced. Keyed per file and per occurrence count, so a NEW stale claim in an
- * already-exempt file is still caught.
- *
- * Empty on purpose as of 2026-08-03: no doc page narrates the correction.
- * The history lives in protocol/constants.js comments (a .js file, which
- * this guard does not read).
- */
+// Sentences allowed to state a superseded value as bytes, each with a reason, keyed per
+// file and occurrence count so a NEW stale claim in an exempt file still fails.
+// Empty: no doc page narrates the correction.
 const SCOPED = [];
 
-/**
- * A number presented as a quantity of bytes: "400,000 bytes", "8,192-byte",
- * "390000 bytes". Thousands separators are optional because both styles appear
- * in the docs, and a guard that only understood one would miss half the repo.
- */
+/** A number presented as bytes ("400,000 bytes", "8,192-byte", "390000 bytes");
+ * thousands separators are optional because the docs use both styles. */
 const BYTE_QUANTITY = /\b(\d{1,3}(?:,\d{3})+|\d{3,})\s*-?\s*bytes?\b/gi;
 
-/**
- * How far past a constant's name a number may sit and still count as a claim
- * about its value. Wide enough for "`ENVELOPE_MAX_PAYLOAD` (390,000 bytes)"
- * and any brief qualifier; far too narrow to reach across a sentence into a
- * neighbouring quantity.
- */
+/** How far past a constant's name a number still counts as a claim about its value:
+ * wide enough for "`ENVELOPE_MAX_PAYLOAD` (390,000 bytes)", too narrow to reach a neighbour. */
 const NEAR = 40;
 
 function markdownFiles() {
@@ -147,13 +139,9 @@ test('prose that names a byte constant states its current value', () => {
     for (const g of GUARDED) {
       const at = line.indexOf(g.name);
       if (at === -1) continue;
-      // Only a byte quantity sitting immediately after the name is the one
-      // being presented AS its value. The window matters: concepts/encoding.md
-      // names MAX_ACTION_DATA_LENGTH and then, four hundred characters later in
-      // the same paragraph-as-one-line, correctly says a ~8,190-byte decoded
-      // payload can compile past the 8,192 cap. Those are two different
-      // quantities and the sentence is right, so an unbounded look-ahead makes
-      // this guard demand that correct prose be broken.
+      // Only a byte quantity right after the name claims its value; a bounded window keeps
+      // a later, correct figure on the same line (concepts/encoding.md, ~8,190 bytes)
+      // from being read as the constant's value.
       BYTE_QUANTITY.lastIndex = 0;
       const m = BYTE_QUANTITY.exec(line.slice(at, at + g.name.length + NEAR));
       if (!m) continue;
@@ -169,45 +157,16 @@ test('prose that names a byte constant states its current value', () => {
     'these sentences name a constant and then state the wrong size:\n' + bad.join('\n'));
 });
 
-/*
- * ── BATCH_COMMAND_LIMIT (a COUNT, not a byte size) ─────────────────────────
- *
- * WHY A SECOND MECHANISM. Everything above keys on the literal identifier
- * name sitting next to the number (`ENVELOPE_MAX_PAYLOAD` (390,000 bytes)`).
- * No prose page ever writes `BATCH_COMMAND_LIMIT`; every page just says
- * "250 commands" or "the 250-command cap". The identifier-adjacency anchor
- * therefore cannot see this constant at all, so it needs its own claim
- * scan rather than an entry in GUARDED (a `bytes` claim, wrong unit) or a
- * silent no-op entry.
- *
- * WHY EVERY COMMAND COUNT IS CHECKED, with no digit floor. The first cut of
- * this guard borrowed BYTE_QUANTITY's 3-digit floor to keep two unrelated
- * phrases out ("21 commands" for the CLI, "35 commands" for the ACTION set).
- * That was measured and REJECTED on 2026-08-13: driving a real prose page
- * from "250 commands" to "260 commands" reddened the guard, but driving it
- * to "99 commands" passed SILENTLY, because the drifted value fell under the
- * floor. A guard that only catches drift which stays 3 digits wide is not a
- * guard, and the drift direction it misses (a smaller cap) is the one a
- * careless edit is likelier to produce.
- *
- * So the floor is gone and the three legitimate non-BATCH claims are named
- * explicitly in COMMAND_SCOPED instead. An explicit allowlist states what is
- * exempt and why; a digit heuristic only states what happened to be true of
- * the numbers in the repo the day it was written. The unspent-entry
- * assertion below is what keeps the allowlist honest: delete one of those
- * three prose lines and the run fails until the exemption goes too.
- */
+// BATCH_COMMAND_LIMIT is a count and prose says "250 commands", never the identifier, so it
+// gets its own scan. Every command count is checked with no digit floor (a smaller drifted
+// value must fail too); legitimate others sit in COMMAND_SCOPED and unspent entries fail.
 const BATCH_COMMAND_LIMIT_NAME = 'BATCH_COMMAND_LIMIT';
 
 /** Same shape as BYTE_QUANTITY, unit swapped from bytes to commands, no floor (see above). */
 const COMMAND_QUANTITY = /\b(\d{1,3}(?:,\d{3})+|\d+)\s*-?\s*commands?\b/gi;
 
-/*
- * Claims that legitimately state a command count unrelated to the BATCH cap.
- * `times` is how many occurrences that file is allowed, NOT the number being
- * claimed: the two are different and conflating them made an exemption for
- * "21 commands" quietly permit twenty-one of them.
- */
+// Command counts unrelated to the BATCH cap. `times` is how many occurrences the file may
+// carry, not the number claimed.
 const COMMAND_SCOPED = [
   { file: 'components/node/architecture.md', count: 21, times: 2,
     why: 'the xchain-node Commander CLI verb count, nothing to do with BATCH' },
@@ -243,34 +202,14 @@ test('prose command counts for the BATCH cap match the canonical value', () => {
     + 'a reason:\n' + bad.join('\n'));
 });
 
-/*
- * ── Cross-repo drift: the same 250 in xchain-indexer and xchain-sdk ────────
- *
- * protocol/constants.js is this repo's canonical copy, but the number that
- * actually runs lives in two sibling repos, each with its own literal:
- * xchain-indexer/src/actions/batch.js (`this.commandLimit`) and
- * xchain-sdk/src/protocol/batch_limits.js (`BATCH_COMMAND_LIMIT`). Prose drifting from
- * this file is the smaller failure mode; code drifting from this file, or
- * the two services drifting from each other, is the one that actually
- * breaks something on chain.
- *
- * Read as source and parsed with a regex, exactly like action-activation-model
- * .test.js reads xchain-indexer/src/protocol_changes.js and sdk-action-surface
- * .test.js reads xchain-sdk/src/*.js: these are sibling repos in the monorepo
- * checkout, not dependencies, so the assertion skips (not fails) when a
- * sibling checkout is absent, the same convention every other cross-repo test
- * in this directory uses.
- */
+// Cross-repo drift: the limit that runs lives in xchain-indexer src/actions/batch.js and
+// xchain-sdk src/protocol/batch_limits.js. Both are read as source text and skip (not fail)
+// when a sibling checkout is absent, like every other cross-repo test here.
 const INDEXER_BATCH = moduleEntry(path.resolve(ROOT, '../xchain-indexer/src/actions/batch.js'));
 
-/* The limits are read as SOURCE TEXT and matched with a regex, so the file this
- * resolves to has to be the one that declares them. The SDK's layout pass moved
- * batchLimits.js to src/protocol/batch_limits.js and left a one-line re-export
- * behind, which keeps require() working but carries none of the declarations, and a
- * sibling checkout can sit on either side of that move. Follow a bare re-export to
- * its target and fall back to the pre-move spelling, then report the path that was
- * READ: a failure naming the stub would send the next reader to a file with none of
- * the numbers in it. */
+/* Limits are matched as SOURCE TEXT, so resolve to the file that declares them: follow a
+ * bare re-export stub (the SDK file moved from batchLimits.js), try the pre-move spelling,
+ * and report the path actually READ. */
 function resolveSdkSource(pinned, premove) {
     const read = (rel) => {
         const abs = path.resolve(ROOT, rel);
@@ -288,11 +227,9 @@ function resolveSdkSource(pinned, premove) {
 const SDK_BATCH = resolveSdkSource('../xchain-sdk/src/protocol/batch_limits.js',
                                    '../xchain-sdk/src/batchLimits.js');
 const SDK_BATCH_LIMITS = SDK_BATCH ? SDK_BATCH.rel : '../xchain-sdk/src/protocol/batch_limits.js';
-/* The skips below are for a bare clone, by name. A run that declared the siblings
- * supplied (XCHAIN_REQUIRE_SIBLINGS=1, which bin/ci-all.sh and the venue set, with both
- * repos in .ci-siblings) throws in the helper instead, naming every spelling tried: the
- * number that actually runs on chain lives in those two files, and skipping leaves the
- * drift they exist to catch unchecked but green. */
+/* A bare clone skips by name; a run that declares the siblings supplied
+ * (XCHAIN_REQUIRE_SIBLINGS=1 plus .ci-siblings) throws in the helper, so a missing
+ * one never goes green. */
 const noIndexerBatch = sibling('xchain-indexer',
     [[INDEXER_BATCH, path.join(INDEXER_BATCH.replace(/\.js$/, ''), 'index.js')]]).skip;
 const noSdkBatchLimits = sibling('xchain-sdk', SDK_BATCH ? [] : [[
@@ -322,20 +259,9 @@ test('xchain-sdk BATCH_COMMAND_LIMIT matches the canonical value',
       + `is ${CONSTANTS.BATCH_COMMAND_LIMIT}`);
   });
 
-/*
- * ── The weighted budget and the per-action weight table ────────────────────
- *
- * BATCH_COST_WEIGHTING replaces the flat command count with a weight budget,
- * and the numbers again live in three places: protocol/constants.js
- * (BATCH_WEIGHT_BUDGET and BATCH_COMMAND_WEIGHTS, canonical),
- * xchain-indexer/src/actions/batch.js (`this.weightBudget` and the
- * `this.commandWeights[...]` assignments) and xchain-sdk/src/protocol/batch_limits.js
- * (`BATCH_WEIGHT_BUDGET` and the `BATCH_COMMAND_WEIGHTS` literal). These are
- * consensus values: a budget that drifts moves batch verdicts, and a weight
- * table that drifts moves them per action, either of which forks the SDK's
- * pre-flight from the arbiter. Same sibling-checkout skip convention as the
- * command-cap tests above.
- */
+// Weighted budget and per-action weights: canonical in protocol/constants.js, copied into the
+// indexer (actions/batch.js) and SDK (protocol/batch_limits.js). Drift forks the SDK pre-flight
+// from the arbiter, so each copy is pinned; same sibling-skip convention as above.
 test('xchain-indexer weightBudget matches the canonical BATCH_WEIGHT_BUDGET',
   { skip: noIndexerBatch }, () => {
     const src = readModuleSource(INDEXER_BATCH);
@@ -398,25 +324,9 @@ test('every canonical batch weight is an integer of at least 1', () => {
   }
 });
 
-/*
- * ── Weight claims in prose ─────────────────────────────────────────────────
- *
- * Same failure mode as the command-count guard above, new unit. Prose never
- * writes `BATCH_WEIGHT_BUDGET` or `BATCH_COMMAND_WEIGHTS`; it says a batch
- * has a "weight budget of 250" and that an action "weighs 30". A repo-wide
- * scan for every bare number near the word "weight" is hopeless (VOTE's
- * weight modes and transaction-weight prose would drown it), so this keys on
- * exactly those two phrasings, which the two batch pages use deliberately so
- * this guard can see them. Two directions are covered:
- *
- *   1. DRIFTED PROSE: any "weighs N" claim anywhere must state a value the
- *      canonical table carries (or the default 1), and any "weight budget of
- *      N" must state the canonical budget. Retune a weight and a stale
- *      sentence goes red.
- *   2. MISSING PROSE: the two batch pages must state the budget, the default,
- *      and every weighted action next to its current weight. Retune a weight
- *      and an unedited page goes red, so prose and constant move together.
- */
+// Prose never names BATCH_WEIGHT_BUDGET; it says "weight budget of 250" or "weighs 30", so only
+// those phrasings are scanned (a bare number near "weight" drowns in VOTE modes). Drifted prose
+// fails, and both batch pages must state the budget, the default and every weight.
 const WEIGHT_PAGES = ['protocol/actions/batch.md', 'developer-guide/batch-operations.md'];
 
 test('every prose weight claim states a value the canonical table carries', () => {
@@ -459,15 +369,9 @@ test('the batch pages teach every weight class at its current value', () => {
   }
 });
 
-/*
- * ── The weighted budget's mainnet status in prose ──────────────────────────
- *
- * The indexer arms BATCH_COST_WEIGHTING at genesis (0) on mainnet, and the
- * budget binds wherever BATCH_ISSUANCE_LIMITS is active, so the batch pages
- * must not call it testnet-only, not yet on mainnet, or still to come. Keyed on
- * the indexer's own mainnet value: if that ever moves back to a future
- * instant, the prose may legitimately change and this asserts nothing.
- */
+// The indexer arms BATCH_COST_WEIGHTING at genesis on mainnet, so the batch pages must not call
+// the weighted budget testnet-only or upcoming; keyed on that mainnet value, so it asserts
+// nothing if it ever moves to a future instant.
 const STALE_WEIGHT_STATUS = /testnet and regtest only|not yet\b[^.]*\bmainnet|once cost weighting activates|at\/after the cost-weighting activation|today a batch is bounded by a flat count/i;
 
 /** Lines of the batch pages that describe the weighted budget as not live on mainnet. */

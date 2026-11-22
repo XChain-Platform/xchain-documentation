@@ -109,7 +109,7 @@ sdk.createAction({ action: 'ISSUE', params: {
 
 ## Version Quick Reference
 
-Actions with a single format version (BATCH, CALLBACK, COINPAY, COLLECT, DEPOSIT, DIVIDEND, EXECUTE, FILE, LINK, MINT, PRICE, SWEEP, WITHDRAW) are omitted from this table; the selector always uses that one version, which is version 0 for all of them except PRICE, whose only format is version 1. Every action with more than one format version has a row. A version that exists on chain but is never broadcast by a user (VOTE v2, XBRIDGE v2 and v5) has no SDK format and reads "None".
+Actions with a single format version (BATCH, CALLBACK, COINPAY, COLLECT, DEPOSIT, DIVIDEND, EXECUTE, LINK, MINT, PRICE, SWEEP, WITHDRAW) are omitted from this table; the selector always uses that one version, which is version 0 for all of them except PRICE, whose only format is version 1. Every action with more than one format version has a row. A version that exists on chain but is never broadcast by a user (VOTE v2, XBRIDGE v2 and v5) has no SDK format and reads "None".
 
 | ACTION | v0 | v1 | v2 | v3 | v4 | v5 | v6 | v7 |
 |--------|----|----|----|----|----|----|-----|-----|
@@ -125,6 +125,7 @@ Actions with a single format version (BATCH, CALLBACK, COINPAY, COLLECT, DEPOSIT
 | SWAP | Full swap (give/get/expiry/lists) | Cancel by index | Edit expiry/lists by index | None | None | None | None | None |
 | DISPENSER | Full dispenser (give/get/fiat/lists) | Cancel/close by index | Edit escrow/expiry/lists by index | None | None | None | None | None |
 | DESTROY | Single tick | Two ticks | Two ticks + per-tick memo | None | None | None | None | None |
+| FILE | Single file | Multipart manifest | Multipart file part | None | None | None | None | None |
 | AIRDROP | Single tick, list index | Two ticks, two list indexes | Single tick, two list indexes alternating | Two ticks, two list indexes, two memos | None | None | None | None |
 | BROADCAST | Message + value | Message + value + fee + memo | Message + fee + memo (no value) | Data feed update: new value + memo on an existing feed, by index | None | None | None | None |
 | MESSAGE | ECDH v0 (key exchange) | ECDH v1 (key exchange) | Encrypted message payload | Plaintext message | None | None | None | None |

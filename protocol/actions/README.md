@@ -117,7 +117,7 @@ The same ACTION specifications apply across all chains. Chain-specific behavior 
 | [`DEPOSIT`](./deposit.md) | Transfers tokens from a user to a contract's custody |
 | [`WITHDRAW`](./withdraw.md) | Withdraws tokens from a contract's custody back to the owner |
 | [`XCALL`](./xcall.md) | Cross-chain contract call request: v0 = VM-emitted request (`xchain.emit.crossExecute`), v2 = system-synthesized deadline expiry |
-| `XEXEC` | System-injected target-side execution of an XCALL dispatch row; internal only, no user-broadcast form: see [XCALL.md](./xcall.md) |
+| `XEXEC` | System-injected target-side execution of an XCALL dispatch row; internal only, no user-broadcast form: see [xcall.md](./xcall.md) |
 
 ### Utility
 

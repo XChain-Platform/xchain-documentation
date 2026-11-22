@@ -83,6 +83,10 @@ Surfaces:
 
 Pubkey lookup is automatic, the SDK queries the explorer for the recipient's most-recent on-chain transaction and extracts their public key from the input. If the recipient has no on-chain history the wallet surfaces a helpful error before sign.
 
+## Large files
+
+The Publish file, Attach artwork and Gated publish forms offer a multi-part upload method for a file too large for one transaction. The wallet splits the file into parts, each its own transaction, which the network reassembles byte-for-byte. A multi-part file is one manifest plus its parts. The review screen shows the number of parts and transactions and the total fee, and one approval covers the funding and all part transactions. Artwork is linked only after the last part confirms. The explorer serves the reassembled file, identical to the original, at `/api/file/<manifest action index>/raw`. See [Multi-part files](../../protocol/actions/file.md#multi-part-files-versions-1-and-2). A file can have up to 65,535 parts and 262,140,000,000 bytes (about 262 GB), so the practical limit is the cost of its transactions. A gated file is limited to 64 MiB (67,108,864 bytes).
+
 ## Smart contracts
 
 xchain-vm runs JavaScript contracts in sandboxed V8 isolates with deterministic execution and AST-based gas metering. The wallet's contract surface:
@@ -201,7 +205,7 @@ The pre-signing Linux desktop bundle is **Level-2 reproducible**:
 - Frozen lockfile (`pnpm install --frozen-lockfile`)
 - `SOURCE_DATE_EPOCH` derived from `git log -1 --pretty=%ct`
 - `RELEASE_HASHES.txt` SHA-256 manifest emitted by `packages/desktop/scripts/build.sh`
-- 18-rule static scaffolding audit (`packages/core/scripts/repro-build-audit.js`) gated on every commit
+- 19-rule static scaffolding audit (`packages/core/scripts/repro-build-audit.js`) run in CI
 
 See [Reproducible Builds](reproducible-builds.md) for the run-twice-and-compare verification protocol.
 

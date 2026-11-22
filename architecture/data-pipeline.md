@@ -87,7 +87,7 @@ The decoder polls the coin node every few seconds via JSON-RPC (`getblockcount`,
 
 The indexer polls the Decoder DB every 5 seconds. When it finds a new decoded action it has not yet processed:
 
-1. **Routes** the ACTION string to the appropriate handler class (one of 48 dedicated handler classes: `IssueAction`, `SendAction`, `OrderAction`, etc.).
+1. **Routes** the ACTION string to the appropriate handler class (one of 50 dedicated handler classes: `IssueAction`, `SendAction`, `OrderAction`, etc.).
 
 2. **Validates** all fields. For `ISSUE`, this means checking: the ticker does not already exist, the sender holds enough XCHAIN gas to pay the fee, the supply and decimals are within protocol limits, and the format string is well-formed.
 
@@ -227,7 +227,7 @@ The indexer's output is fully determined by its inputs and its code. Those input
 - **Verification**: multiple independent indexer instances reading the same Decoder DB and the same hub-mirrored rows will converge to the same state.
 - **Auditability**: a disputed balance or token state can be traced back through ledger entries to the exact action and block that caused it.
 
-Both inputs can themselves be rebuilt. The Decoder DB is rebuilt from the blockchain: destroy it, run the decoder from block 0, and it re-derives the same rows from on-chain data. The hub-mirrored rows are aggregated across chains by the hub: prices arrive as PRICE v0 and v1 actions, and the cross-chain settlement and federation-state rows (matches, calls, capability, policy and list snapshots, bridge transfers, state checkpoints, anchor reward attestations, attestation responses) are records the hub finalizes. Most of them carry validator quorum signatures, while capability snapshots are unsigned validator-set membership derived from on-chain BTC stake state. The mirror is rebuilt from the hub's snapshot ([Database Design](database-design.md)). The staking tables (`stakes`, `delegations`, `validator_rewards`) are not mirrored; they are indexer state derived from the Decoder DB. So the full indexer state is reproducible from the Decoder DB plus an equivalent hub mirror, though not from one chain's Decoder DB in isolation.
+Both inputs can themselves be rebuilt. The Decoder DB is rebuilt from the blockchain: destroy it, run the decoder from block 0, and it re-derives the same rows from on-chain data. The hub-mirrored rows are aggregated across chains by the hub: prices arrive as PRICE v0 and v1 actions, and the cross-chain settlement and federation-state rows (matches, calls, capability, policy, list and remote token snapshots, bridge transfers, state checkpoints, anchor reward attestations, attestation responses) are records the hub finalizes. Most of them carry validator quorum signatures, while capability snapshots are unsigned validator-set membership derived from on-chain BTC stake state. The mirror is rebuilt from the hub's snapshot ([Database Design](database-design.md)). The staking tables (`stakes`, `delegations`, `validator_rewards`) are not mirrored; they are indexer state derived from the Decoder DB. So the full indexer state is reproducible from the Decoder DB plus an equivalent hub mirror, though not from one chain's Decoder DB in isolation.
 
 ---
 

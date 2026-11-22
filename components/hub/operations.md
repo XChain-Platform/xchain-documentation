@@ -95,23 +95,26 @@ correct, or list capabilities you don't serve under `DISABLED_CAPABILITIES`.
 
 ## Docker
 
-The hub is designed to run inside Docker. The Dockerfile copies source to `/XChainHub/`:
+The hub is designed to run inside Docker. This excerpt mirrors `xchain-hub/Dockerfile`, which is authoritative:
 
 ```dockerfile
-FROM node:latest
+FROM node:22.23.4-bookworm@sha256:2bd396628eceb5c999a6e43731fab69d5fb98b94ba9d9d90b5f64575c5178765
 
 RUN mkdir /XChainHub/
 COPY ./package.json /XChainHub/package.json
 COPY ./package-lock.json /XChainHub/package-lock.json
 WORKDIR /XChainHub
 RUN npm ci --omit=dev
+RUN npm install -g @anthropic-ai/claude-code@2.1.266
 
 COPY ./src /XChainHub/src
 COPY ./docs /XChainHub/docs
-COPY ./.en[v] /XChainHub/.env
+COPY ./bin /XChainHub/bin
 
-CMD ["npm", "run", "api"]
+CMD ["node", "./src/api.js"]
 ```
+
+No `.env` is baked into the image. Configuration arrives as environment variables, injected by `xchain-node` or passed with `docker run --env-file .env` for a standalone run. The direct `node` command lets `SIGTERM` reach graceful shutdown.
 
 In production, the hub is typically managed by `xchain-node`, which handles container lifecycle, environment variable injection, and network configuration.
 
@@ -141,7 +144,7 @@ curl -X POST http://localhost:10000 \
 
 ### Authentication
 
-The API has three tiers when `HUB_API_KEY` is set. If no API key is configured, a standalone hub runs with all methods open (a warning is logged on startup), but a hub in **validator mode** (`P2P_VALIDATOR_ADDR` set) **refuses to boot**: unauthenticated write methods would let anyone drive consensus-affecting writes. Set `HUB_API_KEY`, or set `HUB_ALLOW_UNAUTHENTICATED=true` to explicitly run keyless (regtest/dev only).
+The API has three tiers when `HUB_API_KEY` is set. If no API key is configured, the hub **refuses to boot** in every mode, standalone or validator: unauthenticated write methods would let anyone corrupt the config oracle or drive consensus-affecting writes. Set `HUB_API_KEY`, or set `HUB_ALLOW_UNAUTHENTICATED=true` to explicitly run keyless (regtest/dev only); a hub declared that way runs with all methods open and logs a warning on startup.
 
 1. **Public reads** (no key): informational methods such as `getprice`, `getproposals`, `getvalidators`, `getvotes`, `getvalidatorcapabilities`, plus `GET /api/v1/chain-registry` and `GET /telemetry/summary`. Protected only by the per-IP rate limit.
 2. **Sensitive reads** (key required): `getallconfigs`, because its response carries every service's connection parameters including database credentials. The `/hub-db/snapshot/*` and `/hub-db/subscribe` mirror feed is keyed the same way. Emergency opt-out for a staged rollout: `HUB_SENSITIVE_READ_AUTH=0` reopens the sensitive reads while leaving writes keyed.
@@ -208,7 +211,7 @@ Exceeding the limit returns HTTP 429 with a JSON-RPC error body, so a client par
 
 The response also carries `Retry-After` and the `RateLimit-*` headers, so a client that cannot read the body still learns the limit and the wait.
 
-Callers on loopback or a private range (RFC1918, IPv6 unique-local and link-local) skip the limit by default. That exemption is what lets a node's own indexer rebuild price history from the chain without a raised limit: it pushes one price batch per batch-bearing block as fast as it reads blocks, which is far past 100/min, and it reaches the hub over the container bridge rather than the internet. The check runs on the client IP Express resolves after `trust proxy`, so a public caller arriving through a private-IP reverse proxy is still limited. Set `HUB_RATE_LIMIT_EXEMPT_LOCAL=false` to enforce the cap on every caller.
+Callers on loopback or a private range (RFC1918, IPv6 unique-local and link-local) skip the limit by default. That exemption is what lets a node's own indexer rebuild price history from the chain without a raised limit: it pushes one price batch per batch-bearing block as fast as it reads blocks, which is far past 100/min, and it reaches the hub over the container bridge rather than the internet. The check runs on the client IP Express resolves after `trust proxy`, so a public caller arriving through a private-IP reverse proxy is still limited. Set `HUB_RATE_LIMIT_EXEMPT_LOCAL=false` to enforce the cap on every resolved client IP. A loopback or private-range peer that `HUB_TRUST_PROXY` trusts still chooses that IP through `X-Forwarded-For`; the default trusts loopback, RFC1918 and IPv6 unique-local peers, but not link-local peers. Capping trusted peers too needs `HUB_TRUST_PROXY=false` or a list of only the real proxy addresses; the hub warns at boot when that gap is open.
 
 ### Public Deployment Behind a Reverse Proxy
 
@@ -352,7 +355,7 @@ curl -X POST http://localhost:10000 \
 
 `label` is the effector's guard label: `OraclePublisher`, `AttestationPublisher`, `StateAnchorPublisher`, or `FullNodeChallengeRound`. An unknown label is refused with `no effector registered with label '<label>'` rather than silently doing nothing. `reason` is optional and recorded with the pause.
 
-The pause is **runtime state, not configuration**: it does not survive a hub restart. To disable an effector durably, use its `*_ENABLED` variable (`ORACLE_PUBLISH_ENABLED`, `ATTEST_ENABLED`, `ANCHOR_ENABLED`, `FULLNODE_ENABLED`) in [CONFIGURATION.md](configuration.md).
+The pause is **runtime state, not configuration**: it does not survive a hub restart. To disable an effector durably, use its `*_ENABLED` variable (`ORACLE_PUBLISH_ENABLED`, `ATTEST_ENABLED`, `ANCHOR_ENABLED`, `FULLNODE_ENABLED`) in [configuration.md](configuration.md).
 
 ## Oracle Metrics
 
@@ -381,6 +384,8 @@ These series are served on the metrics endpoint only when [`METRICS_ENABLED`](./
 | `xchain_oracle_publisher_batch_sign_timeouts_total` | Counter | None | PRICE batch signing rounds that timed out waiting for co-signatures. |
 | `xchain_oracle_publisher_last_published_round` | Gauge | None | Last oracle round this hub published; absent until it has published one. |
 | `xchain_oracle_publisher_unconfirmed_publishes` | Gauge | None | Publishes this hub broadcast that have not yet reached a block. |
+| `xchain_oracle_publisher_set_unresolved` | Gauge | None | 1 while the oracle_publish capability snapshot is unresolved and this hub fails closed and will not publish; tells a dark hub from a healthy one that is simply not the rotation leader. |
+| `xchain_oracle_publisher_set_unresolved_spells_total` | Counter | None | Transitions into that fail-closed state. The hub logs one warning when a spell starts and one info line, with its length, when the snapshot resolves again. |
 
 Single-source warning lines now name the live and dead upstreams (for example, `live: coingecko; dead: kraken, coinbase`) and the pairs that went single-source with their submitters, so an operator can tell which source dropped.
 
@@ -440,11 +445,14 @@ On startup, the hub retries database connections with a delay between attempts. 
 The P2P gossip layer automatically reconnects to peers with exponential backoff:
 - Base delay: 2 seconds (configurable via `P2P_RECONNECT_BASE`)
 - Maximum delay: 60 seconds (configurable via `P2P_RECONNECT_MAX`)
-- Dead connection detection via heartbeat/ping-pong (interval: 15 seconds)
+- Dead connection detection via WebSocket ping/pong every 30 seconds (configurable via `P2P_WS_PING_INTERVAL`); a peer that misses a pong is terminated on the next ping tick
+- A separate heartbeat broadcast runs every 15 seconds (configurable via `P2P_HEARTBEAT_INTERVAL`) and carries hub version and consensus-rules information; it is not the dead-connection check
 
 ### Single-Node Fallback
 
-When no peers are connected, all consensus-dependent operations (config writes, oracle finalization, attestation, governance) fall back to direct execution. This ensures the hub remains functional even when temporarily isolated from the network.
+A consensus engine uses its single-member branch only when the membership it is working from has zero or one member (`N <= 1`), such as a single-operator regtest stack. Standalone mode, with no `P2P_VALIDATOR_ADDR`, is a separate configuration that performs config reads and writes without consensus.
+
+This is not a fallback for losing peers. Once a federation membership or round snapshot has loaded, disconnected validators still count toward its quorum. An isolated member of a federation cannot finalize alone; the round waits until quorum is reachable again. Before membership has loaded at startup, some engines use authenticated or open peers as a bootstrap fallback. See [Decentralization: Quorum](decentralization.md#quorum).
 
 ### Message Deduplication
 

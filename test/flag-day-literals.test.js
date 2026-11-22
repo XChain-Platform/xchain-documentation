@@ -134,6 +134,7 @@ test('the canonical activation-map index names every newly published gate', () =
         'ARCHIVE_MATCH_COUNT_ACTIVATION',
         'ANCHOR_BUNDLE_ORDER_ACTIVATION',
         'ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION',
+        'ATTEST_BATCH_HEAD_STATE_HASH_ACTIVATION',
     ]) {
         assert.ok(names.includes(name), `${name} is missing from the canonical activation-map index`);
     }
@@ -156,6 +157,8 @@ test('every newly published activation map is value-identical to its source regi
             'anchor_bundle_order_activation.ANCHOR_BUNDLE_ORDER_ACTIVATION',
         ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION:
             'anchor_archive_fold_term_activation.ANCHOR_ARCHIVE_FOLD_TERM_ACTIVATION',
+        ATTEST_BATCH_HEAD_STATE_HASH_ACTIVATION:
+            'stateHash.ATTEST_BATCH_HEAD_STATE_HASH_ACTIVATION',
     };
 
     for (const [name, key] of Object.entries(rows)) {
@@ -489,6 +492,65 @@ test('an unreadable call keyed to a block height does not throw', () => {
     assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
 });
 
+test('an unreadable row with a time-keyed network slot is loud on every arm', () => {
+    const fixtures = [
+        '["EMISSION_DEPTH_EXECUTE_ONLY", "0.2.0", UNARMED, 1792303200, UNARMED, 0, 0, 0],',
+        'this.addChange("FOO", "1.0.0", 9999999999, 1792303200, 0, 0, 0, 0);',
+        "['Foo_gate', '1.0.0', UNARMED, 1792303200, UNARMED, 0, 0, 0],",
+        'const BAR_TESTNET_TIME = 1792303200;\n["FOO_GATE", "1.0.0", 0, BAR_TESTNET_TIME, 0, 0, 0, 0],',
+    ];
+    const arms = ['collectGates', 'collectTestnetArms', 'collectTestnetUnarmed', 'collectMainnetUnarmed'];
+    for (const body of fixtures) {
+        const dir = fixtureRegistry("this.addChange('REAL', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n" + body);
+        for (const arm of arms) assert.throws(() => gen[arm](dir), /declaration of/);
+    }
+});
+
+test('unreadable rows with non-time testnet slots stay quiet', () => {
+    const dir = fixtureRegistry(
+        "this.addChange('REAL', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n"
+        + '["BY_HEIGHT", "1.0.0", 0, 961000, 0, 0, 0, 0],\n'
+        + '["UNKNOWN", "1.0.0", 0, SOME_SENTINEL, 0, 0, 0, 0],\n',
+    );
+    assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
+    assert.deepStrictEqual(gen.collectTestnetArms(dir), []);
+});
+
+// The refusals above each cover one bypass: a head the collector does not
+// read, and a slot expression the collector cannot read. A declaration with
+// BOTH reaches only the completeness guard, so the guard has to refuse the
+// expression itself; resolving to no time does not make it quiet.
+test('an unreadable slot in a head the collector skips is refused, not read as quiet', () => {
+    const fixtures = [
+        ['this.addChange("NEW_GATE", "1.0.0", 1786060800 + 86400, 0, 0, 0, 0, 0);', /1786060800 \+ 86400/],
+        ["this.addChange ('NEW_GATE', '1.0.0', 1786060800 + 86400, 0, 0, 0, 0, 0);", /mainnet_time/],
+        ['["NEW_GATE", "1.0.0", 1786060800 + 86400, 0, 0, 0, 0, 0],', /mainnet_time/],
+        ['this.addChange("NEW_GATE", "1.0.0", 0, 1787961600 + 86400, 0, 0, 0, 0);', /testnet_time/],
+        ['this.addChange("NEW_GATE", "1.0.0", 0x6A7B8C9D, 0, 0, 0, 0, 0);', /0x6A7B8C9D/],
+    ];
+    const arms = ['collectGates', 'collectTestnetArms', 'collectTestnetUnarmed', 'collectMainnetUnarmed'];
+    for (const [body, detail] of fixtures) {
+        const dir = fixtureRegistry("this.addChange('REAL', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n" + body + '\n');
+        for (const arm of arms) {
+            assert.throws(() => gen[arm](dir), /declaration of NEW_GATE/, `${arm} dropped ${body} in silence`);
+            assert.throws(() => gen[arm](dir), detail);
+        }
+    }
+});
+
+test('a quiet slot in a head the collector skips still does not throw', () => {
+    // The negative control for the refusal above: zero, an unknown name and a
+    // missing argument are READ as quiet, so they must stay quiet.
+    const dir = fixtureRegistry(
+        "this.addChange('REAL', '1.0.0', 1786060800, 0, 0, 0, 0, 0);\n"
+        + 'this.addChange("QUIET", "1.0.0", 0, 0, 0, 0, 0, 0);\n'
+        + 'this.addChange("NAMED", "1.0.0", SOME_UNKNOWN_NAME, 0, 0, 0, 0, 0);\n'
+        + '["SHORT", "1.0.0", 0],\n',
+    );
+    assert.deepStrictEqual(gen.collectGates(dir).map((g) => g.gate), ['REAL']);
+    assert.deepStrictEqual(gen.collectTestnetArms(dir), []);
+});
+
 test('a call whose time is an identifier the const pass never saw does not throw', () => {
     // No text scan can tell a parked sentinel from a live timestamp behind a
     // name, and guessing is what turns a build gate into noise.
@@ -629,25 +691,38 @@ test('the real registry parses clean, so the check is not merely strict', { skip
     assert.ok(gen.collectGates().length > 0);
 });
 
-test('the generated page is the only place a live flag-day value appears', { skip: noIndexer }, () => {
-    const gates = gen.collectGates();
-    const liveDates = new Set(gates.map((g) => gen.utcDate(g.time)));
-    const liveStamps = new Set(gates.map((g) => String(g.time)));
-
+function liveLiteralHits(lines, liveStamps, liveDates) {
     const bad = [];
-    for (const { rel, no, line } of proseLines()) {
-        // A raw ten-digit gate timestamp is never anything but the constant,
-        // cue or no cue.
+    for (const { rel, no, line } of lines) {
         for (const m of line.matchAll(/\b(\d{10})\b/g)) {
-            if (!liveStamps.has(m[1])) continue;
-            bad.push(`${rel}:${no} states the block time ${m[1]} directly`);
+            if (liveStamps.has(m[1])) bad.push(`${rel}:${no} states the block time ${m[1]} directly`);
         }
         if (!CUE.test(line)) continue;
         for (const m of line.matchAll(/\b(20\d{2}-\d{2}-\d{2})\b/g)) {
-            if (!liveDates.has(m[1])) continue;
-            bad.push(`${rel}:${no} states the flag-day date ${m[1]} in prose`);
+            if (liveDates.has(m[1])) bad.push(`${rel}:${no} states the flag-day date ${m[1]} in prose`);
         }
     }
+    return bad;
+}
+
+test('a testnet arm literal is rejected from prose by stamp and cued date', () => {
+    const lines = [
+        { rel: 'stamp.md', no: 1, line: 'testnet uses 1787961600' },
+        { rel: 'date.md', no: 2, line: 'the activation is 2026-08-29' },
+        { rel: 'calendar.md', no: 3, line: 'measurement taken 2026-08-29' },
+    ];
+    const hits = liveLiteralHits(lines, new Set(['1787961600']), new Set(['2026-08-29']));
+    assert.deepStrictEqual(hits, [
+        'stamp.md:1 states the block time 1787961600 directly',
+        'date.md:2 states the flag-day date 2026-08-29 in prose',
+    ]);
+});
+
+test('the generated page is the only place a live flag-day value appears', { skip: noIndexer }, () => {
+    const gates = [...gen.collectGates(), ...gen.collectTestnetArms()];
+    const liveDates = new Set(gates.map((g) => gen.utcDate(g.time)));
+    const liveStamps = new Set(gates.map((g) => String(g.time)));
+    const bad = liveLiteralHits(proseLines(), liveStamps, liveDates);
 
     assert.deepStrictEqual(bad, [],
         'these pages carry a flag-day value that a repin would rot. Name the gate and link to '
@@ -671,6 +746,7 @@ test('no retired flag-day value survives anywhere in the prose', () => {
 });
 
 test('every retired value is genuinely retired in the current registry', { skip: noIndexer }, () => {
+    // A mainnet-retired value can remain a live testnet arm, so this set stays mainnet-only.
     const live = new Set(gen.collectGates().map((g) => String(g.time)));
     for (const stamp of RETIRED_TIMESTAMPS) {
         assert.ok(!live.has(stamp),

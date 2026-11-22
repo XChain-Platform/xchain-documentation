@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- **Node.js** v22 exactly: `src/consensus-runtime.js` pins the Node ABI to 127, so Node 24 fails `checkConsensusRuntime()` (below Node 22 tests silently skip rather than fail, producing false greens)
+- **Node.js** v22 exactly: `src/consensus-runtime.js` pins the Node ABI to 127, so Node 24 fails `checkConsensusRuntime()`. A missing native binding makes the standard VM test gates fail through `test/preflight.test.js`; only focused files or scripts that omit preflight can silently skip isolate-dependent tests.
 - **Native build tools** only where `isolated-vm` has no prebuilt binding (it ships them for linux x64/arm64 glibc and musl, darwin-arm64 and win32-x64) and npm falls back to a source build: `build-essential`, `python3`, `libnghttp2-dev`, `libicu-dev`, `libbrotli-dev`, `libc-ares-dev` (Debian/Ubuntu)
 - The VM is a library dependency of `xchain-indexer`; it is not run as a standalone process
 
@@ -30,7 +30,7 @@ npm run test:chaos            # chaos engineering (76 tests)
 npm run mutation              # mutation testing (Stryker)
 ```
 
-The VM maintains **1,250+ total tests** across unit, E2E, security, fuzz, chaos, boundary, regression, and smoke suites. Tests that require `isolated-vm` are automatically skipped in the standard suite if the native module is not available. The regression suite (`test/regression/`) uses a fail-loud check; it throws a fatal error instead of silently skipping, since regression tests must never pass vacuously.
+The VM maintains **1,250+ total tests** across unit, E2E, security, fuzz, chaos, boundary, regression, and smoke suites. The primary `npm test`, `ci`, and `test:all` scripts run `test/preflight.test.js`, which loads and executes `isolated-vm` without catching a binding failure. The core regression harness also fails loudly. A focused test file or a script that omits preflight, such as `test:performance`, can still skip isolate-dependent tests and report success; run `npm run test:preflight` alongside such selections.
 
 ## Integration with the Indexer
 
@@ -129,7 +129,7 @@ The VM classifies execution failures into six categories:
 | Stack depth exceeded | `out_of_stack: maximum call depth exceeded` | Intra-contract recursion hit the deterministic depth limit, injected by the host as `__DEPTH_LIMIT`: 512 by default, tightened to **256** once the Package 3 VM-sandbox bundle gate is active for that (network, coin). The gate is active unconditionally on testnet and regtest today, and on mainnet at/above the per-coin heights BTC 961000 / LTC 3154250 / DOGE 6319000. The metering-injected `__depth_enter`/`__depth_exit` hooks throw when this limit is reached, producing a deterministic fault instead of relying on V8's architecture-variable native stack limit. `gasUsed` is clamped to the ceiling. |
 | Runtime error | `error: <message>` | Any other JavaScript error (undefined variable, type error, etc.) |
 
-Errors thrown inside the V8 isolate lose their JavaScript class identity when crossing the isolate boundary. The VM uses a message-encoding scheme (see [ARCHITECTURE.md](architecture.md#json-bridge-protocol)) to preserve error type information.
+Errors thrown inside the V8 isolate lose their JavaScript class identity when crossing the isolate boundary. The VM uses a message-encoding scheme (see [architecture.md](architecture.md#json-bridge-protocol)) to preserve error type information.
 
 ## Atomicity Guarantees
 
@@ -156,9 +156,9 @@ After it, a **syntax-depth pre-check** (`enforceLintSyntaxDepth`) rejects source
 4. **Banned transcendental Math check**: rejects calls to `Math.sqrt`, `Math.pow`, `Math.log`, `Math.log2`, and `Math.log10` in dotted (`Math.pow`), computed-string (`Math['pow']`) and global-object-qualified (`globalThis.Math.pow`, `this.Math.pow`; see [Global-object spellings](#global-object-spellings)) forms. These five are IEEE 754 transcendentals whose results differ by up to 1 ULP across CPU architectures, producing divergent state hashes on a heterogeneous validator fleet. Under `VM_LINT_HARDENING` the ban widens to the complement of the deterministic SafeMath whitelist (`floor`, `ceil`, `round`, `abs`, `min`, `max`, `sign`, `trunc`, `PI`, `E`), plus the `**`/`**=` exponentiation operator. Use `xchain.math.*` (mathjs bignumber) instead.
 5. **Banned literal check**: rejects BigInt literals (e.g. `10n`) and RegExp literals (e.g. `/foo/`). BigInt arithmetic is unmetered native computation; catastrophic RegExp backtracking is unmetered and can burn heavy CPU for near-zero gas.
 6. **Banned async check** (consensus-gated): rejects `async` functions, `await` expressions, and `Promise` references (bare or [global-object-qualified](#global-object-spellings)) after the `VM_BANNED_ASYNC` flag-day. The CONTRACT_WRAPPER invokes exports synchronously; an async export returns a pending Promise whose post-`await` effects depend on isolated-vm's version-dependent microtask-drain timing, which is outside the consensus-runtime pin and can diverge across validators. Under `VM_LINT_HARDENING` this also rejects dynamic `import(...)` (it evaluates to a Promise).
-7. **Banned generator check** (consensus-gated, Pkg 3 sandbox): rejects `function*`, generator methods, and any `yield`; live from genesis on testnet/regtest.
+7. **Banned generator check** (consensus-gated, Pkg 3 sandbox): rejects `function*`, generator methods, and any `yield`; active from genesis on testnet/regtest and on mainnet at BTC 961000 / LTC 3154250 / DOGE 6319000.
 8. **Banned rest-pattern check** (consensus-gated, its own [`REST_PATTERN_METER`](../../protocol/flag-days.md) gate, not the Pkg 3 one): rejects a rest pattern in the four positions the metering transform cannot charge, because it charges a rest destructure by wrapping the source expression and these have none: a rest parameter in a function parameter list, a nested rest inside a destructuring pattern, a catch-clause rest, and a rest in a `for-of`/`for-in` loop head. Live from genesis on testnet/regtest, and on mainnet at/after that gate's block time; the `xchain-lint` CLI and the SDK linter enforce it today by default.
-9. **Banned WebAssembly check** (consensus-gated, Pkg 3 sandbox): rejects any reference to the global `WebAssembly`, bare or [global-object-qualified](#global-object-spellings); live from genesis on testnet/regtest.
+9. **Banned WebAssembly check** (consensus-gated, Pkg 3 sandbox): rejects any reference to the global `WebAssembly`, bare or [global-object-qualified](#global-object-spellings); active from genesis on testnet/regtest and on mainnet at BTC 961000 / LTC 3154250 / DOGE 6319000.
 10. **Banned `with` statement check** (consensus-gated, its own per-coin [`LINT_BANNED_WITH_ACTIVATION`](../../protocol/protocol-activation.md#where-the-values-live) height gate, `enforceBannedWith`, not the Pkg 3 one): rejects any `with` statement. A `with` block resolves free identifiers against an arbitrary object at runtime, which bypasses the identifier-based deploy bans and the metering rewrite; read the properties through the object instead. Unarmed on BTC, LTC and DOGE mainnet, armed on testnet at a per-chain local block height (`BTC:testnet` 156230, `LTC:testnet` 4912984, `DOGE:testnet` 67989993), and live from genesis on regtest; the `xchain-lint` CLI and the SDK linter enforce it today by default.
 
 ```mermaid
@@ -171,9 +171,9 @@ flowchart TD
     S4{"4. Banned transcendental Math check"}
     S5{"5. Banned literal check"}
     S6{"6. Banned async check (VM_BANNED_ASYNC flag-day)"}
-    S7{"7. Banned generator check (live from genesis, testnet/regtest)"}
+    S7{"7. Banned generator check (testnet/regtest from genesis; mainnet active)"}
     S8{"8. Banned rest-pattern check (REST_PATTERN_METER gate)"}
-    S9{"9. Banned WebAssembly check (live from genesis, testnet/regtest)"}
+    S9{"9. Banned WebAssembly check (testnet/regtest from genesis; mainnet active)"}
     S10{"10. Banned with statement check (LINT_BANNED_WITH_ACTIVATION gate)"}
     ACCEPT["DEPLOY accepted"]
     REJECT["DEPLOY rejected"]

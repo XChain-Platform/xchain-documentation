@@ -71,6 +71,8 @@ Context accessors (`getBlockHeight`, `getSourceAddress`, etc.), control flow (`r
 | Code size | `maxCodeSize` | 65,536 bytes | Maximum contract source code size (enforced at both deploy and execute) |
 | Block cache size | `maxBlockCacheSize` | 1,000 entries | Maximum compiled script entries cached per block |
 
+When `STATE_KEY_STORABLE_ACTIVATION` is active (testnet at the arm listed in [Flag-Day Values](../../protocol/flag-days.md), regtest from genesis, and mainnet still unarmed), `state.set()` also refuses keys longer than 256 UTF-16 units or containing a code point above U+FFFF; `state.delete()` is unchanged.
+
 ### Consensus Wall-Clock Budget
 
 Wall-clock time is the one limit in the table above that is **not** a node setting. Gas is the deterministic meter, but gas does not bound wall time: a contract can spend seconds of real time inside a single native operation while its `gasUsed` stays low, and for those shapes the wall-clock net, not the gas ceiling, is what ends the execution.
@@ -123,6 +125,8 @@ The return-value cap is measured in UTF-16 code units, with `String.length` over
 | Log entries | 100 per execution | `EmissionCollector.addLog()` silently drops |
 
 Gas is the primary execution bound. The wall-clock timeout exists only as a safety net for gas metering bugs; it should never trigger under normal operation. Its budget is a consensus quantity, not an operator setting: every validator runs a consensus execution against the same `CONSENSUS_MAX_WALL_MS`, so a node configured with a tighter `maxCpuTimeMs` cannot return a different status or a different `gasUsed` for the same execution.
+
+That guarantee covers configuration differences only, not host speed or load. The budget is fork-safe only while every builtin reachable on the network is metered, so that the gas ceiling runs out well inside the budget; an execution that finishes just under the budget on a fast host would otherwise time out on a slower one. On mainnet the string-receiver meter is not yet armed, and `String.prototype.trimLeft`, `trimRight`, `Number.parseInt` and `Number.parseFloat` can take about 15 to 29 seconds to exhaust the 1,000,000 gas ceiling, so that condition does not hold there yet.
 
 ---
 

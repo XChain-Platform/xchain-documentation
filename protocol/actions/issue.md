@@ -12,9 +12,9 @@ This action creates or updates a `TICK`.
 | `VERSION`          | String | Format Version                                                                             |
 | `TICK`             | String | Ticker name or Ticker ID                                                                   |
 | `MAX_SUPPLY`       | String | Maximum token supply                                                                       |
-| `MAX_MINT`         | String | Maximum amount of supply a `MINT` transaction can issue                                    |
+| `MAX_MINT`         | String | Maximum amount of supply a `MINT` transaction can issue; empty or `0` means no per-transaction cap |
 | `DECIMALS`         | String | Number of decimal places token should have (max: 18, default: 0)                           |
-| `DESCRIPTION`      | String | Description of token (249 chars max)                                                       |
+| `DESCRIPTION`      | String | Description of token (249 UTF-16 code units max)                                           |
 | `MINT_SUPPLY`      | String | Amount of token supply to mint in immediately (default:0)                                  |
 | `TRANSFER`         | String | Address to transfer ownership of the `TICK` to (owner can perform future actions on token) |
 | `TRANSFER_SUPPLY`  | String | Address to transfer `MINT_SUPPLY` to (mint initial supply and transfer to address)         |
@@ -38,7 +38,7 @@ This action creates or updates a `TICK`.
 | `COOLDOWN_BLOCKS`  | String | Drop-cooldown committed at bind time: blocks of friction before a later `UNBIND` takes effect. An integer in `[0, 4294967295]` written as plain digits; anything else refuses the bind as `invalid: COOLDOWN_BLOCKS (format)` |
 | `UNBIND`           | String | Only `1` drops the live binding for `ACTION_CLASS`; any other value binds                    |
 | `BRIDGE_CHAINS`    | String | Comma list of destination coins this `TICK` may bridge to via [`XBRIDGE`](./xbridge.md), or `-` for none; empty means unchanged |
-| `MIN_DEPTH`        | String | Confirmation depth the federation must honour for this `TICK`'s bridge locks, raise-only over the platform default; empty means unchanged |
+| `MIN_DEPTH`        | String | Minimum confirmation depth for this `TICK`'s bridge locks; the effective depth is the larger of the platform default and `MIN_DEPTH`. The owner may change it up or down until `LOCK_BRIDGE` freezes it. Each lock stamps the value in force at its own block; empty means unchanged |
 | `LOCK_BRIDGE`      | String | `1` permanently locks `BRIDGE_CHAINS` and `MIN_DEPTH`                                       |
 | `MEMO`             | String | An optional memo to include                                                                |
 
@@ -140,7 +140,7 @@ This example issues a TEST token with a max supply of 100, and a maximum mint of
 
 ## Notes
 - `ISSUE` `TICK` with `MAX_SUPPLY` and `MINT_SUPPLY` set to any non `0` value, to mint supply until `MAX_SUPPLY` is reached (owner can mint beyond `MAX_MINT`)
-- `ISSUE` `TICK` with `MAX_SUPPLY` and `MAX_MINT` set to any non `0` value, to enable user minting (fair minting)
+- Public `MINT` is open to any address unless `LOCK_MINT` is `1`. `MAX_SUPPLY`, `MAX_MINT`, `MINT_ADDRESS_MAX`, the mint block window, and token lists bound a fair mint but do not switch minting on; an empty or zero `MAX_MINT` means no per-transaction cap
 - `ISSUE` `TICK` with `LOCK_MAX_SUPPLY` set to `1` to permanently lock `MAX_SUPPLY`
 - `ISSUE` `TICK` with `LOCK_MAX_MINT` set to `1` to permanently lock `MAX_MINT`
 - `ISSUE` `TICK` with `LOCK_MINT` set to `1` to permanently prevent use of the `MINT` command

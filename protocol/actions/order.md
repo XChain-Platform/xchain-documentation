@@ -113,6 +113,16 @@ stateDiagram-v2
     expiring --> expired: obligations resolve
 ```
 
+### Same-Token Offers
+
+At or above `SAME_TOKEN_OFFER_REFUSAL_ACTIVATION`, a same-chain Version 0 ORDER is refused with `invalid: cannot trade a token for itself` when `GIVE_TICK` and `GET_TICK` resolve to the same token id. Resolution happens before comparison, so different spellings such as a ticker and its caret `^id` form still identify the same token. Ownership offers are included. Cross-chain orders and orders with a native-coin side are outside this rule.
+
+The match handler applies the same gate at the matching block and stops selecting older offers whose resolved token ids are equal. Below the gate, creation and matching retain their earlier behavior. The rule is active from genesis on regtest, armed at a separate height for each testnet chain, and **UNARMED** on mainnet. See [Flag-Day Values](../flag-days.md) for current thresholds and [Protocol Activation](../protocol-activation.md) for how gates are evaluated.
+
+### Cross-Chain GET_ADDRESS
+
+At or above `ORDER_GET_ADDRESS_COIN`, a Version 0 ORDER's `GET_ADDRESS` must be a valid address on the `GET_COIN` network, the same rule [`SWAP`](./swap.md) applies, and an address valid only on the posting chain is refused with `invalid: GET_ADDRESS (format)`. Below it the address is checked against the posting chain's format instead, so a cross-chain ORDER whose payout address exists only on `GET_COIN` is refused, and one paid to a posting-chain address passes. A same-chain ORDER is unaffected, since `GET_COIN` is the posting chain. A contract address is still accepted only for a token GET side. The rule is active from genesis on regtest, armed on testnet at its own instant, and **UNARMED** on mainnet. See [Flag-Day Values](../flag-days.md) for current thresholds and [Protocol Activation](../protocol-activation.md) for how gates are evaluated.
+
 ### Token Ownership Sales
 - `GIVE_OWNERSHIP=1` requires SOURCE to be the current owner of `GIVE_TICK`; `GIVE_AMOUNT` must be empty; the ownership record moves into a protocol-held escrow state. [`SWAP`](./swap.md) and [`DISPENSER`](./dispenser.md) support the same `GIVE_OWNERSHIP=1` flag and place ownership into the same escrow state; all three actions share the "only one open ownership offer at a time" constraint described below.
 - `GET_OWNERSHIP=1` requires the matcher's SOURCE to be the current owner of `GET_TICK`; `GET_AMOUNT` must be empty

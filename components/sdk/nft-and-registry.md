@@ -36,6 +36,8 @@ const params = sdk.nft.unique({
 
 The SDK's key invariant: `DECIMALS=0` and `LOCK_MAX_SUPPLY=1`. Every unique token's maximum supply is exactly 1.
 
+The current pre-minted builders `unique()`, `edition()` without `mint`, and `collectionItem()` leave `LOCK_MINT` unset. That means any address can publicly mint headroom freed by a later `DESTROY`. To close both mint paths, add `lockMint: '1'` and `lockMintSupply: '1'` to the returned params before submitting them.
+
 ---
 
 ### `sdk.nft.edition(params)` → ISSUE params
@@ -66,6 +68,7 @@ const params = sdk.nft.edition({
 ```
 
 When `mint` is present, `LOCK_MAX_SUPPLY` validates the declared cap (not minted supply), so the full supply stays publicly mintable.
+After the mint window closes, the owner should set `LOCK_MINT=1` with a lock update.
 
 ---
 

@@ -40,7 +40,7 @@ test('the page guard fails when any required rule marker is removed', () => {
         'invalid: MATCH_COUNT (archive mismatch)',
         'reassembled batch `invalid_archive`',
     ]) {
-        const changedRules = rules.replace(marker, 'removed');
+        const changedRules = rules.split(marker).join('removed');
         assert.notEqual(changedRules, rules, `fixture did not remove ${marker} from the Version 1 rules`);
         assert.throws(() => assertArchiveMatchCountRule(PAGE.replace(rules, changedRules)));
     }

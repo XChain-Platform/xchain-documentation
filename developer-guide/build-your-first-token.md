@@ -5,7 +5,7 @@
 
 This tutorial walks you through creating a token on XChain from scratch, using a local regtest environment. By the end you will have issued a token, minted supply, sent tokens to another address, and verified the result through the explorer.
 
-For environment setup, see [Regtest_Development.md](regtest-development.md).
+For environment setup, see [regtest-development.md](regtest-development.md).
 
 ---
 
@@ -124,7 +124,7 @@ const issueAction = sdk.issue({
 - `maxSupply`: the hard ceiling. Once set and locked, can never increase.
 - `maxMint`: controls each MINT call's cap. If omitted, only the token owner can mint.
 - `decimals`: cannot be changed after any supply exists. Choose carefully.
-- `description`: up to 250 characters. No pipe `|` or semicolon `;` allowed. Typically a URL to an icon or JSON metadata file.
+- `description`: up to 249 UTF-16 code units. No pipe `|` or semicolon `;` allowed. Typically a URL to an icon or JSON metadata file.
 - `mintSupply`: instantly mints tokens to your address as part of the ISSUE transaction.
 
 ```js
@@ -333,9 +333,9 @@ sequenceDiagram
 
 ## Next Steps
 
-- [Build_A_Dispenser.md](build-a-dispenser.md): sell tokens automatically
-- [Advanced_Token_Features.md](advanced-token-features.md): allow lists, mint windows, callbacks
-- [Batch_Operations.md](batch-operations.md): combine multiple actions in one transaction
+- [build-a-dispenser.md](build-a-dispenser.md): sell tokens automatically
+- [advanced-token-features.md](advanced-token-features.md): allow lists, mint windows, callbacks
+- [batch-operations.md](batch-operations.md): combine multiple actions in one transaction
 
 ---
 
