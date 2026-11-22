@@ -164,7 +164,7 @@ If the ISSUE fails with `invalid: issued by another address`, the token already 
 
 Fee-bearing actions can alternatively pay the fee in the native coin (an extra transaction output to the fee destination address) instead of XCHAIN. That path is validated against XCHAIN/USD and COIN/USD oracle prices, and a fresh regtest stack has no oracle publishing, so it fails with `no current oracle price for BTC/USD`. The error means the price is missing, not that the stack is broken.
 
-Either pay fees in XCHAIN (the default, needs no oracle), or seed prices the way the e2e harness does: `test/helpers/nativeFeeHelper.js` in `xchain-e2e-test` writes XCHAIN/USD and COIN/USD rows into the indexer's price snapshots and attaches the native fee output for you.
+On BTC regtest, either pay fees from an XCHAIN balance (the default, needing no oracle) or seed prices for native payment. LTC and DOGE require native payment, so seed prices the way the e2e harness does: `test/helpers/nativeFeeHelper.js` in `xchain-e2e-test` writes XCHAIN/USD and COIN/USD rows into the indexer's price snapshots and attaches the native fee output for you.
 
 ---
 

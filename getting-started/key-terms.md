@@ -35,7 +35,7 @@ A reference glossary of XChain terminology, organized by category.
 
 **TICK_ID**: The numeric ACTION_INDEX of the ISSUE action that created a token. An alternative way to reference a token that is stable even if the ticker is changed.
 
-**VERSION**: An integer suffix on each ACTION format that identifies which set of fields the action uses. Newer versions add fields; older versions remain valid so existing software continues to work.
+**VERSION**: An integer suffix on each ACTION format that identifies which set of fields the action uses. Each action defines which versions it accepts. Some versions become valid only after an activation height, and a version can be retired, after which indexers reject it.
 
 ---
 
