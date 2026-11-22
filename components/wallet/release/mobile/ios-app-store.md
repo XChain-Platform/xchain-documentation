@@ -161,6 +161,7 @@ The pipeline archives **twice**, and knowing which one you are looking at matter
 ⬜ The build-number fields are populated from the tag, not left empty; an empty build number uploads as one that can never be reused.  
 ⬜ Provisioning succeeds; a failure here is usually the missing Associated Domains capability from Phase 1, not a certificate problem.  
 ⬜ The exported package is named as expected. `tools/release/ios-export.sh` names it deliberately, because the artifact list matches on that name and an unexpected one hard-fails a later step.  
+⬜ The archive and exported ipa carry the embedded watch app at `App.app/Watch/WatchApp.app` with its widget extension. `tools/release/ios-archive.sh` and `tools/release/ios-export.sh` assert this through `tools/release/watch-embed.mjs` and stop when either embed is missing. `tools/release/verify-ios-artifact.mjs` checks the watch bundle identifiers `io.xchain.wallet.ios.watch` and `io.xchain.wallet.ios.watch.widgets`, checks that their version and build match the phone, and checks on a signed archive that the app group `group.io.xchain.wallet.ios.watch` is their only entitlement and that neither has `get-task-allow`.\
 ⬜ The artifact-upload step actually ran; check the pipeline's own output on a first release rather than assuming a green run means the artifact exists.  
 
 ### Phase 4: the app record and the upload
@@ -211,7 +212,7 @@ Every answer is written down. Copy, do not compose. Use the listing collateral b
 ⬜ Age-rating questionnaire answered as tabulated below; the expected outcome is 4+.  
 ⬜ **App Review contact information first, before anything else on the version page.** The first name, last name, phone number and email under App Review Information are required, and they gate the whole page rather than only themselves: with any of them empty the console refuses to save the version page at all, naming those four and discarding every other edit made in the same pass. It reads like the last box to tick on the way out and it is the first thing that has to go in. Whose details these are is a decision, not a transcription: they are a direct line Apple uses during review.  
 ⬜ Review notes and demo wallet filled in, with a seed generated fresh for this submission. Paste the notes from this page rather than editing what is already in the console, so a correction made here reaches the submission; the demo wallet has to be prepared and funded first, per Demo account below.  
-⬜ Screenshot sets uploaded for iPhone and iPad. This is the one item on this list that is **not** a console act, and doing it by hand is a mistake rather than a shortcut: upload both sets with `node tools/release/upload-listing-assets.mjs`, then confirm from Apple's own side with `verify-appstore-version.mjs`, whose `screenshots-pinned` check compares what the console holds against the pin. The tool takes the pin as its input, so it can only ever upload images that were verified to depict the build being submitted, and it sets the order explicitly afterwards. Dragging several files into the console lands them in completion order rather than capture order, which has already happened on this listing once and matters because Apple serves the first three images on install sheets.  
+⬜ Screenshot sets uploaded for iPhone, iPad and Apple Watch. This is the one item on this list that is **not** a console act, and doing it by hand is a mistake rather than a shortcut: upload all three sets with `node tools/release/upload-listing-assets.mjs`, then confirm from Apple's own side with `verify-appstore-version.mjs`, whose `screenshots-pinned` check compares what the console holds against the pin. The tool takes the pin as its input, so it can only ever upload images that were verified to depict the build being submitted, and it sets the order explicitly afterwards. Dragging several files into the console lands them in completion order rather than capture order, which has already happened on this listing once and matters because Apple serves the first three images on install sheets.\
 
 The iPad screenshot set is mandatory for a universal app; a missing iPad set blocks submission outright rather than degrading the listing. The app icon is the one listing asset compiled into the binary itself: unlike every other field here, fixing it after upload needs a new build, not a console edit, so confirm it is correct before archiving.
 
@@ -390,6 +391,8 @@ control as an unanswered question.
 
 Generated from the simulator at the submitted store build profile, covering the same four scenes on both iPhone and iPad: balances, receive with a QR code, send confirmation, and the biometric-unlock setting. iPad is mandatory since the app ships as a universal app.
 
+The Apple Watch set comes from the `XC Watch 49mm` simulator (Apple Watch Ultra, 422 x 514, no alpha) as the `APP_WATCH_ULTRA` display type. `packages/mobile/scripts/screenshots.sh` captures it with the watch paired to `XC iPhone 17` during real onboarding. The `XC Watch 41mm` shots (352 x 430) are evidence only and are never uploaded.
+
 The images come from the app's own demo mode, which uses fixed example balances and example addresses. It holds no keys and touches no network, so no screenshot can show a real recovery phrase or an address holding real funds. Demo mode is put on the main networks before the first capture, because the listing must show the app as a normal user sees it and the test networks are behind a developer setting the store build hides.
 
 **The screenshots are release collateral, not build output.** They are kept in the repository alongside the app, and each capture writes a pin recording the exact commit and version the images depict. Apple's accurate-metadata rule makes a listing that shows an older build than the binary a rejection, and dates on files cannot answer that question: a listing set shot before a round of interface changes looks no different from a current one.
@@ -463,6 +466,12 @@ Append this paragraph to the App Review notes above:
 > no fiat purchase, sale, deposit, or withdrawal path. Review the screens as part
 > of the wallet's disclosed cryptocurrency functionality; they are present in
 > the same artifact users receive.
+
+### Review notes: Apple Watch
+
+Append this paragraph to the App Review notes above:
+
+> The XChain watch app is a companion to the XChain Wallet iPhone app. It shows the wallet's balances, token details, price chart and alerts, which it receives from the iPhone. It holds no keys, signs nothing and makes no network requests of its own; every transaction is reviewed and signed on the iPhone.
 
 ### Demo account
 
