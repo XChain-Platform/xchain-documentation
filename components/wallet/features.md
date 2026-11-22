@@ -233,6 +233,16 @@ Every dApp grant is persisted in the vault's `connectedSites` collection:
 - **Browser**: optional desktop notification on indexed action completion (extension + desktop)
 - **WebSocket-driven**: hooks into the SDK's `onAction(address)` and `onCoinpayRequired()` for live updates without polling
 
+## Watch apps and iPhone Duo
+
+- **Apple Watch**: the watch app is named XChain, is embedded in the iOS app, and is set up from it.
+- **Wear OS**: the watch app is named XChain, ships beside the Android app in the same Google Play listing, and pairs with it. It ships on the Play lane only, so the direct-download APK has no watch build.
+- **Watch surfaces**: both watch apps show balances, where one tap switches every amount between token units and fiat value; token detail with artwork and a 7-day price line; wallet alerts; a receive QR; and a status screen with Hide amounts. Apple Watch also has complications. Wear OS has a Tile and complication.
+
+The watch holds no keys, signs nothing and approves nothing, so a pending request offers only Open on phone.
+
+- **iPhone Duo**: support lives in the same iOS app. Folding and unfolding keep the open screen, form values and an open confirm without a reload. With the device open on a vertical fold, Home splits into balances on one side and token detail or an open review on the other, with the divider on the fold.
+
 ## Developer mode
 
 Settings → Developer enables:
