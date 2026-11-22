@@ -61,6 +61,8 @@ The action segment identifies the user intent. The scheme is open-ended: any ver
 | :--- | :--- | :--- |
 | `send` | Pay an address (or token amount) | Open the payer's Send screen, pre-fill chain / token / amount / destination |
 | `receive` | Request a payment to an address | Open the payee's Receive screen for the named chain (rarely used in QRs: see note below) |
+| `execute` | Invoke a contract method | Open the contract EXECUTE form with the chain, contract, method, and parameters pre-filled |
+| `multisig-sign` | Sign a multisig PSBT request | Validate the request envelope and open the multisig signing session |
 
 When a wallet generates a QR to **request payment** (i.e. someone wants to be paid), it encodes `action=send`: the scanner is the party that will send the funds, and `send` represents what they're about to do. `action=receive` is reserved for use cases where the URI is asking the consumer to open their own Receive screen, for example, a kiosk QR that says "tap to display your receive address."
 
@@ -81,6 +83,7 @@ Verbs SHOULD be short, lowercase, hyphen-separated, and describe the user-visibl
 | `send` | Stable | [Per-Action Reference → send](#send) |
 | `receive` | Stable | [Per-Action Reference → receive](#receive) |
 | `execute` | Stable | [Per-Action Reference → execute](#execute) |
+| `multisig-sign` | Stable | [Per-Action Reference → multisig-sign](#multisig-sign) |
 | _(reserved for future actions)_ | None | None |
 
 ## Parameter Conventions
@@ -160,6 +163,22 @@ and size a native fee output through the indexer quote.
 | :--- | :--- |
 | `xchain:TBTC/execute?contract=500&method=fund` | Open the EXECUTE form on Bitcoin testnet targeting contract 500, method `fund` pre-selected. |
 | `xchain:RBTC/execute?contract=362&method=release&params=alice%7C42` | Regtest contract 362, `release("alice","42")` pre-filled. |
+
+### multisig-sign
+
+Open the wallet's multisig signing session for one validated request envelope. The link is `xchain://multisig-sign?req=<req>` with no coin code; `multisig-sign` is the host and the path is empty or `/`.
+
+| Param | Required | Description |
+| :--- | :--- | :--- |
+| `req` | Yes | Unpadded base64url encoding of the UTF-8 JSON for one multisig PSBT envelope. Its `kind` is `multisig-request-signature`, `multisig-request-nonce`, or `multisig-request-partial`; reply and finalized envelopes are refused. The value contains only base64url characters (`A-Z`, `a-z`, `0-9`, `_`, `-`) and is at most 1,048,576 characters. `req` is a plain parameter, not a BIP21 `req-` required-parameter prefix. |
+
+The wallet checks this form before parsing the legacy path-style `xchain://<chainId>/<tick>` form. A valid link routes to the multisig signing session with the link filled in; a malformed link is refused instead of opening any other screen.
+
+#### Examples
+
+| URI | Meaning |
+| :--- | :--- |
+| `xchain://multisig-sign?req=eyJ2IjoxLCJraW5kIjoibXVsdGlzaWctcmVxdWVzdC1zaWduYXR1cmUiLCJmaW5nZXJwcmludCI6ImU3MzJlNGRlNTlkNGJmYjY4NGNmNTgwNTkzNmM4MTZkMTYyYzk2YTcxYjc4MDE2Zjk5YjdkNWE3ZWY5Njc3M2EiLCJzZXNzaW9uUmVmIjp7InNjaGVtZSI6InAyc2gtbXVsdGlzaWciLCJ0aHJlc2hvbGQiOjIsImNvc2lnbmVyUHVia2V5cyI6WyIwMjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEiLCIwMzIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIiXSwibXNnSGFzaCI6IjMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMiLCJwc2J0SGV4IjoiIn19` | Open a multisig signing session from one `multisig-request-signature` envelope. |
 
 ## Compatibility
 
