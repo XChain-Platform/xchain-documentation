@@ -722,6 +722,18 @@ disagreement outright.
 is the only step in this runbook whose omission is invisible until the release
 *after* the one that omitted it.
 
+### Wear OS companion
+
+The Wear bundle, `xchain-wallet-wear-v*.aab`, comes out of the same root
+`bundleRelease` as the phone bundle. K9 signs it with the phone's signature,
+because the Wear Data Layer requires the same package name and signature. Upload
+it beside the phone AAB in the same Play app and listing, and never host it.
+
+Opt the listing into the Wear OS form factor. The Wear bundle's `versionCode` is
+the phone bundle's `versionCode` plus 1,000,000,000.
+Wear ships on the Play lane only. The K10-signed direct-download APK has no
+watch build.
+
 ### What this runbook does not cover
 
 - Getting the developer account itself.
@@ -769,7 +781,7 @@ XChain Wallet
 | Field | Value |
 |---|---|
 | Category | Finance |
-| Form factors | Phone only. Tablet, Wear, TV, Auto, and ChromeOS are not claimed: a tablet-optimized layout is an explicit non-goal, and claiming the tablet form factor would obligate tablet-sized screenshots the listing does not carry. The app still runs on a tablet; claiming the form factor is a separate promise from tolerating the screen. |
+| Form factors | Phone and Wear OS. Tablet, TV, Auto, and ChromeOS are not claimed: a tablet-optimized layout is an explicit non-goal, and claiming the tablet form factor would obligate tablet-sized screenshots the listing does not carry. The app still runs on a tablet; claiming the form factor is a separate promise from tolerating the screen. |
 | Contact email | `info@dankest.llc`, which is the trader email below and the address every other store listing publishes. It is the one proven to receive mail; do not swap in a different address for this field alone. |
 | Website (app listing) | `https://xchain.io`. The account-level website is `https://dankest.llc`, and the two are different fields. |
 | Privacy policy | The URL [the wallet's privacy policy](../../privacy/privacy-policy.md) publishes, with its trailing slash, taken from there rather than retyped here so there is only ever one copy of it. Phase 0 already checked it is live and serving the current text. |
@@ -961,6 +973,9 @@ follow-up:
 - Feature graphic, 1024x500.
 - At least two phone screenshots (this listing ships four: balances, receive, send confirmation, and biometric unlock).
 - Tablet screenshots are not provided, since tablet support is not claimed.
+- Wear screenshots are square, unmasked, and unframed, at least 384 x 384, and kept under `packages/mobile/store-assets/play/wear/` in xchain-wallet.
+- Wear listing short line: "Your balances and wallet alerts on your wrist. Your phone keeps your keys and signs everything."
+- Wear listing body: Use the Wear OS Tile and complication for balances and wallet alerts, show a receive QR from the watch, and hide amounts when privacy matters. The XChain Wallet Android app is required.
 - No screenshot shows a real mainnet address or real funds; every screenshot comes from the submitted store profile in demo mode on a test network.
 
 ### Content rating (IARC questionnaire)
