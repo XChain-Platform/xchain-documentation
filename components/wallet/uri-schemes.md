@@ -150,9 +150,9 @@ The paste-inbox in `MultisigSigningSession.jsx` accepts these envelopes (receive
 
 ## Sign-in challenge
 
-Sign-In with XChain challenges are not URI-encoded by the wallet; they're produced and consumed by the bridge (`@xchain-wallet/bridge-spec`). Sign-in challenges are not classified by `detectQrContent`; the bridge layer handles them independently.
+Login with XChain challenges are not URI-encoded by the wallet; they're produced and consumed by the bridge (`@xchain-wallet/bridge-spec`). Sign-in challenges are not classified by `detectQrContent`; the bridge layer handles them independently.
 
-See [Bridge; Sign-In with XChain](bridge.md#signinparams-promisesigninresult).
+See [Bridge; Login with XChain](bridge.md#signinparams-promisesigninresult).
 
 ## Detect-and-route
 
