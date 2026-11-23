@@ -52,6 +52,14 @@ A reference for terms used throughout the wallet's design and user-facing surfac
 
 **SIWX** - Sign-In with XChain. The bridge's `signIn` method signs a versioned challenge containing the app id, wallet-stamped requesting origin, address, nonce, timestamp, and expiry time. A relying service must verify the origin as well as the signature and other fields.
 
+**request link** - An [`xchain:request?v=1&req=<req>` link](../../protocol/xchain-uri-scheme.md) carrying one `{method, params}` request in a closed-key envelope with a single-use `id` and an `exp` at most 10 minutes ahead. Sites publish it as `https://wallet.xchain.io/link/?uri=<percent-encoded link>`, which opens the wallet on its existing approval page and never creates or uses a site grant.
+
+**browser return** - The default answer path, where the wallet sends the result to the site's HTTPS `return` URL in the `#xchain=` fragment, keeping it out of server logs and Referer headers.
+
+**server callback** - The opt-in answer path, where the wallet sends an unauthenticated HTTPS POST of the result to the site's `callback` URL, so only the signatures in the body prove anything. See [Security & Threat Model](security.md).
+
+**claim** - A random value the wallet mints per request and sends only when there is a browser return, in both the fragment and the POST body, so a server starts a session only for the browser that presents it.
+
 ## Storage and state
 
 **Wallet record** - The vault representation of one seed-backed or WIF-only wallet. It stores identity and origin metadata, format, encryption and KDF parameters, encrypted seed material where applicable, an optional encrypted BIP-39 passphrase, imported WIF entries, and multisig configurations.
