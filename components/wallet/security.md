@@ -56,6 +56,22 @@ The wallet calls the SDK light client through `packages/core/src/flows/verifyBal
 - **Approval bypass.** Connected sites are scoped by origin, chain, and account. `signMessage`, `signPsbt`, `signAction`, `coSign`, and `signIn` route through approval UI; `parallel` accepts up to 20 signing requests and the current extension opens a separate approval for each one. The public `signAction` bridge currently supports `SEND` and `SWEEP`. Stored `never` action policy rejects before signing, and successful prompts can save message or action policy. The explicit exception is Developer Mode localhost auto-sign: after a real approval, an opt-in 5-minute or 1-hour setting can reuse a password held only in service-worker memory. The default is off. Per-origin throttling and the user blocklist run before bridge signing.
 - **Replay across origins.** Sign-In with XChain formats a challenge containing the stamped origin, selected address, nonce, timestamp, and expiry. The formatter rejects its reserved separator in page-supplied `appId` or nonce values, and expiry is capped at one hour.
 
+### Links and link requests
+
+- **Link identity.** In link mode, the approval card says that the page was opened from a link and names, in punycode, the origin that will receive the answer. The origin comes from `return` or `callback`; any site-supplied app name is neutralized and shown only as secondary information.
+- **No stored trust from links.** A link never creates or uses a site grant, never offers **Always allow**, and never uses Developer Mode localhost auto-sign. Its chain and address checks run against the vault only, and blocking a link origin uses the user blocklist.
+- **Replay.** Each request id is single use. `exp` is at most 10 minutes ahead and is rechecked when the approval appears. The site's login nonce is single use, and login verification caps the window at 60 minutes.
+- **Flooding.** The wallet permits one pending link request, which never replaces or covers an open approval or a held Send. A wallet-wide link throttle allows 5 per 60 seconds.
+- **No navigation without a tap.** An error before the approval appears shows a notice with a button to return to the site.
+- **Parsing.** The wallet applies a length cap before decoding, requires the base64url character set, accepts only closed envelope keys, caps depth, and uses a null-prototype parse. An unknown version or method shows a **needs a newer wallet** message and opens nothing.
+- **Locked wallet.** The request waits through unlock, and the approval still asks for the password.
+- **Server callbacks.** A callback is an HTTPS POST with no cookies and no redirects followed, a 10-second timeout, and a 10 KB body. Outside Developer Mode, it is refused for loopback and private address ranges on the address resolved at connect time. Callbacks are unauthenticated, so only the signatures in the body prove anything. A broadcast txid is still shown when delivery fails.
+- **Claim.** The wallet mints a random value per request and sends it only when there is a browser return, in both the fragment and the POST body, so a server starts a session only for the browser that presents it. A login with a callback and no return completes on the POST alone behind an **another device** warning and has lower assurance because a real-time relay can phish it.
+- **Wrong browser.** A login return that reaches a browser with no pending request is offered only behind a **Continue as** bar, which guards against login fixation. Any other unsolicited result is dropped.
+- **Login forgery through signPsbt.** A PSBT shaped as a BIP-322 `to_sign` transaction is refused, so it cannot forge a taproot login.
+
+A link never unlocks, signs, sends or shares anything by itself; a request link lands on the approval page, where the only ways forward are Approve, with the password, and Reject, and the answer goes only to the site that page names.
+
 ### User-error threats
 
 - **Forgotten password.** The password cannot be recovered. The Locked screen's **Forgot password?** flow can erase the local vault and open recovery-phrase or encrypted-backup restore. Erasure is destructive and requires recovery material for every wallet that must be restored.
