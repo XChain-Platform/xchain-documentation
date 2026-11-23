@@ -63,6 +63,7 @@ The action segment identifies the user intent. The scheme is open-ended: any ver
 | `receive` | Request a payment to an address | Open the payee's Receive screen for the named chain (rarely used in QRs: see note below) |
 | `execute` | Invoke a contract method | Open the contract EXECUTE form with the chain, contract, method, and parameters pre-filled |
 | `multisig-sign` | Sign a multisig PSBT request | Validate the request envelope and open the multisig signing session |
+| `request` | Ask the wallet to approve one site request | Open the existing approval page and send the answer only to the site named by the request |
 
 When a wallet generates a QR to **request payment** (i.e. someone wants to be paid), it encodes `action=send`: the scanner is the party that will send the funds, and `send` represents what they're about to do. `action=receive` is reserved for use cases where the URI is asking the consumer to open their own Receive screen, for example, a kiosk QR that says "tap to display your receive address."
 
@@ -74,7 +75,7 @@ New actions are added by:
 2. Specifying the action's parameter set (which params are required, optional, and what they mean) in a new subsection of [Per-Action Reference](#per-action-reference).
 3. Wallets and tools implement the new action in their dispatch table. Tools that don't recognize the action SHOULD surface a "this action isn't supported by this tool" message rather than silently treating the URI as a generic send. Concretely: a wallet that does not recognize an action verb MUST NOT broadcast a transaction, open a send form, or take any value-transferring action. The correct response is to display the raw action name and an explanatory message, then stop. Wallets can also check the `v=` parameter: a version higher than the wallet's supported maximum is a signal to prompt the user to upgrade before proceeding.
 
-Verbs SHOULD be short, lowercase, hyphen-separated, and describe the user-visible action (not an implementation detail). Examples of well-formed future verbs: `execute`, `issue`, `dispense`, `dex-buy`, `sign-message`.
+Verbs SHOULD be short, lowercase, hyphen-separated, and describe the user-visible action (not an implementation detail). New wallet capabilities are methods of `request`, not new verbs.
 
 ### Action Registry
 
@@ -84,6 +85,7 @@ Verbs SHOULD be short, lowercase, hyphen-separated, and describe the user-visibl
 | `receive` | Stable | [Per-Action Reference → receive](#receive) |
 | `execute` | Stable | [Per-Action Reference → execute](#execute) |
 | `multisig-sign` | Stable | [Per-Action Reference → multisig-sign](#multisig-sign) |
+| `request` | Stable | [Per-Action Reference → request](#request) |
 | _(reserved for future actions)_ | None | None |
 
 ## Parameter Conventions
@@ -180,6 +182,35 @@ The wallet checks this form before parsing the legacy path-style `xchain://<chai
 | :--- | :--- |
 | `xchain://multisig-sign?req=eyJ2IjoxLCJraW5kIjoibXVsdGlzaWctcmVxdWVzdC1zaWduYXR1cmUiLCJmaW5nZXJwcmludCI6ImU3MzJlNGRlNTlkNGJmYjY4NGNmNTgwNTkzNmM4MTZkMTYyYzk2YTcxYjc4MDE2Zjk5YjdkNWE3ZWY5Njc3M2EiLCJzZXNzaW9uUmVmIjp7InNjaGVtZSI6InAyc2gtbXVsdGlzaWciLCJ0aHJlc2hvbGQiOjIsImNvc2lnbmVyUHVia2V5cyI6WyIwMjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEiLCIwMzIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIiXSwibXNnSGFzaCI6IjMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMiLCJwc2J0SGV4IjoiIn19` | Open a multisig signing session from one `multisig-request-signature` envelope. |
 
+### request
+
+Ask the wallet to approve one site request. The link is `xchain:request?v=1&req=<req>` with no coin code. `v` is required and MUST be exactly `1`. A wallet that does not recognize `v` or the requested method shows a "needs a newer wallet" message and opens nothing.
+
+`req` is the unpadded base64url encoding of the UTF-8 JSON request envelope. It is a plain parameter, not a BIP21 `req-` required-parameter prefix. The envelope has a closed set of keys; a wallet MUST refuse a link containing an unknown envelope key.
+
+| Key | Required | Description |
+| :--- | :--- | :--- |
+| `v` | Yes | Envelope version. MUST be the number `1`. |
+| `id` | Yes | 128 random bits identifying a single-use request. The wallet MUST refuse reuse. |
+| `method` | Yes | One of `login`, `signMessage`, `signAction`, or `signPsbt`. |
+| `params` | Yes | Parameters for the named method. |
+| `return` | Conditional | Browser return URL. At least one of `return` and `callback` is required. |
+| `callback` | Conditional | Server callback URL. At least one of `return` and `callback` is required. |
+| `state` | No | Opaque state returned with the answer so the site can correlate the request. |
+| `exp` | Yes | Expiration time, at most 10 minutes ahead. The wallet rechecks it when the approval page appears. |
+| `app` | No | Object containing `{name}` for secondary display text. It is never identity. |
+| `browser` | No | One of `chrome`, `firefox`, `edge`, `safari`, or `samsung`. It is only an iOS return hint and never identity. |
+
+At least one of `return` and `callback` is required. When both are present, they MUST share one origin, and the wallet shows that origin during approval. Both URLs MUST use HTTPS, except that Developer Mode permits HTTP for localhost. Neither URL may contain credentials or a fragment, and each is limited to 2,048 characters. A complete published HTTPS link is limited to 16,384 characters.
+
+Sites publish the request wrapped as `https://wallet.xchain.io/link/?uri=<percent-encoded link>`. The wallet also accepts the `https://xchain.io/wallet/link/` form. The answer goes back by browser return in the `#xchain=` fragment of `return` and by server callback as an HTTPS POST to `callback`. Both response paths are described in the [wallet integration guide](../developer-guide/wallet-integration.md).
+
+#### Examples
+
+| URI | Meaning |
+| :--- | :--- |
+| `xchain:request?v=1&req=eyJ2IjoxLCJpZCI6IjRmNmEzZDJjMWIwZTQ5NzhhNWM2ZDdlOGY5MDEyMzQ1IiwibWV0aG9kIjoibG9naW4iLCJwYXJhbXMiOnsic2NvcGUiOiJhY2NvdW50In0sInJldHVybiI6Imh0dHBzOi8vYXBwLmV4YW1wbGUuY29tL3dhbGxldC1yZXR1cm4iLCJzdGF0ZSI6ImU3YjRjMmE5IiwiZXhwIjoxNzk1MzIxODAwLCJhcHAiOnsibmFtZSI6IkV4YW1wbGUgQXBwIn0sImJyb3dzZXIiOiJzYWZhcmkifQ` | Request login approval for Example App and return the answer to its HTTPS browser return URL. |
+
 ## Compatibility
 
 ### BIP21 alongside
@@ -203,7 +234,7 @@ xchain://<chainId>/<tick>?amount=&to=&memo=&kind=receive
 
 Where `<chainId>` is the descriptor id (e.g. `bitcoin-mainnet`). Wallets MUST accept this form for backwards compatibility but SHOULD NOT generate new QRs in this format. The coin-code opaque form is preferred for new QRs because it's shorter, uses the platform-wide short identifier, and surfaces the action explicitly.
 
-The full descriptor-to-coin-code mapping (source: `xchain-sdk/src/protocol/networks.js`):
+The full descriptor-to-coin-code mapping:
 
 | `<chainId>` descriptor | Coin code |
 | :--- | :--- |
@@ -221,7 +252,7 @@ Wallets parsing the legacy form SHOULD translate the `<chainId>` to its coin cod
 
 ## Versioning Rules
 
-The URI scheme follows semantic versioning. The current version is **v1.0.0**.
+The URI scheme follows semantic versioning. The current version is **v1.1.0**.
 
 - **PATCH** changes: clarifications, typo fixes, additional examples. No behavioral change.
 - **MINOR** changes: new actions, new optional parameters, new coin codes. Old URIs continue to parse and route correctly.
