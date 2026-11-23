@@ -121,7 +121,7 @@ source files. Do **not** edit by hand; run
 `node tools/glossary/generate-appendix.js` to refresh from source.
 Sources:
 
-- `packages/bridge-spec/src/index.ts`: `BridgeErrorCode` union
+- `packages/connect/src/index.ts`: `BridgeErrorCode` union
 - `packages/core/src/schemas/connectedSite.js`: `SitePermissions` keys
 
 ### Bridge error codes
