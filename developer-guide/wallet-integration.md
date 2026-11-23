@@ -13,6 +13,74 @@ The same requests can reach the XChain browser extension, web wallet, desktop ap
 
 `@dankest-llc/xchain-connect` is MIT licensed. The wallet and SDK are AGPL licensed with a commercial option. Links, `window.xchain`, and callbacks need no licence.
 
+## Verify a login on the server
+
+Have the page request a nonce as soon as it loads, then pass that nonce to the wallet's login call. The server must issue each nonce from a cryptographically secure source, give it a short expiry, and consume it on the first verification attempt.
+
+```js
+const crypto = require('crypto');
+const express = require('express');
+const XChainSDK = require('@dankest-llc/xchain-sdk');
+
+const app = express();
+const sdk = new XChainSDK({ hubUrl: process.env.XCHAIN_HUB_URL });
+const loginNonces = new Map();
+
+const appId = 'music.example';
+const origin = 'https://music.example';
+const tick = 'MYTOKEN';
+const min = '1';
+const maxAgeMs = 5 * 60 * 1000;
+
+app.use(express.json());
+
+app.post('/auth/login-nonce', (req, res) => {
+  const nonce = crypto.randomBytes(32).toString('base64url');
+  loginNonces.set(nonce, Date.now() + maxAgeMs);
+  setTimeout(() => loginNonces.delete(nonce), maxAgeMs);
+  res.json({ nonce });
+});
+
+app.post('/auth/verify', async (req, res) => {
+  const { nonce, result } = req.body;
+  const expiresAt = loginNonces.get(nonce);
+  loginNonces.delete(nonce);
+  if (!expiresAt || expiresAt <= Date.now()) {
+    return res.status(400).json({ error: 'Invalid or expired nonce' });
+  }
+
+  const verified = await sdk.auth.verifyLogin(result, {
+    appId,
+    origin,
+    nonce,
+    maxAgeMs,
+  });
+  if (!verified.valid) {
+    return res.status(401).json({ error: verified.error });
+  }
+
+  const { holds, amount } = await sdk.auth.holdsAtLeast(
+    verified.address,
+    tick,
+    min,
+    { chainId: verified.chainId },
+  );
+  if (!holds) {
+    return res.status(403).json({ error: 'Required token holding not found' });
+  }
+
+  res.json({
+    address: verified.address,
+    chainId: verified.chainId,
+    amount: amount.toString(),
+  });
+});
+```
+
+`sdk.auth.verifyLogin(result, { appId, origin, nonce, maxAgeMs })` returns `{ valid, address, chainId, addresses, error }` and never throws for a bad login. It verifies every shared address in its own signature format: `legacy` for p2pkh, p2sh-p2wpkh, and p2wpkh, and `bip322-simple` for p2tr. It caps `maxAgeMs` at 60 minutes.
+
+Use `verified.address`, never an address from the request body, as the session identity. Run authorization checks only against that proven address and its verified chain. `sdk.auth.holdsAtLeast(address, tick, min, { chainId })` returns `{ holds, amount }`, where `amount` is a bignumber.
+
 ## How it opens on each device
 
 | Wallet | What happens after the click | How the result returns |
