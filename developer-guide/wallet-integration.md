@@ -9,9 +9,52 @@ A site can ask a person to prove control of one or more wallet addresses, includ
 
 The same requests can reach the XChain browser extension, web wallet, desktop app, Android app, and iOS app. The person reviews every request in the wallet and chooses whether to approve or reject it.
 
+## Install and create the browser client
+
+Install the browser package for the site and the SDK for server-side verification and transaction building:
+
+```bash
+npm install @dankest-llc/xchain-connect @dankest-llc/xchain-sdk
+```
+
+Create one client when the page loads and start its browser-return listener. `explorerUrl` is used for balance reads when the extension is not available:
+
+```js
+import { createClient } from '@dankest-llc/xchain-connect';
+
+const xchain = createClient({ explorerUrl: 'https://explorer.xchain.io' });
+xchain.start();
+```
+
+Each wallet request returns an object with `ok:true` on success or the error shape described below. Call `xchain.request(...)` directly inside the person's click handler so the browser preserves the user gesture needed to open a wallet.
+
 ## Licence
 
 `@dankest-llc/xchain-connect` is MIT licensed. The wallet and SDK are AGPL licensed with a commercial option. Links, `window.xchain`, and callbacks need no licence.
+
+## Log in from the browser
+
+Fetch a single-use nonce when the page loads. The click handler consumes it and starts the wallet request before its first asynchronous pause:
+
+```js
+import { createClient } from '@dankest-llc/xchain-connect';
+const xchain = createClient({ explorerUrl: 'https://explorer.xchain.io' });
+xchain.start();
+let loginNonce;
+fetch('/auth/login-nonce', { method: 'POST' })
+  .then((response) => response.json())
+  .then(({ nonce }) => { loginNonce = nonce; });
+document.querySelector('#login').addEventListener('click', async () => {
+  if (!loginNonce) return;
+  const nonce = loginNonce;
+  loginNonce = undefined;
+  const response = await xchain.request('login', { appId: 'music.example', nonce });
+  const result = response.result;
+  return fetch('/auth/verify', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ nonce, result }) });
+});
+```
+
+The request defaults to returning to the current page without its fragment. Pass a `return`, `callback`, or both as the third argument to `xchain.request` when the site needs an explicit destination. If both are present, they must have the same origin.
 
 ## Verify a login on the server
 
@@ -80,6 +123,109 @@ app.post('/auth/verify', async (req, res) => {
 `sdk.auth.verifyLogin(result, { appId, origin, nonce, maxAgeMs })` returns `{ valid, address, chainId, addresses, error }` and never throws for a bad login. It verifies every shared address in its own signature format: `legacy` for p2pkh, p2sh-p2wpkh, and p2wpkh, and `bip322-simple` for p2tr. It caps `maxAgeMs` at 60 minutes.
 
 Use `verified.address`, never an address from the request body, as the session identity. Run authorization checks only against that proven address and its verified chain. `sdk.auth.holdsAtLeast(address, tick, min, { chainId })` returns `{ holds, amount }`, where `amount` is a bignumber.
+
+## Read balances
+
+After login, read balances for the verified chain and address. In the browser examples below, `session.address` and `session.chainId` are the identity values returned by the server after verification. Amounts are decimal strings, so compare them with `BigInt` or a decimal library rather than a JavaScript `number`:
+
+```js
+const balances = await xchain.getBalances(session.chainId, session.address);
+renderBalances(balances);
+```
+
+The package reads the public explorer when it is using a request link and returns `{address, data:[{tick, amount}], total}`. With an extension provider, it uses the provider's granted-site balance method and returns that method's `Balance[]` result. Keep the rendering code prepared for both documented shapes.
+
+## Sign a message
+
+The wallet signs the exact message with the requested address. Taproot addresses return `bip322-simple`; other supported address types return `legacy`:
+
+```js
+const signed = await xchain.request('signMessage', {
+  chainId: session.chainId,
+  address: session.address,
+  message: 'Confirm music.example account recovery',
+});
+```
+
+Verify the signature on the server before acting on it. Do not treat a successful transport return as proof by itself.
+
+## Sign and broadcast an action
+
+`signAction` takes the SDK action vocabulary. The wallet validates the action, shows its facts and fee, verifies the built transaction against the approved intent, signs it, and broadcasts it. A successful result contains `{ok:true, txid, chainId}`.
+
+These examples show `SEND`, `ORDER`, `EXECUTE`, and `BATCH` requests:
+
+```js
+await xchain.request('signAction', {
+  chainId: session.chainId,
+  from: session.address,
+  action: 'SEND',
+  params: { tick: 'MYTOKEN', amount: '1', destination: 'tb1qq6hag67dl53wl99vzg42z8eyzfz2xlkvvlryfj' },
+});
+
+await xchain.request('signAction', {
+  chainId: session.chainId,
+  from: session.address,
+  action: 'ORDER',
+  params: { giveTick: 'MYTOKEN', giveAmount: '10', getTick: 'OTHERTOKEN', getAmount: '25' },
+});
+
+await xchain.request('signAction', {
+  chainId: session.chainId,
+  from: session.address,
+  action: 'EXECUTE',
+  params: { contractActionIndex: 12345, method: 'redeem', params: ['ticket-42'] },
+});
+
+await xchain.request('signAction', {
+  chainId: session.chainId,
+  from: session.address,
+  action: 'BATCH',
+  params: { command: 'SEND|0|MYTOKEN|1|tb1qq6hag67dl53wl99vzg42z8eyzfz2xlkvvlryfj;DESTROY|0|MYTOKEN|1' },
+});
+```
+
+Build a `BATCH` command with the SDK's batch builder in production instead of joining action strings from user input. The wallet refuses unsupported actions and dangerous transaction-building fields before showing an approval.
+
+## Sign a PSBT built on your server
+
+Build and validate a transaction on the server, using the authenticated session's proven address. Do not let the browser substitute the source address or an arbitrary PSBT:
+
+```js
+app.post('/wallet/send-psbt', requireLogin, async (req, res) => {
+  const address = req.session.verifiedAddress;
+  const built = await sdk.createAction({
+    action: 'SEND',
+    params: {
+      tick: req.body.tick,
+      amount: req.body.amount,
+      destination: req.body.destination,
+    },
+    encoder: { pubkey: address, change: address },
+  });
+  if (!built.psbt) return res.status(400).json({ error: 'Action requires managed submission' });
+  res.json({ psbtHex: built.psbt, signingPaths: [{ inputIndex: 0, address }] });
+});
+```
+
+Prepare the server request before the click, then start `signPsbt` in the click handler so the launch retains its user gesture:
+
+```js
+let psbtRequest;
+fetch('/wallet/send-psbt', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ tick: 'MYTOKEN', amount: '1', destination: 'tb1qq6hag67dl53wl99vzg42z8eyzfz2xlkvvlryfj' }),
+}).then((response) => response.json()).then((body) => { psbtRequest = body; });
+
+document.querySelector('#sign-psbt').addEventListener('click', () => {
+  if (!psbtRequest) return;
+  xchain.request('signPsbt', { chainId: session.chainId, ...psbtRequest })
+    .then(handleWalletResult);
+});
+```
+
+The wallet signs only the listed inputs and returns `{ok:true, signedPsbtHex, txHex?}`. `signPsbt` does not broadcast. Broadcast a finalized transaction from the server only after checking that its inputs, outputs, fee, and action still match the operation the site intended.
 
 ## How it opens on each device
 
