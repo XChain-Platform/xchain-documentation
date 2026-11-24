@@ -96,6 +96,47 @@ In a desktop browser with no extension, the first click shows a chooser for the 
 
 A browser return through a URL fragment is the default. A site can opt in to a server callback, or request both. If a login return reaches a browser that has no matching pending request, the package reports `solicited:false` and shows a Continue bar before delivering it. Other results without a matching pending request fail with `NO_PENDING_REQUEST`.
 
+## Receive results on your server
+
+Use the callback receiver in `@dankest-llc/xchain-sdk` with a persistent store in production. This complete in-memory example shows the store contract and issues a `cross-device` nonce for a QR login:
+
+```js
+const crypto = require('crypto');
+const express = require('express');
+const XChainSDK = require('@dankest-llc/xchain-sdk');
+const app = express(), sdk = new XChainSDK();
+const appId = 'music.example', origin = 'https://music.example';
+const nonces = new Map(), callbacks = new Map();
+const store = {
+  issueNonce(mode) {
+    const nonce = crypto.randomBytes(16).toString('base64url');
+    nonces.set(nonce, { mode, expiresAt: Date.now() + 10 * 60 * 1000 });
+    return nonce;
+  },
+  takeNonce(nonce) {
+    const record = nonces.get(nonce);
+    nonces.delete(nonce);
+    return record && record.expiresAt > Date.now() ? { mode: record.mode } : null;
+  },
+  put(id, record) { callbacks.set(id, record); },
+  get(id) { return callbacks.get(id); },
+};
+app.use(express.json({ limit: '10kb' }));
+app.post('/auth/qr-login-nonce', (req, res) => {
+  const nonce = store.issueNonce('cross-device');
+  res.json({ nonce });
+});
+app.post('/auth/callback', async (req, res) => {
+  const received = await sdk.auth.receiveCallback(req.body, { store, appId, origin });
+  if (!received.accepted) return res.status(400).json(received);
+  res.status(200).json(received);
+});
+```
+
+The callback POST is unauthenticated, so only signatures prove anything about its contents. `sdk.auth.receiveCallback` verifies a login before storing it and consumes the nonce on the first attempt. A login's `status` is `approved` only when the callback carries no `claim` and its nonce was issued as `cross-device`; otherwise it is `approved-unclaimed`. Start a session only for the browser that presents the matching `claim` or the full signed result.
+
+A QR or callback-only login is lower assurance because a real-time relay can phish it. Tell people they are signing in on another device and prefer a return to the browser that began the login.
+
 ## Errors
 
 An unsuccessful request has the shape `{ok:false, error, message?}`. The `error` value is one of these bridge error codes:
