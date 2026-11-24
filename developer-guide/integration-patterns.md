@@ -450,60 +450,60 @@ Contract state is public, and `lastAccess` is overwritten on each successful cal
 
 ### End-to-End Example: Token-Gated Music Platform
 
-Putting it all together; a music platform where listeners must hold an artist's token to stream songs:
+Putting it all together, this music platform verifies one wallet login and uses only the proven address for album-token checks:
 
 ```js
 const express = require('express');
 const crypto = require('crypto');
-const bitcoinMessage = require('bitcoinjs-message');
-const { bignumber, largerEq } = require('mathjs');
 const XChainSDK = require('@dankest-llc/xchain-sdk');
 
 const app = express();
 app.use(express.json());
 
 const sdk = new XChainSDK({ hubUrl: process.env.XCHAIN_HUB_URL });
+const APP_ID = 'music.example';
+const ORIGIN = 'https://music.example';
+const nonces = new Map();
 const sessions = new Map();
-const challenges = new Map();
 
 // --- Auth endpoints ---
 
-app.post('/auth/challenge', (req, res) => {
-  const { address } = req.body;
-  const nonce = crypto.randomBytes(32).toString('hex');
-  const message = `Stream access\nAddress: ${address}\nNonce: ${nonce}\nTime: ${Date.now()}`;
-  challenges.set(nonce, { address, message, timestamp: Date.now() });
-  setTimeout(() => challenges.delete(nonce), 5 * 60 * 1000);
-  res.json({ message, nonce });
+app.post('/auth/login-nonce', (req, res) => {
+  const nonce = crypto.randomBytes(32).toString('base64url');
+  const expiresAt = Date.now() + 5 * 60 * 1000;
+  nonces.set(nonce, expiresAt);
+  setTimeout(() => nonces.delete(nonce), 5 * 60 * 1000);
+  res.json({ nonce });
 });
 
 app.post('/auth/verify', async (req, res) => {
-  const { nonce, signature } = req.body;
-  const challenge = challenges.get(nonce);
-  if (!challenge) return res.status(400).json({ error: 'Invalid or expired challenge' });
-  challenges.delete(nonce);
+  const { nonce, result } = req.body;
+  const expiresAt = nonces.get(nonce);
+  nonces.delete(nonce);
+  if (!expiresAt || expiresAt < Date.now()) {
+    return res.status(400).json({ error: 'Invalid or expired nonce' });
+  }
 
-  try {
-    if (!bitcoinMessage.verify(challenge.message, challenge.address, signature)) {
-      return res.status(401).json({ error: 'Invalid signature' });
-    }
-  } catch {
-    return res.status(401).json({ error: 'Verification failed' });
+  const verified = await sdk.auth.verifyLogin(result, {
+    appId: APP_ID,
+    origin: ORIGIN,
+    nonce,
+    maxAgeMs: 5 * 60 * 1000,
+  });
+  if (!verified.valid) {
+    return res.status(401).json({ error: verified.error });
   }
 
   const token = crypto.randomBytes(32).toString('hex');
-  sessions.set(token, { address: challenge.address, lastCheck: Date.now() });
-  res.json({ sessionToken: token });
+  sessions.set(token, {
+    address: verified.address,
+    chainId: verified.chainId,
+    holdingChecks: new Map(),
+  });
+  res.json({ sessionToken: token, address: verified.address });
 });
 
 // --- Gated content ---
-
-async function checkBalance(address, tick, minimum) {
-  const balances = await sdk.explorer.getBalances(address);
-  const entry = balances.find(b => b.tick === tick);
-  if (!entry) return false;
-  return largerEq(bignumber(entry.amount), bignumber(minimum));
-}
 
 // Each album maps to a token tick
 const ALBUM_TOKENS = {
@@ -519,14 +519,20 @@ app.get('/stream/:albumId/:trackNum', async (req, res) => {
   const album = ALBUM_TOKENS[req.params.albumId];
   if (!album) return res.status(404).json({ error: 'Album not found' });
 
-  // Re-check balance every 60 seconds
-  if (Date.now() - session.lastCheck > 60000) {
-    const holds = await checkBalance(session.address, album.tick, album.minimum);
+  // Re-check this album's holding every 60 seconds.
+  const lastCheck = session.holdingChecks.get(req.params.albumId) || 0;
+  if (Date.now() - lastCheck > 60000) {
+    const { holds } = await sdk.auth.holdsAtLeast(
+      session.address,
+      album.tick,
+      album.minimum,
+      { chainId: session.chainId },
+    );
     if (!holds) {
       sessions.delete(token);
       return res.status(403).json({ error: `Must hold ${album.tick} to stream` });
     }
-    session.lastCheck = Date.now();
+    session.holdingChecks.set(req.params.albumId, Date.now());
   }
 
   // Serve a time-limited signed URL to the audio file
@@ -537,13 +543,39 @@ app.get('/stream/:albumId/:trackNum', async (req, res) => {
 app.listen(3000);
 ```
 
+Fetch the nonce when the page loads, then call `login` directly from the user's click. The site sends the complete wallet result and the same nonce to the server:
+
+```js
+let loginNonce;
+
+fetch('/auth/login-nonce', { method: 'POST' })
+  .then(response => response.json())
+  .then(({ nonce }) => { loginNonce = nonce; });
+
+document.querySelector('#login').addEventListener('click', async () => {
+  if (!loginNonce) return;
+  const nonce = loginNonce;
+  loginNonce = undefined;
+  const result = await window.xchain.login({ appId: 'music.example', nonce });
+  const response = await fetch('/auth/verify', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ nonce, result }),
+  });
+  const session = await response.json();
+  // Keep session.sessionToken in the site's normal secure session storage.
+});
+```
+
 ### Security Considerations
 
-- **Always verify wallet ownership.** A balance check without signature verification is trivially bypassed, anyone can look up a whale's address and claim it.
+- **Verify the complete login on the server.** Consume a single-use nonce and call `sdk.auth.verifyLogin` with the expected app id and origin. Never accept the address or chain directly from the request body.
+- **Check holdings only for a proven address.** Pass `verified.address` and `verified.chainId` to `sdk.auth.holdsAtLeast`; a public balance lookup does not prove control of an address.
+- **Support every wallet address format.** `verifyLogin` checks both `legacy` and `bip322-simple` signatures, including taproot addresses, and verifies each address shared by the wallet.
 - **Use short-lived signed URLs for content delivery.** Don't serve raw file paths. Generate URLs that expire (e.g., via S3 presigned URLs or a CDN token) so that a shared link stops working.
 - **Re-check balances periodically.** A user might transfer their tokens away after logging in. The `recheckIntervalMs` parameter controls this tradeoff.
 - **Consider transfer-lock tokens.** If your use case requires that holders cannot sell or transfer the token (e.g., membership credentials), set `TRANSFER_LOCK` on the token at issuance. This eliminates the "transfer tokens away after the check" problem entirely.
-- **Rate-limit the challenge endpoint.** Without rate limiting, an attacker can generate unlimited challenge strings.
+- **Rate-limit the nonce endpoint.** Store nonces in a shared expiring store in production, accept each nonce once, and rate-limit issuance.
 - **Use HTTPS.** Signatures and session tokens must travel over encrypted connections.
 
 ---
