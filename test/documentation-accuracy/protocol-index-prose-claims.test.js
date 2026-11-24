@@ -21,6 +21,7 @@ const test = require('node:test');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const README = fs.readFileSync(path.join(ROOT, 'protocol/README.md'), 'utf8');
+const JSON_README = fs.readFileSync(path.join(ROOT, 'protocol/json/README.md'), 'utf8');
 const MANIFEST_PAGE = fs.readFileSync(path.join(ROOT, 'protocol/action-manifest.md'), 'utf8');
 const TIS_PAGE = fs.readFileSync(path.join(ROOT, 'protocol/token-information-standard.md'), 'utf8');
 const TIS_SCHEMA = require(path.join(ROOT,
@@ -34,10 +35,11 @@ function tableRow(markdown, label) {
     return rows[0];
 }
 
-function assertJsonSchemaRow(markdown) {
+function assertJsonSchemaRow(markdown, jsonReadme = JSON_README) {
     const row = tableRow(markdown, 'JSON Schemas');
     assert.match(row, /Token Information Standard/);
     assert.match(row, /schemas and worked examples/i);
+    assert.match(jsonReadme, /\[Wallet request reference\]\(\.\/wallet-requests\.json\)/);
     assert.doesNotMatch(row, /ACTION payloads|API responses/);
 }
 
@@ -81,8 +83,8 @@ function assertPerChainArmed(name, expected) {
 test('the JSON Schemas row describes the files in protocol/json', () => {
     const files = fs.readdirSync(path.join(ROOT, 'protocol/json')).filter((name) => name.endsWith('.json'));
     assert.ok(files.length > 0, 'protocol/json has no JSON files');
-    assert.ok(files.every((name) => name.startsWith('token-information-standard-')),
-        `protocol/json has a non-Token Information Standard artifact: ${files.join(', ')}`);
+    assert.deepEqual(files.filter((name) => !name.startsWith('token-information-standard-')),
+        ['wallet-requests.json']);
     assertJsonSchemaRow(README);
 });
 
@@ -113,9 +115,14 @@ test('per-chain checkpoint and archive heights are described as armed', () => {
 });
 
 test('falsification: stale index and cross-reference prose is rejected', () => {
-    const staleIndex = README.replace(/Machine-readable JSON Schemas[^|]+/, 'Schemas for ACTION payloads and API responses ');
+    const staleIndex = README.replace(/Machine-readable JSON Schemas[^|]+/,
+        'Schemas for ACTION payloads and API responses ');
+    const missingWalletReference = JSON_README.replace(/\[Wallet request reference\]\(\.\/wallet-requests\.json\)/,
+        'wallet request data');
     const staleManifest = MANIFEST_PAGE.replace('IDENTITY assertion above', 'IDENTITY assertion below');
+    assert.notEqual(staleIndex, README, 'JSON Schemas row moved; repoint this falsification');
     assert.throws(() => assertJsonSchemaRow(staleIndex));
+    assert.throws(() => assertJsonSchemaRow(README, missingWalletReference));
     assert.throws(() => assertIdentityDirection(staleManifest));
 });
 

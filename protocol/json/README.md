@@ -5,6 +5,10 @@
 
 Machine-readable JSON artifacts for the XChain protocol.
 
+## Wallet Requests
+
+- [Wallet request reference](./wallet-requests.json): protocol versions, request link grammar and caps, method parameter and result schemas, examples, and error codes for site-to-wallet requests.
+
 ## Token Information Standard (v1.1.2, current)
 
 The off-chain token metadata document referenced by a token's on-chain `DESCRIPTION` URI.
