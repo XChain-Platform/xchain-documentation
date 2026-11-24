@@ -252,7 +252,7 @@ Wallets parsing the legacy form SHOULD translate the `<chainId>` to its coin cod
 
 ## Versioning Rules
 
-The URI scheme follows semantic versioning. The current version is **v1.1.0**, which adds the `request` action while preserving every v1.0.0 URI form.
+The URI scheme follows semantic versioning. The current version is **v1.1.0**.
 
 - **PATCH** changes: clarifications, typo fixes, additional examples. No behavioral change.
 - **MINOR** changes: new actions, new optional parameters, new coin codes. Old URIs continue to parse and route correctly.

@@ -8,7 +8,7 @@ A reference for terms used throughout the wallet's design and user-facing surfac
 
 ## Wallet architecture
 
-**core** - The shared `@xchain-wallet/core` package. It contains schemas, validators, flows, storage, software and remote signer support, shared routes and components, i18n, and build metadata. The browser bridge contract and cross-device client live in the separate MIT-licensed `@dankest-llc/xchain-connect` package, while Ledger and Trezor implementations live in their own signer packages. See [Wallet Architecture](architecture.md).
+**core** - The shared `@xchain-wallet/core` package. It contains schemas, validators, flows, storage, software and remote signer support, shared routes and components, i18n, and build metadata. The bridge contract is a separate `@xchain-wallet/bridge-spec` package, while Ledger and Trezor implementations live in their own signer packages. See [Wallet Architecture](architecture.md).
 
 **shell** - One of the wallet's end-user packages: a Chromium MV3 extension, a browser SPA, an Electron desktop app for Windows, macOS, and Linux, or a Capacitor wrapper around the web build. The Windows, macOS and Linux desktop builds are published as direct downloads. Android is shipped; the iOS package exists but its App Store release is pending. Each shell wires shared flows to its storage, messaging, and signer boundaries.
 
@@ -38,7 +38,7 @@ A reference for terms used throughout the wallet's design and user-facing surfac
 
 ## dApp bridge
 
-**bridge** - The `window.xchain` provider injected into web pages by the Chromium extension's content script, plus the shared request vocabulary used by `@dankest-llc/xchain-connect` on every wallet transport. Its public surface includes `login()`, message, action, and PSBT signing, and balances. The extension provider also exposes connection, read, co-signing, batching, and event methods. The full surface is documented in [dApp Bridge](bridge.md).
+**bridge** - The `window.xchain` provider injected into web pages by the Chromium extension's content script. Its public surface includes connection and read methods, `signMessage()`, `signAction()`, `signPsbt()`, `coSign()`, `signIn()`, `parallel()`, and event subscriptions. The desktop and web shells use separate internal messaging objects rather than attaching this dApp provider themselves. The full surface is documented in [dApp Bridge](bridge.md).
 
 **ConnectedSite** - A vault record created when the bridge grants a connect request, either through user approval or the Developer Mode localhost auto-approve path. It stores the origin, app identity, timestamps, chain and account scopes, message-signing permission, per-action permissions, session history, and whether the grant was auto-approved.
 
@@ -46,11 +46,11 @@ A reference for terms used throughout the wallet's design and user-facing surfac
 
 **bridge error code** - A stable string identifier returned in a failure response. `USER_REJECTED`, `NOT_CONNECTED`, `WALLET_LOCKED`, `BLOCKED_BY_USER`, `THROTTLED`, and so on. The full table lives in [dApp Bridge](bridge.md).
 
-**throttle** - A per-origin sliding-window limiter applied to `signMessage`, `signAction`, `signPsbt`, `coSign`, `parallel`, and `login` or its deprecated `signIn` alias. The default allowance is five signing requests per 60 seconds, and settings may override both values. A rejected call returns `THROTTLED` with `retryAfterMs`, `burst`, and `windowMs` hints. Connect, disconnect, and read methods are not throttled. Request links use a separate wallet-wide limit of five per 60 seconds.
+**throttle** - A per-origin sliding-window limiter applied to `signMessage`, `signAction`, `signPsbt`, `coSign`, `parallel`, and `signIn`. The default allowance is five signing requests per 60 seconds, and settings may override both values. A rejected call returns `THROTTLED` with `retryAfterMs`, `burst`, and `windowMs` hints. Connect, disconnect, and read methods are not throttled.
 
 **blocklist** - A user-managed list of exact origins or `*.example.com` wildcard patterns. Matching connect and signing requests are rejected with `BLOCKED_BY_USER`. Adding an entry also evicts matching ConnectedSite records so existing grants cannot keep signing.
 
-**Login with XChain** - The bridge's `login` method signs a versioned challenge containing the app id, wallet-stamped or answer-target origin, address, nonce, timestamp, and expiry time. Each shared address signs its own challenge. A relying service must verify the origin, nonce, expiry, and every signature. `signIn` remains as a deprecated API alias, and the challenge prefix remains `XChain Sign-In v2` for wire compatibility.
+**SIWX** - Sign-In with XChain. The bridge's `signIn` method signs a versioned challenge containing the app id, wallet-stamped requesting origin, address, nonce, timestamp, and expiry time. A relying service must verify the origin as well as the signature and other fields.
 
 **request link** - An [`xchain:request?v=1&req=<req>` link](../../protocol/xchain-uri-scheme.md) carrying one `{method, params}` request in a closed-key envelope with a single-use `id` and an `exp` at most 10 minutes ahead. Sites publish it as `https://wallet.xchain.io/link/?uri=<percent-encoded link>`, which opens the wallet on its existing approval page and never creates or uses a site grant.
 
@@ -126,8 +126,8 @@ Sources:
 
 ### Bridge error codes
 
-Reasons a bridge call (connect / login / signMessage / signAction /
-signPsbt) can fail. dApps switch on `result.error` to choose the
+Reasons a bridge call (connect / signMessage / signAction / signPsbt /
+signIn) can fail. dApps switch on `result.error` to choose the
 right user-facing copy.
 
 - `USER_REJECTED`
@@ -146,10 +146,6 @@ right user-facing copy.
 - `BRIDGE_VERSION_MISMATCH`
 - `BALANCES_UNAVAILABLE`
 - `INTERNAL_ERROR`
-- `REQUEST_EXPIRED`
-- `REQUEST_TOO_LARGE`
-- `RESULT_TOO_LARGE`
-- `NO_PENDING_REQUEST`
 
 ### ConnectedSite permission keys
 
