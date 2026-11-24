@@ -415,6 +415,95 @@ import { BRIDGE_SPEC_VERSION, BRIDGE_SUPPORTED_VERSIONS } from '@xchain-wallet/b
 
 The injected provider also reports `version: "0.1.0"`, while wallet workspace packages use the wallet release version. `connect.requiredBridgeVersion` accepts exact versions, caret and tilde ranges, comparison ranges, comma or whitespace conjunctions, and `||` alternatives. An unparseable or unmatched range fails closed with `BRIDGE_VERSION_MISMATCH`.
 
+## Wallet request protocol 0.2.0
+
+New integrations use the MIT-licensed `@dankest-llc/xchain-connect` browser package. It calls the typed `window.xchain` provider when the Chromium extension exposes bridge protocol 0.2.0 or later. On every other supported shell, it packs the same `{method, params}` request into an `xchain:request` link and opens the wallet's existing approval page.
+
+The protocol constants are `BRIDGE_SPEC_VERSION` with value `"0.2.0"` and `BRIDGE_SUPPORTED_VERSIONS` with value `["0.1.0", "0.2.0"]`.
+
+The package adds transport selection, request-link encoding, pending-request storage, browser-return handling, and public explorer balance reads. The extension provider keeps its connection, permission, co-signing, batching, and event methods for callers with a live extension channel. Links, `window.xchain`, and callbacks need no license; the wallet and SDK remain AGPL-licensed with a commercial option.
+
+Create one client when the page loads, fetch a login nonce at the same time, and call the wallet method synchronously from the user's click so browsers preserve the launch gesture:
+
+```ts
+import { createClient } from '@dankest-llc/xchain-connect';
+
+const xchain = createClient({
+    app: { name: 'Example App' },
+    return: 'https://app.example.com/wallet-return',
+});
+
+loginButton.addEventListener('click', () => {
+    xchain.login({
+        appId: 'app.example.com',
+        nonce: loginNonce,
+        chainId: 'bitcoin-mainnet',
+    }).then(handleWalletResult);
+});
+```
+
+The client defaults `return` to the current page URL without its fragment. A request can instead name an HTTPS `callback`, or name both. When both are present, they must share one origin. HTTP is permitted only for localhost when the wallet is in Developer Mode.
+
+Protocol 0.2.0 exposes the following shared request methods:
+
+| Method | Purpose |
+|---|---|
+| `login` | Choose up to five addresses and sign a separate Login with XChain challenge for each one. `signIn` remains a deprecated alias, and the `XChain Sign-In v2` challenge prefix remains wire-compatible. |
+| `signMessage` | Sign the exact message. P2TR returns a `bip322-simple` signature; other supported address types return `legacy`. |
+| `signAction` | Validate and approve an SDK-shaped `{chainId, from, action, params}` request, verify the built transaction against the approved intent, sign it, and broadcast it. |
+| `signPsbt` | Sign the listed input paths and return the signed PSBT without broadcasting it. A PSBT shaped as a BIP-322 `to_sign` transaction is refused. |
+| `getBalances` | Read normalized public explorer balances through the package. The provider's granted-site balance method remains available through `window.xchain`. |
+
+`login` returns the selected addresses in `addresses` and repeats the first selection in the top-level `address`, `chainId`, `challenge`, `signature`, and `signatureFormat` fields. A relying server uses `sdk.auth.verifyLogin` to verify every address, the app id, origin, single-use nonce, timestamp, and expiry. The verifier recognizes `legacy` and `bip322-simple` signatures and returns a validation result instead of throwing for an invalid login.
+
+`signAction` accepts only the wallet's evidence-backed enabled actions. It refuses action-controlled transaction fields such as `legs`, `prebuiltPsbt`, `utxos`, `customOutputs`, and `encoding` before approval. It also refuses per-asset sweeps, ineligible chain-gated actions, pre-launch mainnet actions, and actions that require multiple transactions. Single two-phase P2SH, P2WSH, and Taproot pairs remain eligible because their carrier scripts and reveals are checked against the approved intent.
+
+### Request link envelope and answers
+
+The link grammar is:
+
+```text
+xchain:request?v=1&req=<base64url(UTF-8 JSON envelope)>
+```
+
+The link has no coin code. `v` is required and must be `1`. The request envelope accepts only these keys:
+
+```ts
+{
+    v: 1,
+    id: string,
+    method: 'login' | 'signMessage' | 'signAction' | 'signPsbt',
+    params: object,
+    return?: string,
+    callback?: string,
+    state?: string,
+    exp: number,
+    app?: { name: string },
+    browser?: 'chrome' | 'firefox' | 'edge' | 'safari' | 'samsung',
+}
+```
+
+`id` contains 128 random bits and is single use. `exp` is at most 10 minutes ahead and is checked again when the approval appears. At least one of `return` and `callback` is required. Each target is at most 2,048 characters, uses HTTPS except for Developer Mode localhost, and contains no credentials or fragment. The complete published HTTPS link is at most 16,384 characters. An unknown envelope key, version, or method is refused; an unknown version or method shows a **needs a newer wallet** message and opens nothing.
+
+Sites publish the request as `https://wallet.xchain.io/link/?uri=<percent-encoded link>`. The wallet also accepts `https://xchain.io/wallet/link/`. The browser package keeps the pending request id, method, nonce, and state in local storage and removes a returned `#xchain=` result from the address bar after reading it.
+
+A browser return sends `<return>#xchain=<base64url(result)>`, which keeps the answer out of request logs and Referer headers. A server callback sends the result as an unauthenticated HTTPS POST, so only its signatures prove anything. When both paths are used, the wallet includes a random `claim` in the fragment and POST body; a server starts a session only for the browser that presents the matching claim. A callback-only login has no claim, completes on the POST alone behind an **another device** warning, and has lower assurance because a real-time relay can phish it.
+
+The package accepts an unsolicited successful login only behind a **Continue as** bar and marks it `solicited: false`. Any other result without a matching pending request returns `NO_PENDING_REQUEST`.
+
+A link never unlocks, signs, sends or shares anything by itself; a request link lands on the approval page, where the only ways forward are Approve, with the password, and Reject, and the answer goes only to the site that page names.
+
+### Protocol 0.2.0 error additions
+
+Protocol 0.2.0 retains the existing result shape `{ok:false, error, message?}` and adds these stable codes:
+
+| Code | Meaning |
+|---|---|
+| `REQUEST_EXPIRED` | The request envelope expired before approval completed. |
+| `REQUEST_TOO_LARGE` | The browser package or wallet refused a request that exceeded the published link cap. |
+| `RESULT_TOO_LARGE` | The wallet could not deliver a result within the return or callback body cap. |
+| `NO_PENDING_REQUEST` | The browser package received a non-login result with no matching pending request. |
+
 ## Test dApp
 
 `@xchain-wallet/test-dapp` is a private workspace reference package, not a separately served browser application. Its `src/example.ts` demonstrates discovery, connect, reads, SIWX validation, message signing, `SEND`, unsupported-action handling, and disconnect against `src/mock-provider.ts`. It does not currently demonstrate `signPsbt`, `coSign`, or `parallel`, so it is not a complete executable reference for the whole provider surface.

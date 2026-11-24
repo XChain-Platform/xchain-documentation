@@ -35,6 +35,30 @@ Per-shell registration:
 | Desktop | `xchain:` as default handler; `bitcoin:`, `litecoin:`, `dogecoin:` declared, default only after an opt-in | `packages/desktop/electron-builder.config.cjs` declares all four schemes to the OS at install time, and `packages/desktop/main/protocol.js` calls `app.setAsDefaultProtocolClient('xchain')` on every launch. The app makes itself the default handler for the coin schemes only when the user opts in, which is off by default and has no settings toggle yet. The OS may still route a coin URI to the app where no other app is the default handler, and the app then parses it as BIP21 and opens it like any other deep link. |
 | Mobile | `xchain:`, `bitcoin:`, `litecoin:`, `dogecoin:` | Android intent filters (`AndroidManifest.xml`, beside an https App Link for `xchain.io/wallet/link/`) and iOS `CFBundleURLSchemes` (`Info.plist`). |
 
+## XChain URI forms
+
+The wallet recognizes these forms in a fixed order. A malformed special form is refused instead of falling through to another parser.
+
+| Form | Parsed result | Rules |
+|---|---|---|
+| `xchain:request?v=1&req=<req>` | `request`, or `request-unsupported` for an unknown version or method | Checked before the general parser. `req` is a closed-key request envelope, not a `req-` parameter. See [Site request links](#site-request-links). |
+| `xchain://multisig-sign?req=<req>` | Multisig signing request | Checked before legacy path-style links. Only request envelopes for supported signing rounds are accepted. |
+| `xchain:<COINCODE>/send?...` | `send` | The coin code selects the chain. `to`, when present, must be valid for that chain. Recognized prefill fields are `to`, `amount`, `tick`, `memo`, `feePriority`, `label`, and `message`. |
+| `xchain:<COINCODE>/receive?...` | `receive` | Uses the same safe prefill fields as `send`, but opens the wallet's Receive screen. The action is not inferred from who created the link. |
+| `xchain:<COINCODE>/execute?...` | `execute` | Requires a numeric `contract`. It accepts `method` and pipe-delimited `params`. Send-shaped fields do not enter the EXECUTE prefill, and a `gas` value is ignored. |
+| `xchain:send?...`, `xchain:receive?...`, `xchain:execute?...` | The named action without a selected chain | The same action rules apply. A destination must be valid on a supported network. |
+| `xchain:<address>?...` | `send` | BIP21-style XChain form. The target must be a valid supported-chain address. `chain` can narrow the chain. |
+| `xchain://<chainId>/<tick>?...` | `send`, or `receive` when `kind=receive` | Legacy form kept for existing links. New producers use a coin-code form. |
+
+`send`, `receive`, and `execute` are the complete form-prefill verb set. Unknown verbs and any unimplemented `req-*` parameter produce `unknown`; they never default to Send. Query parameters are percent-decoded, duplicates are refused, and free-text fields are neutralized before they reach form state. The normative grammar and parameter tables are in the [XChain URI Scheme](../../protocol/xchain-uri-scheme.md).
+
+The wallet also unwraps one level of either published HTTPS envelope:
+
+- `https://wallet.xchain.io/link/?uri=<percent-encoded xchain URI>`
+- `https://xchain.io/wallet/link/?uri=<percent-encoded xchain URI>`
+
+The `uri` value must itself begin with `xchain:`. Another HTTPS URL, another wrapper, or a different scheme is refused.
+
 ## BIP21
 
 `core/src/uri/bip21.js` parses and serializes BIP21 URIs:
@@ -148,9 +172,17 @@ The paste-inbox in `MultisigSigningSession.jsx` accepts these envelopes (receive
 
 `core/src/uri/multisigSessionLink.js` builds and parses `xchain://multisig-sign?req=<req>` with no coin code and an empty or `/` path. The plain `req` parameter, not a BIP21 `req-` prefix, is at most 1,048,576 characters and contains only the unpadded base64url encoding of the UTF-8 JSON for one envelope whose `kind` is `multisig-request-signature`, `multisig-request-nonce`, or `multisig-request-partial`; reply and finalized envelopes are refused. The wallet checks this form before legacy path-style XChain links, opens the multisig signing session with a valid link filled in, and refuses a malformed link instead of opening another screen; see the [protocol reference](../../protocol/xchain-uri-scheme.md#multisig-sign).
 
+## Site request links
+
+`xchain:request?v=1&req=<req>` carries one `login`, `signMessage`, `signAction`, or `signPsbt` request. It has no coin code. The wallet checks it before coin-code, bare-action, BIP21-style, and legacy forms.
+
+`v` is required and exactly `1`. `req` contains the unpadded base64url encoding of a UTF-8 JSON envelope. The envelope has closed keys, a single-use 128-bit `id`, an expiry no more than 10 minutes ahead, request `method` and `params`, and at least one HTTPS `return` or `callback` target. The whole published HTTPS link is limited to 16,384 characters. See the [request protocol reference](../../protocol/xchain-uri-scheme.md#request) for the complete envelope.
+
+A valid request opens the existing approval page. An unknown version or method opens only a **needs a newer wallet** message. A malformed, expired, or oversized request is refused. The answer returns through the `#xchain=` fragment, an HTTPS callback POST, or both, as described in the [dApp bridge reference](bridge.md#request-link-envelope-and-answers).
+
 ## Sign-in challenge
 
-Login with XChain challenges are not URI-encoded by the wallet; they're produced and consumed by the bridge (`@xchain-wallet/bridge-spec`). Sign-in challenges are not classified by `detectQrContent`; the bridge layer handles them independently.
+Login with XChain challenges are not URI-encoded by the wallet; they're produced and consumed by the bridge (`@dankest-llc/xchain-connect`). Sign-in challenges are not classified by `detectQrContent`; the bridge layer handles them independently.
 
 See [Bridge; Login with XChain](bridge.md#signinparams-promisesigninresult).
 

@@ -9,7 +9,7 @@ The scheme is the XChain equivalent of [BIP21](https://github.com/bitcoin/bips/b
 
 ## JSON Specifications
 
-### v1.0.0
+### v1.1.0
 
 There is no JSON schema for this URI format; URI parameters are flat key=value pairs and are documented per action in the tables below. A machine-readable parameter manifest may be published under [`./json/`](./json/) in a future revision once the action surface stabilizes.
 

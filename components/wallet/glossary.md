@@ -10,6 +10,8 @@ A reference for terms used throughout the wallet's design and user-facing surfac
 
 **core** - The shared `@xchain-wallet/core` package. It contains schemas, validators, flows, storage, software and remote signer support, shared routes and components, i18n, and build metadata. The bridge contract is a separate `@xchain-wallet/bridge-spec` package, while Ledger and Trezor implementations live in their own signer packages. See [Wallet Architecture](architecture.md).
 
+**xchain-connect** - The public MIT-licensed `@dankest-llc/xchain-connect` browser package. It uses `window.xchain` at bridge protocol 0.2.0 or later and otherwise launches the same wallet request through a request link, so sites use one request vocabulary across the extension, web wallet, desktop app, Android app, and iOS app.
+
 **shell** - One of the wallet's end-user packages: a Chromium MV3 extension, a browser SPA, an Electron desktop app for Windows, macOS, and Linux, or a Capacitor wrapper around the web build. The Windows, macOS and Linux desktop builds are published as direct downloads. Android is shipped; the iOS package exists but its App Store release is pending. Each shell wires shared flows to its storage, messaging, and signer boundaries.
 
 **vault** - The shared encrypted persistent-state facade. It exposes typed collections for wallets, accounts, addresses, contacts, connected sites, signers, pending work, watchlists, alerts, multisig and co-signer state, gated keys, autopay state, and one settings record. Shells supply storage backends such as IndexedDB, `chrome.storage.local`, an Electron file store, or a native mobile vault.
@@ -52,6 +54,8 @@ A reference for terms used throughout the wallet's design and user-facing surfac
 
 **SIWX** - Sign-In with XChain. The bridge's `signIn` method signs a versioned challenge containing the app id, wallet-stamped requesting origin, address, nonce, timestamp, and expiry time. A relying service must verify the origin as well as the signature and other fields.
 
+**Login with XChain** - The protocol 0.2.0 `login` method signs one challenge per selected address and returns the first selection at the top level. `signIn` remains a deprecated alias, while SIWX and the `XChain Sign-In v2` challenge prefix remain wire-compatible names.
+
 **request link** - An [`xchain:request?v=1&req=<req>` link](../../protocol/xchain-uri-scheme.md) carrying one `{method, params}` request in a closed-key envelope with a single-use `id` and an `exp` at most 10 minutes ahead. Sites publish it as `https://wallet.xchain.io/link/?uri=<percent-encoded link>`, which opens the wallet on its existing approval page and never creates or uses a site grant.
 
 **browser return** - The default answer path, where the wallet sends the result to the site's HTTPS `return` URL in the `#xchain=` fragment, keeping it out of server logs and Referer headers.
@@ -59,6 +63,8 @@ A reference for terms used throughout the wallet's design and user-facing surfac
 **server callback** - The opt-in answer path, where the wallet sends an unauthenticated HTTPS POST of the result to the site's `callback` URL, so only the signatures in the body prove anything. See [Security & Threat Model](security.md).
 
 **claim** - A random value the wallet mints per request and sends only when there is a browser return, in both the fragment and the POST body, so a server starts a session only for the browser that presents it.
+
+**wallet request errors** - Protocol 0.2.0 adds `REQUEST_EXPIRED`, `REQUEST_TOO_LARGE`, and `RESULT_TOO_LARGE` to the provider error vocabulary. The browser package also returns `NO_PENDING_REQUEST` when a non-login result has no matching pending request.
 
 ## Storage and state
 
