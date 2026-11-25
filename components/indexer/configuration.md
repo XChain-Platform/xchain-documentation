@@ -31,6 +31,7 @@ Configuration is loaded from a `.env` file and environment variables. Copy the `
 | `INDEXER_API_PORT` | API server listening port | `3004` |
 | `CORS_ORIGIN` | Allowed CORS origin for API requests | `http://localhost` |
 | `INDEXER_RATE_LIMIT_RPM` | API requests per minute per IP | `600` |
+| `INDEXER_RATE_LIMIT_KEYED_RPM` | API requests per minute for each caller with a valid `INDEXER_API_KEY`; callers without a valid key share the per-IP budget | `600` |
 | `BALANCE_DELTA_MODE` | How address balances are maintained after each block. `off` re-sums each touched address's credit and debit history; `verify` re-sums too while comparing the collected per-block delta and logging any difference; `on` applies the collected delta instead of re-summing. A rollback always re-sums. Read case-insensitively; any other value reads as `off`. | `off` |
 | `HUB_API_URL` | Hub JSON-RPC base URL used by the indexer's hub client. Falls back to the URL passed in code when unset. | _(unset)_ |
 | `HUB_API_KEY` | API key sent with hub calls. Required whenever the hub runs keyed, which is always in validator mode. Treat as a credential. | _(unset)_ |
