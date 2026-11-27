@@ -84,7 +84,7 @@ Sibling packages alongside the four product targets are:
 
 - `@xchain-wallet/signers-trezor`: `TrezorSigner` and `trezorFormat.js`
 - `@xchain-wallet/signers-ledger`: `LedgerSigner`, `ledgerFormat.js`, and Ledger app inspection
-- `@xchain-wallet/bridge-spec`: TypeScript definitions, runtime validation, and client helpers for `window.xchain`
+- `@dankest-llc/xchain-connect`: TypeScript definitions, runtime validation, and client helpers for `window.xchain`
 - `@xchain-wallet/test-dapp`: a reference bridge client
 
 The core package does not construct `xchain-sdk` itself. Each directly hosted shell injects an SDK factory into `SDKRegistry`, which lazily creates and initializes a client per chain. Transaction construction, wallet utilities, explorer queries, hub calls, and node broadcasts use those SDK instances. Separately scoped wallet code performs such tasks as signed chain-registry refresh, price and metadata retrieval, and application update checks.
@@ -232,7 +232,7 @@ The checked PSBT is passed unchanged to `submitWithSigner()`. See [Security & Th
 
 The MV3 extension injects `window.xchain`. Its page-world provider sends requests through the content script to the service worker. The content script admits only `bridge.*` messages, and the background independently checks the browser-reported sender origin before applying the stored `ConnectedSite` grant. Extension UI pages can use the separate privileged host surface.
 
-The web application does not install a fallback `window.xchain` provider. It can detect and use the provider injected by an installed extension. The normative method, result, event, and error shapes live in `@xchain-wallet/bridge-spec` and are documented in [dApp Bridge](bridge.md).
+The web application does not install a fallback `window.xchain` provider. It can detect and use the provider injected by an installed extension. The normative method, result, event, and error shapes live in `@dankest-llc/xchain-connect` and are documented in [dApp Bridge](bridge.md).
 
 ### Approval broker
 
@@ -250,7 +250,7 @@ If signing succeeds but broadcast fails with a network-class failure, the host c
 
 ## Versioning and synchronized release
 
-The root and every workspace package, including mobile and both hardware-signer packages, carry the same release version. `tools/release/bump-version.mjs` updates those package declarations, the extension manifest fields, `core/src/buildInfo.js`, and release-facing documentation. A smoke test enforces the lockstep rule.
+The root and every workspace package except `packages/connect`, including mobile and both hardware-signer packages, carry the same release version. `packages/connect` is published to npm as `@dankest-llc/xchain-connect` with its own semver. `tools/release/bump-version.mjs` updates those package declarations, the extension manifest fields, `core/src/buildInfo.js`, and release-facing documentation. A smoke test enforces the lockstep rule.
 
 `core/src/buildInfo.js` exports `WALLET_VERSION` for the About panel, diagnostics, firmware manifest, and release links. The extension derives a Chrome-compatible numeric manifest version, while mobile derives Android and iOS build numbers from the release tag.
 

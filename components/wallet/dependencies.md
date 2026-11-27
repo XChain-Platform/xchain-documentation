@@ -100,7 +100,7 @@ Desktop also links `@xchain-wallet/signers-ledger` and `@xchain-wallet/signers-t
 
 ### Renderer and protocol packages
 
-`react`, `react-dom`, and `lightweight-charts` provide the renderer. `xchain-sdk` provides protocol access. Desktop also links `@xchain-wallet/core`, `@xchain-wallet/extension`, and `@xchain-wallet/bridge-spec` for shared flows, the background host, and dApp bridge helpers.
+`react`, `react-dom`, and `lightweight-charts` provide the renderer. `xchain-sdk` provides protocol access. Desktop also links `@xchain-wallet/core`, `@xchain-wallet/extension`, and `@dankest-llc/xchain-connect` for shared flows, the background host, and dApp bridge helpers.
 
 ## Mobile shell
 
@@ -114,13 +114,13 @@ The JavaScript workspace declares `@capacitor/core`, `@capacitor/android`, `@cap
 
 `@xchain-wallet/signers-trezor` declares no external runtime dependencies. Shell-specific factories inject the Trezor Connect surface, while the signer package contains the device-independent transaction and message conversion logic.
 
-## `@xchain-wallet/bridge-spec`
+## `@dankest-llc/xchain-connect`
 
-This private workspace has zero declared runtime dependencies. It exports TypeScript bridge types, runtime guards, and a reference client used by the wallet's dApp bridge and test dApp.
+This public package lives at `packages/connect`, is published to npm with its own semver, and has zero declared runtime dependencies. It exports TypeScript bridge types, runtime guards, and a reference client used by the wallet's dApp bridge and test dApp.
 
 ## `@xchain-wallet/test-dapp`
 
-This private reference dApp depends only on `@xchain-wallet/bridge-spec` through a workspace link. It exercises the `window.xchain` bridge surface with the shared types and runtime helpers.
+This private reference dApp depends only on the public `@dankest-llc/xchain-connect` package through a workspace link. It exercises the `window.xchain` bridge surface with the shared types and runtime helpers.
 
 ## Review cadence
 

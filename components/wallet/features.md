@@ -156,7 +156,7 @@ The wallet exposes `window.xchain` to dApps in browser tabs. See [Bridge](bridge
 - **`signPsbt`**: sign a dApp-supplied PSBT under user-controlled paths
 - **`signAction`**: sign a dApp-supplied XChain action; the wallet decodes + reviews + signs
 - **`sendAction`**: sign + broadcast in one approval
-- **`signIn`**: Login with XChain (`@xchain-wallet/bridge-spec`'s `formatSignInChallenge` + `parseSignInChallenge`)
+- **`signIn`**: Login with XChain (`@dankest-llc/xchain-connect`'s `formatSignInChallenge` + `parseSignInChallenge`)
 - **Events**: `accountsChanged`, `chainChanged`, `disconnect`, plus action-status streams via the SDK's WebSocket layer
 
 ## Air-gapped PSBT signing

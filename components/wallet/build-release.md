@@ -7,7 +7,7 @@ This document covers the wallet's release process: synchronized versioning, per-
 
 ## Synchronized versioning
 
-The root package and every package under `packages/` ship at the **same version number**. The current lockstep set is:
+The root package and every package under `packages/` except `packages/connect` ship at the **same version number**. The current lockstep set is:
 
 - `package.json` (root), the release version used for the tag
 - `packages/core/package.json`
@@ -15,12 +15,13 @@ The root package and every package under `packages/` ship at the **same version 
 - `packages/extension/package.json`
 - `packages/desktop/package.json`
 - `packages/mobile/package.json`
-- `packages/bridge-spec/package.json`
 - `packages/test-dapp/package.json`
 - `packages/signers-trezor/package.json`
 - `packages/signers-ledger/package.json`
 
-The membership rule is the root plus every `packages/*/package.json`, not a hard-coded package list in the release tool. A new package enters the lockstep set as soon as its `package.json` exists.
+The membership rule is the root plus every `packages/*/package.json` except `packages/connect`, not a hard-coded package list in the release tool. A new package enters the lockstep set as soon as its `package.json` exists.
+
+`packages/connect/package.json` (`@dankest-llc/xchain-connect`) is **excluded** from synchronized versioning. It is published to npm with its own semver and `connect-v` tags, so a wallet version bump never rewrites it.
 
 The `test/e2e/package.json` (`@xchain-wallet/e2e`) is **excluded** from synchronized versioning. It tracks the Playwright suite independently.
 

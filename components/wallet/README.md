@@ -22,7 +22,7 @@ The wallet exposes all 32 current user-encodable ACTION types, a built-in DEX su
 - **Staking + delegation**: STAKE / UNSTAKE / DELEGATE contract versions are offered across supported chains; validator and capability versions plus COLLECT rewards are Bitcoin-only. The wallet includes the staking dashboard, delegation form, and operator dashboard
 - **Cross-chain flows**: single-fill cross-chain swaps, federation-matched cross-chain orders, cross-chain templates, a parallel composer for multi-chain submission, a per-chain SDK registry, and link / swap coordinators
 - **Multisig coordinator**: create n-of-m configs, paste-inbox for partial PSBTs, AnimatedQrFrames PSBT-QR transport, session state machine, MuSig2 round labels, schema-v2 per-address multi-config support, camera scanner, and cosigner account provisioning
-- **dApp bridge (`window.xchain`)**: the extension injects a provider typed by `@xchain-wallet/bridge-spec`: connect, getAccounts, getBalances, signMessage, signPsbt, signAction, signIn (Login with XChain), and event subscriptions; the extension service worker enforces per-origin permission grants
+- **dApp bridge (`window.xchain`)**: the extension injects a provider typed by `@dankest-llc/xchain-connect`: connect, getAccounts, getBalances, signMessage, signPsbt, signAction, signIn (Login with XChain), and event subscriptions; the extension service worker enforces per-origin permission grants
 - **Air-gapped PSBT signing**: BIP21 / multisig PSBT envelope / chunked PSBT-QR; QR scanner + AnimatedQrFrames for offline cosigner round-trips; `prefers-reduced-motion` honored with manual frame stepping
 - **Sign-screen safety rails**: plain-English action decoder shows `to` / `amount` / `asset` as the user typed them, even if the encoder fabricates output; per-action expectation summaries; explicit user confirmation
 - **Onboarding and recovery**: create / import / Counterwallet-migrate / dry-run-restore / discover-used-addresses gap-limit scan; view-private-key + export-WIF gated by a "Before you continue" warning in an unlocked session (no password re-entry; a locked wallet must be unlocked first)
@@ -124,7 +124,7 @@ Builds target Windows, macOS, and Linux via electron-builder. The pre-signing Li
 
 ### dApp integration
 
-Third-party dApps integrate via the `window.xchain` provider injected by the extension. The desktop preload's `window.xchainWalletBridge` is an internal renderer-to-main API, not the public dApp provider. Consume the typed `@xchain-wallet/bridge-spec` package for full TypeScript types of every public method, parameter, and result envelope. See [Bridge](bridge.md) for the full API.
+Third-party dApps integrate via the `window.xchain` provider injected by the extension. The desktop preload's `window.xchainWalletBridge` is an internal renderer-to-main API, not the public dApp provider. Consume the typed `@dankest-llc/xchain-connect` package for full TypeScript types of every public method, parameter, and result envelope. See [Bridge](bridge.md) for the full API.
 
 ## Repository Layout
 
@@ -139,7 +139,7 @@ xchain-wallet/
 │   ├── extension/               Chrome MV3 extension shell (popup + full-screen + side panel)
 │   ├── desktop/                 Electron desktop shell (Windows / macOS / Linux)
 │   ├── mobile/                  Capacitor Android / iOS shell wrapping the web build
-│   ├── bridge-spec/             window.xchain TypeScript type definitions
+│   ├── connect/                 window.xchain TypeScript types and reference client (npm, own semver)
 │   ├── signers-ledger/          Ledger hardware signer (WebHID transport)
 │   ├── signers-trezor/          Trezor hardware signer (Connect transport)
 │   └── test-dapp/               reference dApp exercising the bridge

@@ -3,7 +3,7 @@
 
 # dApp Bridge: `window.xchain`
 
-The Chrome MV3 extension exposes a typed `window.xchain` provider to dApps. The TypeScript contract and discovery helpers live in the wallet repository's private `@xchain-wallet/bridge-spec` workspace package. Its type definitions describe the public surface; this page also calls out places where the current extension runtime is narrower than those types.
+The Chrome MV3 extension exposes a typed `window.xchain` provider to dApps. The TypeScript contract and discovery helpers live in the public `@dankest-llc/xchain-connect` package at `packages/connect` and are published to npm. Its type definitions describe the public surface; this page also calls out places where the current extension runtime is narrower than those types.
 
 ## Scope
 
@@ -39,7 +39,7 @@ The manifest injects the content script at `document_start` into the top documen
 Detection should not assume the provider is ready immediately on page load. The content script appends a second script to the page, and that script dispatches `xchain#initialized` after installing the provider.
 
 ```ts
-import { isXChainAvailable, getProvider, PROVIDER_READY_EVENT } from '@xchain-wallet/bridge-spec';
+import { isXChainAvailable, getProvider, PROVIDER_READY_EVENT } from '@dankest-llc/xchain-connect';
 
 if (isXChainAvailable()) {
     const provider = window.xchain;
@@ -66,7 +66,7 @@ provider.isXChainWallet // true
 ## Quick start
 
 ```ts
-import { getProvider } from '@xchain-wallet/bridge-spec';
+import { getProvider } from '@dankest-llc/xchain-connect';
 
 const xchain = await getProvider({ timeoutMs: 3000 });
 if (!xchain) throw new Error('XChain Wallet not available');
@@ -278,9 +278,9 @@ The timestamps are Unix epoch milliseconds. The formatter rejects any field cont
 `<origin>` comes from the content-script trust boundary, not from `signIn` parameters. `appId` is page supplied and does not identify the requesting site by itself. A relying backend must verify the signature and use `validateSignInChallenge` to check the expected `appId`, origin, nonce, timestamp, and expiry.
 
 ```ts
-import { makeSignInParams, parseSignInChallenge, validateSignInChallenge } from '@xchain-wallet/bridge-spec';
+import { generateNonce, parseSignInChallenge, validateSignInChallenge } from '@dankest-llc/xchain-connect';
 
-const params = makeSignInParams('mydapp.example');
+const params = { appId: 'mydapp.example', nonce: generateNonce() };
 const result = await provider.signIn(params);
 if (!result.ok) { /* handle result.error */ }
 
@@ -407,7 +407,7 @@ console.log(result.txid);
 The bridge protocol version is independent of the wallet package version:
 
 ```ts
-import { BRIDGE_SPEC_VERSION, BRIDGE_SUPPORTED_VERSIONS } from '@xchain-wallet/bridge-spec';
+import { BRIDGE_SPEC_VERSION, BRIDGE_SUPPORTED_VERSIONS } from '@dankest-llc/xchain-connect';
 
 // BRIDGE_SPEC_VERSION: "0.1.0"
 // BRIDGE_SUPPORTED_VERSIONS: ["0.1.0"]

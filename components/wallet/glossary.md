@@ -8,7 +8,7 @@ A reference for terms used throughout the wallet's design and user-facing surfac
 
 ## Wallet architecture
 
-**core** - The shared `@xchain-wallet/core` package. It contains schemas, validators, flows, storage, software and remote signer support, shared routes and components, i18n, and build metadata. The bridge contract is a separate `@xchain-wallet/bridge-spec` package, while Ledger and Trezor implementations live in their own signer packages. See [Wallet Architecture](architecture.md).
+**core** - The shared `@xchain-wallet/core` package. It contains schemas, validators, flows, storage, software and remote signer support, shared routes and components, i18n, and build metadata. The bridge contract is the separate public `@dankest-llc/xchain-connect` package at `packages/connect`, while Ledger and Trezor implementations live in their own signer packages. See [Wallet Architecture](architecture.md).
 
 **xchain-connect** - The public MIT-licensed `@dankest-llc/xchain-connect` browser package. It uses `window.xchain` at bridge protocol 0.2.0 or later and otherwise launches the same wallet request through a request link, so sites use one request vocabulary across the extension, web wallet, desktop app, Android app, and iOS app.
 
