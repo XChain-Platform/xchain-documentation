@@ -420,40 +420,6 @@ function assertEveryGateRowParsed(sources) {
     }
 }
 
-/**
- * Every time-keyed gate the registry's `addGate(key, unit, table)` rows declare.
- *
- * These are the maps the sibling scan above found in `*_activation.js` before W3:
- * the registry owns every activation table now and each module reads its own
- * back from it, so the row is where the threshold and its registration comment
- * live. The gate keeps the name the sibling scan published, the key's export
- * half (`DISPENSER_CAPS_ACTIVATION`), so a table that moved into a row keeps
- * its row on the page. Only `'time'` rows are read: the unit says what the
- * value scan had to infer from the number's size, and a height row is not this
- * page's subject whatever its mainnet slot holds. The slots go through the
- * sibling scan's reader, so the same shapes are quiet and the same are loud.
- */
-function collectGateRows(sources, add) {
-    assertEveryGateRowParsed(sources);
-    const unreadable = [];
-    for (const row of sources.scannable.matchAll(GATE_ROW)) {
-        if (row[3] !== 'time') continue;
-        const body = objectBody(sources.scannable, row.index + row[0].length - 1);
-        if (body === null) continue;
-        collectMapSlots(body, row[2], sources.fileAt(row.index), sources.where(row.index), add, unreadable);
-    }
-    if (unreadable.length > 0) {
-        throw new Error(
-            'a registry addGate row declares a mainnet threshold this generator cannot read, so '
-            + 'protocol/flag-days.md would publish an inventory that calls itself complete and is not:\n  '
-            + unreadable.join('\n  ')
-            + "\n\nThe gate-row pass reads `mainnet: <digits>` inside an addGate('<stem>.<NAME>', 'time', { ... }) "
-            + 'table and stays quiet for `null` and for an identifier it cannot resolve. Either write the '
-            + 'threshold in that shape or widen the parse in bin/generate-flag-days.js deliberately.',
-        );
-    }
-}
-
 // The coins the indexer resolves a `'<COIN>:<network>'` key for, as
 // `config['COINS']` in xchain-indexer/src/config/currencies.js. The registry is
 // read as text, so the list is restated here and a test pins it to that file.
@@ -500,9 +466,9 @@ function resolveRowCoins(sources, body, network, where, gate) {
 
 /**
  * One network's slot of every registry `addGate(..., 'time', { ... })` row, into
- * `add` as `(gate, value)`: a decimal literal, or `UNARMED` resolved through
+ * `add` as `(gate, value, source)`: a decimal literal, or `UNARMED` resolved through
  * core.js. The caller's `add` decides the range, so the one reader serves the
- * testnet arms (a real instant) and both UNARMED lists (the sentinel).
+ * mainnet table, testnet arms (a real instant), and both UNARMED lists.
  *
  * A row may key a network per coin beside a bare slot, and the indexer prefers
  * the coin key. The page publishes one value per gate, so the value is the one
@@ -527,7 +493,7 @@ function collectGateRowSlots(sources, network, add) {
             );
         }
         const [value] = values;
-        if (value !== null) add(row[2], value);
+        if (value !== null) add(row[2], value, sources.fileAt(row.index));
     }
 }
 
@@ -868,11 +834,9 @@ function collectGates(indexerSrc = INDEXER_SRC) {
 
     assertEveryDeclarationParsed(sources, parsedCalls, parsedConstLines, parsedNames);
 
-    // The registry's addGate('<stem>.<NAME>', 'time', { mainnet: ... }) rows,
-    // then the sibling `*_activation.js` modules for a tree that still declares
-    // a map of its own: a mainnet threshold above the timestamp floor is a
-    // time-keyed gate; below it, a block height, which this page does not cover.
-    collectGateRows(sources, add);
+    // Resolve each registry time row per coin before publishing its one mainnet
+    // value. The sibling modules remain a fallback for older indexer trees.
+    collectGateRowSlots(sources, 'mainnet', add);
     collectSiblingGates(indexerSrc, add);
 
     return [...found.values()].sort((a, b) => (a.time - b.time) || a.gate.localeCompare(b.gate));

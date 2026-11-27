@@ -642,7 +642,11 @@ For a native-paid top-level `EXECUTE` from `EXECUTE_NATIVE_METERED_GAS_ACTIVATIO
 dry-run gas estimate, adds a fixed safety margin, floors it at the execution base, caps it at the
 protocol gas ceiling, and returns the converted budget in `requiredFeeSats`. Use that field as-is;
 the top-level action has no gas-budget wire field. Before the gate, the native EXECUTE quote is the
-base price. Native `BATCH` quotes remain unsupported, including batches containing EXECUTE.
+base price.
+On LTC and DOGE, where the native coin is the only way to pay, a `BATCH` is quoted from one
+in-order dry-run of its exact wire: each sub-command is priced against the state the earlier ones
+leave, an `EXECUTE` sub-command the way a lone `EXECUTE` is, and `requiredFeeSats` clears the
+batch's in-order acceptance floor (`minAcceptable`). On BTC a native `BATCH` quote stays refused.
 
 **Request size switch.** The SDK sends the `GET` above until the query string passes 6144 characters. A larger quote (a long `params` array, for example) is sent as `POST /{COIN}/api/feequote` instead, with the same `action`, `params`, `source` and `feeOutputSats` fields as a JSON body. The response shape is the same either way. If the explorer answers the `POST` with 404 or 405, as an explorer without the POST route does, the SDK retries the `GET` once; any other status is returned as an error without a retry.
 

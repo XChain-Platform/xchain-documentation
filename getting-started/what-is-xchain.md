@@ -164,7 +164,7 @@ Every operation on XChain is expressed as one of 38 ACTION commands. Think of th
 | Betting | BET |
 | Validator / system | ANCHOR, NODEPROOF, ROLLCALL, SLASH |
 
-Each ACTION has a versioned format, as the protocol evolves and adds new fields, old versions remain valid so that existing software doesn't break.
+Each ACTION has a versioned format. Each action defines which versions it accepts, some versions take effect only after an activation height (see [Protocol Activation](../protocol/protocol-activation.md)), and a version can be retired, after which indexers reject it.
 
 ACTIONs are encoded as compact pipe-delimited strings embedded inside standard blockchain transactions. The encoding is obfuscated (not encrypted; the data is fully readable by anyone running an XChain node) to avoid being accidentally filtered by blockchain infrastructure. A magic prefix (`XCHN`) identifies XChain transactions.
 
